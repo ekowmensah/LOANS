@@ -53,6 +53,7 @@
                                                class="btn btn-primary"><i
                                                         class="fas fa-check"></i>
                                                 {{ trans_choice('loan::general.approve',1) }}</a>
+                                            <a href="#" data-toggle="modal" data-target="#withdraw_loan_modal"
                                                class="btn btn-primary"><i class="fas fa-times"></i>
                                                 {{ trans_choice('loan::general.withdraw',1) }}
                                             </a>
