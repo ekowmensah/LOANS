@@ -215,14 +215,17 @@ class GroupController extends Controller
     {
         $group = Group::findOrFail($id);
         
-        // Check if group has active loans
-        if ($group->loans()->where('status', 'active')->exists()) {
-            \flash('Cannot delete group with active loans')->error()->important();
+        // Check if group has any members
+        if ($group->members()->exists()) {
+            \flash('Cannot delete group. Group has members. Please remove all members first.')->error()->important();
             return redirect()->back();
         }
-
-        // Remove all group members first
-        $group->members()->delete();
+        
+        // Check if group has any loans (active or historical)
+        if ($group->loans()->exists()) {
+            \flash('Cannot delete group. Group has loan records.')->error()->important();
+            return redirect()->back();
+        }
         
         $group->delete();
 

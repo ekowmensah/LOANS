@@ -86,11 +86,6 @@
                             </a>
                         </th>
                         <th>
-                            <a href="{{table_order_link('id')}}">
-                                {{ trans_choice('core::general.system',1) }} {{ trans_choice('core::general.id',1) }}
-                            </a>
-                        </th>
-                        <th>
                             <a href="{{table_order_link('external_id')}}">
                                 {{ trans_choice('core::general.external_id',1) }}
                             </a>
@@ -101,6 +96,7 @@
                             </a>
                         </th>
                         <th>{{ trans('core::general.mobile') }}</th>
+                        <th>Savings Account</th>
                         <th>
                             <a href="{{table_order_link('status')}}">
                                 {{ trans_choice('core::general.status',1) }}
@@ -128,9 +124,6 @@
                                 </a>
                             </td>
                             <td>
-                                <span>{{$key->id}}</span>
-                            </td>
-                            <td>
                                 <span>{{$key->external_id}}</span>
                             </td>
                             <td>
@@ -149,6 +142,15 @@
                             </td>
                             <td>
                                 <span>{{$key->mobile}}</span>
+                            </td>
+                            <td>
+                                @if($key->savings_account)
+                                    <span class="badge badge-info">{{$key->savings_account}}</span>
+                                    <br>
+                                    <small class="text-muted">Balance: <strong>{{number_format($key->savings_balance ?? 0, 2)}}</strong></small>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
                             </td>
                             <td>
                                 @if($key->status == "pending")
@@ -178,6 +180,11 @@
                                 </a>
                             </td>
                             <td>
+                                @if(!$key->group_id)
+                                    <a href="{{url('client/group/member/create?client_id=' . $key->id)}}" class="btn btn-sm btn-success mb-1">
+                                        <i class="fas fa-users"></i> Add to Group
+                                    </a>
+                                @endif
                                 <div class="btn-group">
                                     <button href="#" class="btn btn-default dropdown-toggle"
                                             data-toggle="dropdown">
@@ -194,14 +201,21 @@
                                                 <span>{{trans_choice('core::general.edit',1)}}</span>
                                             </a>
                                         @endcan
-                                        <div class="divider"></div>
                                         @can('core.payment_types.destroy')
-                                            <a href="{{url('client/' . $key->id . '/destroy')}}"
-                                               class="dropdown-item confirm">
-                                                <i class="fas fa-trash"></i>
-                                                <span>{{trans_choice('core::general.delete',1)}}</span>
-                                            </a>
-
+                                            @if(!$key->group_id && $key->loan_count == 0)
+                                                <div class="divider"></div>
+                                                <a href="{{url('client/' . $key->id . '/destroy')}}"
+                                                   class="dropdown-item confirm">
+                                                    <i class="fas fa-trash"></i>
+                                                    <span>{{trans_choice('core::general.delete',1)}}</span>
+                                                </a>
+                                            @else
+                                                <div class="divider"></div>
+                                                <a href="#" class="dropdown-item disabled text-muted" title="Cannot delete: Client has {{ $key->group_id ? 'group membership' : '' }}{{ $key->group_id && $key->loan_count > 0 ? ' and ' : '' }}{{ $key->loan_count > 0 ? 'loans' : '' }}">
+                                                    <i class="fas fa-ban"></i>
+                                                    <span>{{trans_choice('core::general.delete',1)}} (Restricted)</span>
+                                                </a>
+                                            @endif
                                         @endcan
                                     </div>
                                 </div>

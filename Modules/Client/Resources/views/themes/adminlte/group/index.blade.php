@@ -137,13 +137,21 @@
                                                 <span>{{trans_choice('core::general.edit',1)}}</span>
                                             </a>
                                         @endcan
-                                        <div class="divider"></div>
                                         @can('client.groups.destroy')
-                                            <a href="{{url('client/group/' . $key->id . '/destroy')}}"
-                                               class="dropdown-item confirm">
-                                                <i class="fas fa-trash"></i>
-                                                <span>{{trans_choice('core::general.delete',1)}}</span>
-                                            </a>
+                                            @if($key->member_count == 0 && $key->total_loans == 0)
+                                                <div class="divider"></div>
+                                                <a href="{{url('client/group/' . $key->id . '/destroy')}}"
+                                                   class="dropdown-item confirm">
+                                                    <i class="fas fa-trash"></i>
+                                                    <span>{{trans_choice('core::general.delete',1)}}</span>
+                                                </a>
+                                            @else
+                                                <div class="divider"></div>
+                                                <a href="#" class="dropdown-item disabled text-muted" title="Cannot delete: Group has {{ $key->member_count > 0 ? $key->member_count . ' member(s)' : '' }}{{ $key->member_count > 0 && $key->total_loans > 0 ? ' and ' : '' }}{{ $key->total_loans > 0 ? $key->total_loans . ' loan(s)' : '' }}">
+                                                    <i class="fas fa-ban"></i>
+                                                    <span>{{trans_choice('core::general.delete',1)}} (Restricted)</span>
+                                                </a>
+                                            @endif
                                         @endcan
                                     </div>
                                 </div>

@@ -52,6 +52,12 @@ class ClientController extends Controller
         $status = $request->status;
         $data = Client::leftJoin("branches", "branches.id", "clients.branch_id")
             ->leftJoin("users", "users.id", "clients.loan_officer_id")
+            ->leftJoin("savings", function($join) {
+                $join->on("savings.client_id", "=", "clients.id")
+                     ->where("savings.status", "=", "active");
+            })
+            ->leftJoin("group_members", "group_members.client_id", "=", "clients.id")
+            ->leftJoin("loans", "loans.client_id", "=", "clients.id")
             ->when($orderBy, function (Builder $query) use ($orderBy, $orderByDir) {
                 $query->orderBy($orderBy, $orderByDir);
             })
@@ -66,7 +72,8 @@ class ClientController extends Controller
             ->when($status, function ($query) use ($status) {
                 $query->where('clients.status', $status);
             })
-            ->selectRaw("branches.name branch,concat(users.first_name,' ',users.last_name) staff,clients.id,clients.loan_officer_id,clients.first_name,clients.last_name,clients.gender,clients.mobile,clients.email,clients.external_id,clients.status")
+            ->selectRaw("branches.name branch,concat(users.first_name,' ',users.last_name) staff,clients.id,clients.loan_officer_id,clients.first_name,clients.last_name,clients.gender,clients.mobile,clients.email,clients.external_id,clients.status,savings.account_number as savings_account,savings.balance_derived as savings_balance,group_members.group_id,COUNT(DISTINCT loans.id) as loan_count")
+            ->groupBy('clients.id', 'branches.name', 'users.first_name', 'users.last_name', 'clients.loan_officer_id', 'clients.first_name', 'clients.last_name', 'clients.gender', 'clients.mobile', 'clients.email', 'clients.external_id', 'clients.status', 'savings.account_number', 'savings.balance_derived', 'group_members.group_id')
             ->paginate($perPage)
             ->appends($request->input());
         return theme_view('client::client.index', compact('data'));
@@ -294,6 +301,21 @@ class ClientController extends Controller
     public function destroy($id)
     {
         $client = Client::find($id);
+        
+        // Check if client is part of a group
+        $groupMembership = \DB::table('group_members')->where('client_id', $id)->first();
+        if ($groupMembership) {
+            \flash('Cannot delete client. Client is part of a group. Please remove from group first.')->error()->important();
+            return redirect()->back();
+        }
+        
+        // Check if client has any loans
+        $hasLoans = \Modules\Loan\Entities\Loan::where('client_id', $id)->exists();
+        if ($hasLoans) {
+            \flash('Cannot delete client. Client has loan records.')->error()->important();
+            return redirect()->back();
+        }
+        
         $client->delete();
         activity()->on($client)
             ->withProperties(['id' => $client->id])
