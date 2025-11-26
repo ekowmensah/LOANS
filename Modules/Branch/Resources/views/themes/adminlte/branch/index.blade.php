@@ -75,7 +75,7 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                <table id="data-table" class="table table-striped table-hover">
+                <table id="data-table" class="table table-striped table-hover table-sm">
                     <thead>
                     <tr>
                         <th>
@@ -83,11 +83,14 @@
                                 {{ trans_choice('core::general.name',1) }}
                             </a>
                         </th>
-                        <th>
-                            <a href="{{table_order_link('open_date')}}">
-                                {{ trans_choice('branch::general.open',2) }} {{ trans_choice('core::general.date',1) }}
-                            </a>
-                        </th>
+                        <th class="text-center">Clients</th>
+                        <th class="text-center">Groups</th>
+                        <th class="text-center">Group Loans</th>
+                        <th class="text-center">Individual Loans</th>
+                        <th class="text-right">Total Savings</th>
+                        <th class="text-right">Loan Disbursed</th>
+                        <th class="text-right">Loan Paid</th>
+                        <th class="text-right">Loan Outstanding</th>
                         <th>{{ trans_choice('core::general.action',1) }}</th>
                     </tr>
                     </thead>
@@ -95,12 +98,33 @@
                     @foreach($data as $key)
                         <tr>
                             <td>
-                                <a href="{{url('branch/' . $key->id . '/show')}}">
-                                    <span>{{$key->name}}</span>
+                                <a href="{{url('branch/' . $key->id . '/show')}}" class="font-weight-bold">
+                                    {{$key->name}}
                                 </a>
                             </td>
-                            <td>
-                                <span>{{$key->open_date}}</span>
+                            <td class="text-center">
+                                <span class="badge badge-primary">{{$key->total_clients}}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-info">{{$key->total_groups}}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-success">{{$key->total_group_loans}}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-warning">{{$key->total_individual_loans}}</span>
+                            </td>
+                            <td class="text-right">
+                                <strong class="text-info">{{number_format($key->total_savings, 2)}}</strong>
+                            </td>
+                            <td class="text-right">
+                                <strong class="text-success">{{number_format($key->loan_disbursed, 2)}}</strong>
+                            </td>
+                            <td class="text-right">
+                                <strong class="text-primary">{{number_format($key->loan_paid, 2)}}</strong>
+                            </td>
+                            <td class="text-right">
+                                <strong class="text-danger">{{number_format($key->loan_outstanding, 2)}}</strong>
                             </td>
                             <td>
                                 <div class="btn-group">
@@ -135,6 +159,36 @@
                         </tr>
                     @endforeach
                     </tbody>
+                    <tfoot class="bg-light">
+                        <tr>
+                            <th class="text-right">TOTALS:</th>
+                            <th class="text-center">
+                                <span class="badge badge-primary">{{$data->sum('total_clients')}}</span>
+                            </th>
+                            <th class="text-center">
+                                <span class="badge badge-info">{{$data->sum('total_groups')}}</span>
+                            </th>
+                            <th class="text-center">
+                                <span class="badge badge-success">{{$data->sum('total_group_loans')}}</span>
+                            </th>
+                            <th class="text-center">
+                                <span class="badge badge-warning">{{$data->sum('total_individual_loans')}}</span>
+                            </th>
+                            <th class="text-right">
+                                <strong class="text-info">{{number_format($data->sum('total_savings'), 2)}}</strong>
+                            </th>
+                            <th class="text-right">
+                                <strong class="text-success">{{number_format($data->sum('loan_disbursed'), 2)}}</strong>
+                            </th>
+                            <th class="text-right">
+                                <strong class="text-primary">{{number_format($data->sum('loan_paid'), 2)}}</strong>
+                            </th>
+                            <th class="text-right">
+                                <strong class="text-danger">{{number_format($data->sum('loan_outstanding'), 2)}}</strong>
+                            </th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
             <div class="card-footer">

@@ -40,14 +40,37 @@ class BranchController extends Controller
         $orderBy = $request->order_by;
         $orderByDir = $request->order_by_dir;
         $search = $request->s;
-        $data = Branch::when($orderBy, function (Builder $query) use ($orderBy, $orderByDir) {
-            $query->orderBy($orderBy, $orderByDir);
-        })
-            ->when($search, function (Builder $query) use ($search) {
-                $query->where('name', 'like', "%$search%");
+        
+        $data = Branch::leftJoin('clients', 'clients.branch_id', '=', 'branches.id')
+            ->leftJoin('groups', 'groups.branch_id', '=', 'branches.id')
+            ->leftJoin('loans', 'loans.branch_id', '=', 'branches.id')
+            ->leftJoin('savings', function($join) {
+                $join->on('savings.branch_id', '=', 'branches.id')
+                     ->where('savings.status', '=', 'active');
             })
+            ->when($orderBy, function (Builder $query) use ($orderBy, $orderByDir) {
+                $query->orderBy('branches.' . $orderBy, $orderByDir);
+            })
+            ->when($search, function (Builder $query) use ($search) {
+                $query->where('branches.name', 'like', "%$search%");
+            })
+            ->selectRaw('
+                branches.id,
+                branches.name,
+                branches.open_date,
+                COUNT(DISTINCT clients.id) as total_clients,
+                COUNT(DISTINCT groups.id) as total_groups,
+                COUNT(DISTINCT CASE WHEN loans.client_type = "group" THEN loans.id END) as total_group_loans,
+                COUNT(DISTINCT CASE WHEN loans.client_type = "client" THEN loans.id END) as total_individual_loans,
+                COALESCE(SUM(DISTINCT savings.balance_derived), 0) as total_savings,
+                COALESCE(SUM(loans.principal), 0) as loan_disbursed,
+                COALESCE(SUM(loans.principal_repaid_derived), 0) as loan_paid,
+                COALESCE(SUM(loans.principal) - SUM(loans.principal_repaid_derived), 0) as loan_outstanding
+            ')
+            ->groupBy('branches.id', 'branches.name', 'branches.open_date')
             ->paginate($perPage)
             ->appends($request->input());
+            
         return theme_view('branch::branch.index', compact('data'));
     }
 
