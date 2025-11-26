@@ -6,7 +6,7 @@
  */
 
 // Prevent unauthorized access - change this password!
-$password = 'your_secure_password_here';
+$password = 'ClearCache2025';
 
 if (!isset($_GET['password']) || $_GET['password'] !== $password) {
     die('Unauthorized access');
