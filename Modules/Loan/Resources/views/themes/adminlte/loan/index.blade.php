@@ -91,7 +91,7 @@
                             </a>
                             <a href="{{request()->fullUrlWithQuery(['status'=>'withdrawn'])}}"
                                class="dropdown-item {{request('status')=='withdrawn'?'active':''}}">
-                                Withdrawn
+                                Revoked
                             </a>
                             <a href="{{request()->fullUrlWithQuery(['status'=>'rejected'])}}"
                                class="dropdown-item {{request('status')=='rejected'?'active':''}}">
@@ -245,7 +245,7 @@
                                     <span class="badge badge-danger">{{trans_choice('loan::general.rejected', 1)}}</span>
                                 @endif
                                 @if($key->status == 'withdrawn')
-                                    <span class="badge badge-danger">{{trans_choice('loan::general.withdrawn', 1)}}</span>
+                                    <span class="badge badge-danger">Revoked</span>
                                 @endif
                                 @if($key->status == 'written_off')
                                     <span class="badge badge-danger">{{trans_choice('loan::general.written_off', 1)}}</span>

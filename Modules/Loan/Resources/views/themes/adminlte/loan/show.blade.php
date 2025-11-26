@@ -58,8 +58,8 @@
                                                 {{ trans_choice('loan::general.reject',1) }}
                                             </a>
                                             <a href="#" data-toggle="modal" data-target="#withdraw_loan_modal"
-                                               class="btn btn-warning"><i class="fas fa-times"></i>
-                                                {{ trans_choice('loan::general.withdraw',1) }}
+                                               class="btn btn-warning"><i class="fas fa-undo"></i>
+                                                Revoke
                                             </a>
                                         @endcan
                                         @can('loan.loans.edit')
@@ -257,7 +257,7 @@
                                                 <div class="modal-dialog">
                                                     <div class="modal-content">
                                                         <div class="modal-header">
-                                                            <h4 class="modal-title">{{ trans_choice('loan::general.withdraw',1) }} {{ trans_choice('loan::general.loan',1) }}</h4>
+                                                            <h4 class="modal-title">Revoke {{ trans_choice('loan::general.loan',1) }}</h4>
                                                             <button type="button" class="close" data-dismiss="modal"
                                                                     aria-label="Close">
                                                                 <span aria-hidden="true">×</span>
@@ -269,11 +269,11 @@
                                                             <div class="modal-body">
                                                                 <div class="form-group">
                                                                     <label for="withdrawn_notes"
-                                                                           class="control-label">{{ trans_choice('core::general.note',2) }}</label>
+                                                                           class="control-label">Revoke {{ trans_choice('core::general.note',2) }}</label>
                                                                     <textarea name="withdrawn_notes"
                                                                               class="form-control"
                                                                               id="withdrawn_notes" rows="3"
-                                                                              required=""></textarea>
+                                                                              required="" placeholder="Enter reason for revoking this loan application..."></textarea>
                                                                 </div>
                                                             </div>
                                                             <div class="modal-footer">
@@ -874,7 +874,7 @@
                                         @can('loan.loans.approve_loan')
                                             <a href="{{url('loan/'.$loan->id.'/undo_withdrawn')}}"
                                                class="btn btn-primary confirm"><i class="fa fa-undo"></i>
-                                                {{ trans_choice('loan::general.undo',1) }} {{ trans_choice('loan::general.withdrawn',1) }}
+                                                Undo Revoked
                                             </a>
                                         @endcan
                                     @endif
@@ -891,7 +891,7 @@
                                         <span class="badge badge-warning badge-lg m-2  status-label">{{ trans_choice('loan::general.awaiting_disbursement',1) }}</span>
                                     @endif
                                     @if($loan->status=='withdrawn')
-                                        <span class="badge badge-danger badge-lg m-2  status-label">{{ trans_choice('loan::general.withdrawn',1) }}</span>
+                                        <span class="badge badge-danger badge-lg m-2  status-label">Revoked</span>
 
                                     @endif
                                     @if($loan->status=='rejected')
@@ -1046,7 +1046,7 @@
                                                 <span class="badge badge-success">{{ trans_choice('loan::general.active',1) }}</span>
                                             @endif
                                             @if($loan->status=='withdrawn')
-                                                <span class="badge badge-danger">{{ trans_choice('loan::general.withdrawn',1) }}</span>
+                                                <span class="badge badge-danger">Revoked</span>
                                             @endif
                                             @if($loan->status=='rejected')
                                                 <span class="badge badge-danger">{{ trans_choice('loan::general.rejected',1) }}</span>
