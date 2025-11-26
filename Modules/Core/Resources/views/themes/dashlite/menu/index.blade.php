@@ -73,21 +73,51 @@
             var data = group.sortable("serialize").get();
 
             var jsonString = JSON.stringify(data, null, ' ');
+            console.log('Saving menu data:', jsonString);
+            
             axios.post('{{url('menu/update')}}', {
                 data: data,
                 _token:"{{csrf_token()}}"
             }).then(function (response) {
-                swal({
-                    text: response.data.msg,
-                    type: 'success',
-                    showCancelButton: false,
-                    timer: 1500
-
-                })
+                console.log('Save response:', response);
+                // Try modern Swal first, fallback to old swal, then toastr
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        text: response.data.msg,
+                        icon: 'success',
+                        showCancelButton: false,
+                        timer: 1500
+                    });
+                } else if (typeof swal !== 'undefined') {
+                    swal({
+                        text: response.data.msg,
+                        type: 'success',
+                        showCancelButton: false,
+                        timer: 1500
+                    });
+                } else if (typeof toastr !== 'undefined') {
+                    toastr.success(response.data.msg);
+                } else {
+                    alert(response.data.msg);
+                }
             }).catch(function (error) {
-
+                console.error('Save error:', error);
+                var errorMsg = 'Failed to save menu order';
+                if (error.response && error.response.data && error.response.data.message) {
+                    errorMsg = error.response.data.message;
+                }
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        text: errorMsg,
+                        icon: 'error'
+                    });
+                } else if (typeof toastr !== 'undefined') {
+                    toastr.error(errorMsg);
+                } else {
+                    alert(errorMsg);
+                }
             });
-            console.log(jsonString);
         }
 
         $("span.menu_title").editable({

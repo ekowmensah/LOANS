@@ -1,0 +1,12 @@
+{
+    "name": "Teller",
+    "alias": "teller",
+    "description": "Teller module for processing deposits and withdrawals",
+    "keywords": ["teller", "cashier", "deposit", "withdrawal", "transaction"],
+    "priority": 0,
+    "providers": [
+        "Modules\\Teller\\Providers\\TellerServiceProvider"
+    ],
+    "files": [],
+    "active": 1
+}

@@ -28,5 +28,6 @@
     "Flutterwave": true,
     "Share": true,
     "Nice": true,
-    "Mpesa": true
+    "Mpesa": true,
+    "Teller": true
 }
