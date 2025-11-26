@@ -50,11 +50,15 @@
                                     @if($loan->status=='submitted' ||$loan->status=='pending')
                                         @can('loan.loans.approve_loan')
                                             <a href="#" data-toggle="modal" data-target="#approve_loan_modal"
-                                               class="btn btn-primary"><i
+                                               class="btn btn-success"><i
                                                         class="fas fa-check"></i>
                                                 {{ trans_choice('loan::general.approve',1) }}</a>
+                                            <a href="#" data-toggle="modal" data-target="#reject_loan_modal"
+                                               class="btn btn-danger"><i class="fas fa-ban"></i>
+                                                {{ trans_choice('loan::general.reject',1) }}
+                                            </a>
                                             <a href="#" data-toggle="modal" data-target="#withdraw_loan_modal"
-                                               class="btn btn-primary"><i class="fas fa-times"></i>
+                                               class="btn btn-warning"><i class="fas fa-times"></i>
                                                 {{ trans_choice('loan::general.withdraw',1) }}
                                             </a>
                                         @endcan
