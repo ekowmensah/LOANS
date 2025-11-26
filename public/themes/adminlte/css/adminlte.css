@@ -4587,35 +4587,35 @@ readers do not read off random characters that represent icons */
   overflow: visible;
   position: static;
   width: auto; }
-@font-face {
+/* @font-face {
   font-family: 'Font Awesome 5 Brands';
   font-style: normal;
   font-weight: 400;
   font-display: block;
   src: url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-brands-400.eot?e2ca6541bff3a3e9f4799ee327b28c58);
-  src: url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-brands-400.eot?e2ca6541bff3a3e9f4799ee327b28c58?#iefix) format("embedded-opentype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-brands-400.woff2?f075c50f89795e4cdb4d45b51f1a6800) format("woff2"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-brands-400.woff?ad527cc5ec23d6da66e8a1d6772ea6d3) format("woff"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-brands-400.ttf?8300bd7f30e0a313c1d772b49d96cb8e) format("truetype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-brands-400.svg?2f12242375edd68e9013ecfb59c672e9#fontawesome) format("svg"); }
+  src: url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-brands-400.eot?e2ca6541bff3a3e9f4799ee327b28c58?#iefix) format("embedded-opentype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-brands-400.woff2?f075c50f89795e4cdb4d45b51f1a6800) format("woff2"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-brands-400.woff?ad527cc5ec23d6da66e8a1d6772ea6d3) format("woff"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-brands-400.ttf?8300bd7f30e0a313c1d772b49d96cb8e) format("truetype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-brands-400.svg?2f12242375edd68e9013ecfb59c672e9#fontawesome) format("svg"); } */
 
 .fab {
   font-family: 'Font Awesome 5 Brands';
   font-weight: 400; }
-@font-face {
+/* @font-face {
   font-family: 'Font Awesome 5 Free';
   font-style: normal;
   font-weight: 400;
   font-display: block;
   src: url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-regular-400.eot?b01516c1808be557667befec76cd6318);
-  src: url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-regular-400.eot?b01516c1808be557667befec76cd6318?#iefix) format("embedded-opentype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-regular-400.woff2?4a74738e7728e93c4394b8604081da62) format("woff2"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-regular-400.woff?3c6879c4f342203d099bdd66dce6d396) format("woff"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-regular-400.ttf?49f00693b0e5d45097832ef5ea1bc541) format("truetype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-regular-400.svg?3602b7e8b2cb1462b0bef9738757ef8a#fontawesome) format("svg"); }
+  src: url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-regular-400.eot?b01516c1808be557667befec76cd6318?#iefix) format("embedded-opentype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-regular-400.woff2?4a74738e7728e93c4394b8604081da62) format("woff2"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-regular-400.woff?3c6879c4f342203d099bdd66dce6d396) format("woff"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-regular-400.ttf?49f00693b0e5d45097832ef5ea1bc541) format("truetype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-regular-400.svg?3602b7e8b2cb1462b0bef9738757ef8a#fontawesome) format("svg"); } */
 
 .far {
   font-family: 'Font Awesome 5 Free';
   font-weight: 400; }
-@font-face {
+/* @font-face {
   font-family: 'Font Awesome 5 Free';
   font-style: normal;
   font-weight: 900;
   font-display: block;
   src: url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-solid-900.eot?8ac3167427b1d5d2967646bd8f7a0587);
-  src: url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-solid-900.eot?8ac3167427b1d5d2967646bd8f7a0587?#iefix) format("embedded-opentype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-solid-900.woff2?8e1ed89b6ccb8ce41faf5cb672677105) format("woff2"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-solid-900.woff?4451e1d86df7491dd874f2c41eee1053) format("woff"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-solid-900.ttf?205f07b3883c484f27f40d21a92950d4) format("truetype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-solid-900.svg?664de3932dd6291b4b8a8c0ddbcb4c61#fontawesome) format("svg"); }
+  src: url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-solid-900.eot?8ac3167427b1d5d2967646bd8f7a0587?#iefix) format("embedded-opentype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-solid-900.woff2?8e1ed89b6ccb8ce41faf5cb672677105) format("woff2"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-solid-900.woff?4451e1d86df7491dd874f2c41eee1053) format("woff"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-solid-900.ttf?205f07b3883c484f27f40d21a92950d4) format("truetype"), url(/fonts/vendor/@fortawesome/fontawesome-free/webfa-solid-900.svg?664de3932dd6291b4b8a8c0ddbcb4c61#fontawesome) format("svg"); } */
 
 .fa,
 .fas {
