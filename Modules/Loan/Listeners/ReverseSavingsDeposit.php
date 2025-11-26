@@ -89,63 +89,18 @@ class ReverseSavingsDeposit
             return;
         }
 
-        // Create a reversal transaction (debit to offset the credit)
-        $reversal_transaction = new SavingsTransaction();
-        $reversal_transaction->created_by_id = Auth::id();
-        $reversal_transaction->savings_id = $savings->id;
-        $reversal_transaction->branch_id = $savings->branch_id;
-        $reversal_transaction->payment_detail_id = $savingsTransaction->payment_detail_id;
-        $reversal_transaction->name = "REVERSAL: " . $savingsTransaction->name;
-        $reversal_transaction->savings_transaction_type_id = 2; // Withdrawal
-        $reversal_transaction->submitted_on = date("Y-m-d");
-        $reversal_transaction->created_on = date("Y-m-d");
-        $reversal_transaction->reversible = 0;
-        $reversal_transaction->amount = $savingsTransaction->amount;
-        $reversal_transaction->debit = $savingsTransaction->amount; // Debit to reverse the credit
-        $reversal_transaction->description = "Reversal of loan disbursement - Loan #{$loan->id} undisbursed";
-        $reversal_transaction->save();
-
-        // Mark the original savings transaction as reversed
+        // Simply mark the original savings transaction as reversed
+        // No need to create a separate reversal transaction
+        // The balance calculation already excludes reversed transactions
         $savingsTransaction->reversed = 1;
         $savingsTransaction->save();
 
-        // Create reversal journal entries if using cash accounting
-        if ($savings->savings_product && $savings->savings_product->accounting_rule == 'cash') {
-            // Debit savings control account (reverse the credit)
-            $journal_entry = new JournalEntry();
-            $journal_entry->created_by_id = Auth::id();
-            $journal_entry->transaction_number = 'LDR-S' . $reversal_transaction->id;
-            $journal_entry->branch_id = $savings->branch_id;
-            $journal_entry->currency_id = $savings->currency_id;
-            $journal_entry->chart_of_account_id = $savings->savings_product->savings_control_chart_of_account_id;
-            $journal_entry->transaction_type = 'loan_disbursement_reversal';
-            $journal_entry->date = date("Y-m-d");
-            $date_parts = explode('-', date("Y-m-d"));
-            $journal_entry->month = $date_parts[1];
-            $journal_entry->year = $date_parts[0];
-            $journal_entry->debit = $savingsTransaction->amount; // Debit to reverse
-            $journal_entry->reference = $savings->id;
-            $journal_entry->notes = "Reversal: Loan #{$loan->id} undisbursed - savings #{$savings->id}";
-            $journal_entry->save();
+        // Update the savings account balance by subtracting the reversed amount
+        $savings->balance_derived = $savings->balance_derived - $savingsTransaction->amount;
+        $savings->total_deposits_derived = $savings->total_deposits_derived - $savingsTransaction->amount;
+        $savings->save();
 
-            // Debit savings reference account
-            $journal_entry = new JournalEntry();
-            $journal_entry->created_by_id = Auth::id();
-            $journal_entry->transaction_number = 'LDR-S' . $reversal_transaction->id;
-            $journal_entry->branch_id = $savings->branch_id;
-            $journal_entry->currency_id = $savings->currency_id;
-            $journal_entry->chart_of_account_id = $savings->savings_product->savings_reference_chart_of_account_id;
-            $journal_entry->transaction_type = 'loan_disbursement_reversal';
-            $journal_entry->date = date("Y-m-d");
-            $journal_entry->month = $date_parts[1];
-            $journal_entry->year = $date_parts[0];
-            $journal_entry->credit = $savingsTransaction->amount; // Credit to balance
-            $journal_entry->reference = $savings->id;
-            $journal_entry->notes = "Reversal: Loan #{$loan->id} undisbursed - savings #{$savings->id}";
-            $journal_entry->save();
-        }
-
-        // Also mark old journal entries as reversed
+        // Mark the journal entries as reversed
         JournalEntry::where('transaction_number', 'LD-S' . $savingsTransaction->id)
             ->update(['reversed' => 1]);
 

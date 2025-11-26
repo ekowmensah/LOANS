@@ -195,8 +195,24 @@ class LoanController extends Controller
             } else {
                 return '<a href="' . url('client/' . $data->client_id . '/show') . '">' . $data->client . '</a>';
             }
-        })->editColumn('principal', function ($data) {
-            return number_format($data->principal, $data->decimals);
+        })->editColumn('principal', function ($data) use ($client_id) {
+            $amount = number_format($data->principal, $data->decimals);
+            
+            // If it's a group loan and we're viewing a specific client
+            if ($data->client_type == 'group' && $client_id) {
+                // Get the allocated amount for this client
+                $allocation = DB::table('group_member_loan_allocations')
+                    ->where('loan_id', $data->id)
+                    ->where('client_id', $client_id)
+                    ->first();
+                
+                if ($allocation) {
+                    $allocated = number_format($allocation->allocated_amount, $data->decimals);
+                    return '<span class="badge badge-info">GROUP</span> ' . $amount . '<br><small class="text-muted">Your allocation: ' . $allocated . '</small>';
+                }
+            }
+            
+            return $amount;
         })->editColumn('total_principal', function ($data) {
             return number_format($data->total_principal, $data->decimals);
         })->editColumn('total_interest', function ($data) {
@@ -207,8 +223,29 @@ class LoanController extends Controller
             return number_format($data->total_penalties, $data->decimals);
         })->editColumn('due', function ($data) {
             return number_format($data->total_principal + $data->total_interest + $data->total_fees + $data->total_penalties, $data->decimals);
-        })->editColumn('balance', function ($data) {
-            return number_format(($data->total_principal - $data->principal_repaid_derived - $data->principal_written_off_derived) + ($data->total_interest - $data->interest_repaid_derived - $data->interest_written_off_derived - $data->interest_waived_derived) + ($data->total_fees - $data->fees_repaid_derived - $data->fees_written_off_derived - $data->fees_waived_derived) + ($data->total_penalties - $data->penalties_repaid_derived - $data->penalties_written_off_derived - $data->penalties_waived_derived), $data->decimals);
+        })->editColumn('balance', function ($data) use ($client_id) {
+            $totalBalance = ($data->total_principal - $data->principal_repaid_derived - $data->principal_written_off_derived) + ($data->total_interest - $data->interest_repaid_derived - $data->interest_written_off_derived - $data->interest_waived_derived) + ($data->total_fees - $data->fees_repaid_derived - $data->fees_written_off_derived - $data->fees_waived_derived) + ($data->total_penalties - $data->penalties_repaid_derived - $data->penalties_written_off_derived - $data->penalties_waived_derived);
+            
+            // If it's a group loan and we're viewing a specific client
+            if ($data->client_type == 'group' && $client_id) {
+                // Get the client's allocation with their actual outstanding balance
+                $allocation = DB::table('group_member_loan_allocations')
+                    ->where('loan_id', $data->id)
+                    ->where('client_id', $client_id)
+                    ->first();
+                
+                if ($allocation) {
+                    // Use the actual outstanding_balance from the allocation table
+                    // This tracks individual payments, not proportional
+                    $clientBalance = $allocation->outstanding_balance;
+                    
+                    return number_format($totalBalance, $data->decimals) . '<br><small class="text-muted">Your balance: ' . number_format($clientBalance, $data->decimals) . '</small>';
+                }
+                
+                return number_format($totalBalance, $data->decimals) . '<br><small class="text-muted">Total group balance</small>';
+            }
+            
+            return number_format($totalBalance, $data->decimals);
         })->editColumn('status', function ($data) {
             if ($data->status == 'pending') {
                 return '<span class="label label-warning">' . trans_choice('loan::general.pending', 1) . ' ' . trans_choice('general.approval', 1) . '</span>';
@@ -252,7 +289,7 @@ class LoanController extends Controller
         })->editColumn('id', function ($data) {
             return '<a href="' . url('loan/' . $data->id . '/show') . '" class="">' . $data->id . '</a>';
 
-        })->rawColumns(['id', 'client', 'action', 'status'])->make(true);
+        })->rawColumns(['id', 'client', 'action', 'status', 'principal', 'balance'])->make(true);
     }
 
     public function get_applications(Request $request)
@@ -1770,48 +1807,139 @@ class LoanController extends Controller
     //repayments
     public function create_repayment($id)
     {
+        $loan = Loan::findOrFail($id);
         $payment_types = PaymentType::where('active', 1)->get();
         $custom_fields = CustomField::where('category', 'add_repayment')->where('active', 1)->get();
-        return theme_view('loan::loan_repayment.create', compact('id', 'payment_types', 'custom_fields'));
+        
+        // Get client's savings balance
+        $savings_balance = 0;
+        $savings = \Modules\Savings\Entities\Savings::where('client_id', $loan->client_id)
+            ->where('status', 'active')
+            ->first();
+        if ($savings) {
+            $savings_balance = $savings->balance_derived;
+        }
+        
+        return theme_view('loan::loan_repayment.create', compact('id', 'payment_types', 'custom_fields', 'savings_balance'));
     }
 
     public function store_repayment(Request $request, $id)
     {
-
         $request->validate([
             'amount' => ['required', 'numeric'],
             'date' => ['required', 'date'],
-            'payment_type_id' => ['required'],
+            'payment_source' => ['required', 'in:cash,savings'],
+            'payment_type_id' => ['required_if:payment_source,cash'],
         ]);
+        
         $loan = Loan::with('loan_product')->find($id);
-        //payment details
+        
+        // If payment from savings, deduct from savings account
+        if ($request->payment_source == 'savings') {
+            $savings = \Modules\Savings\Entities\Savings::where('client_id', $loan->client_id)
+                ->where('status', 'active')
+                ->first();
+            
+            if (!$savings) {
+                \flash('Client does not have an active savings account')->error()->important();
+                return redirect()->back();
+            }
+            
+            if ($savings->balance_derived < $request->amount) {
+                \flash('Insufficient savings balance. Available: ' . number_format($savings->balance_derived, 2))->error()->important();
+                return redirect()->back();
+            }
+            
+            // Create savings withdrawal transaction
+            $savingsTransaction = new \Modules\Savings\Entities\SavingsTransaction();
+            $savingsTransaction->created_by_id = Auth::id();
+            $savingsTransaction->savings_id = $savings->id;
+            $savingsTransaction->name = 'Loan Repayment Deduction';
+            $savingsTransaction->savings_transaction_type_id = 2; // withdrawal
+            $savingsTransaction->amount = $request->amount;
+            $savingsTransaction->debit = $request->amount;
+            $savingsTransaction->submitted_on = $request->date;
+            $savingsTransaction->created_on = date("Y-m-d");
+            $savingsTransaction->save();
+            
+            // Update savings balance
+            $savings->balance_derived = $savings->balance_derived - $request->amount;
+            $savings->total_withdrawals_derived = $savings->total_withdrawals_derived + $request->amount;
+            $savings->save();
+            
+            // Create journal entries for savings withdrawal
+            $debit_account = \Modules\Accounting\Entities\ChartOfAccount::where('name', 'Savings Accounts')->first();
+            $credit_account = \Modules\Accounting\Entities\ChartOfAccount::where('name', 'Loans Receivable')->first();
+            
+            if ($debit_account && $credit_account) {
+                // Debit: Savings Accounts
+                $journal_entry = new \Modules\Accounting\Entities\JournalEntry();
+                $journal_entry->created_by_id = Auth::id();
+                $journal_entry->transaction_number = 'LR-S' . $savingsTransaction->id;
+                $journal_entry->branch_id = $savings->branch_id;
+                $journal_entry->currency_id = $savings->currency_id;
+                $journal_entry->chart_of_account_id = $debit_account->id;
+                $journal_entry->transaction_type = 'loan_repayment_from_savings';
+                $journal_entry->date = $request->date;
+                $journal_entry->debit = $request->amount;
+                $journal_entry->reference = $loan->id;
+                $journal_entry->notes = 'Loan repayment from savings for Loan #' . $loan->id;
+                $journal_entry->save();
+                
+                // Credit: Loans Receivable
+                $journal_entry = new \Modules\Accounting\Entities\JournalEntry();
+                $journal_entry->created_by_id = Auth::id();
+                $journal_entry->transaction_number = 'LR-S' . $savingsTransaction->id;
+                $journal_entry->branch_id = $savings->branch_id;
+                $journal_entry->currency_id = $savings->currency_id;
+                $journal_entry->chart_of_account_id = $credit_account->id;
+                $journal_entry->transaction_type = 'loan_repayment_from_savings';
+                $journal_entry->date = $request->date;
+                $journal_entry->credit = $request->amount;
+                $journal_entry->reference = $loan->id;
+                $journal_entry->notes = 'Loan repayment from savings for Loan #' . $loan->id;
+                $journal_entry->save();
+            }
+        }
+        
+        // Create payment detail
         $payment_detail = new PaymentDetail();
         $payment_detail->created_by_id = Auth::id();
-        $payment_detail->payment_type_id = $request->payment_type_id;
+        $payment_detail->payment_type_id = $request->payment_type_id ?? null;
         $payment_detail->transaction_type = 'loan_transaction';
         $payment_detail->cheque_number = $request->cheque_number;
         $payment_detail->receipt = $request->receipt;
         $payment_detail->account_number = $request->account_number;
         $payment_detail->bank_name = $request->bank_name;
         $payment_detail->routing_code = $request->routing_code;
-        $payment_detail->description = $request->description;
+        $payment_detail->description = $request->payment_source == 'savings' ? 'Payment from Savings Account' : $request->description;
         $payment_detail->save();
+        
+        // Create loan transaction
         $loan_transaction = new LoanTransaction();
         $loan_transaction->created_by_id = Auth::id();
         $loan_transaction->loan_id = $loan->id;
         $loan_transaction->payment_detail_id = $payment_detail->id;
-        $loan_transaction->name = trans_choice('loan::general.repayment', 1);
+        $loan_transaction->name = $request->payment_source == 'savings' ? 
+            trans_choice('loan::general.repayment', 1) . ' (Savings)' : 
+            trans_choice('loan::general.repayment', 1);
         $loan_transaction->loan_transaction_type_id = 2;
         $loan_transaction->submitted_on = $request->date;
         $loan_transaction->created_on = date("Y-m-d");
         $loan_transaction->amount = $request->amount;
         $loan_transaction->credit = $request->amount;
         $loan_transaction->save();
+        
         activity()->on($loan_transaction)
-            ->withProperties(['id' => $loan_transaction->id])
+            ->withProperties([
+                'id' => $loan_transaction->id,
+                'payment_source' => $request->payment_source
+            ])
             ->log('Create Loan Repayment');
-        //fire transaction updated event
+        
+        // Fire transaction updated event
         event(new TransactionUpdated($loan));
+        
         \flash(trans_choice("core::general.successfully_saved", 1))->success()->important();
         return redirect('loan/' . $loan->id . '/show');
     }
@@ -2580,5 +2708,183 @@ class LoanController extends Controller
             ->log('Undo Loan Application Rejection');
         \flash(trans_choice("core::general.successfully_saved", 1))->success()->important();
         return redirect()->back();
+    }
+
+    public function group_payment($id)
+    {
+        $loan = Loan::with('group')->with('repayment_schedules')->findOrFail($id);
+        
+        // Ensure this is a group loan
+        if ($loan->client_type != 'group') {
+            \flash('This is not a group loan')->error()->important();
+            return redirect()->back();
+        }
+        
+        // Get allocations with client details and savings balance
+        $allocations = \DB::table('group_member_loan_allocations')
+            ->join('clients', 'clients.id', '=', 'group_member_loan_allocations.client_id')
+            ->leftJoin('savings', function($join) {
+                $join->on('savings.client_id', '=', 'clients.id')
+                     ->where('savings.status', '=', 'active');
+            })
+            ->where('group_member_loan_allocations.loan_id', $id)
+            ->select('group_member_loan_allocations.*', 'clients.first_name', 'clients.last_name', 'savings.balance_derived as savings_balance')
+            ->get();
+        
+        // Add client relationship manually
+        foreach ($allocations as $allocation) {
+            $allocation->client = (object)[
+                'first_name' => $allocation->first_name,
+                'last_name' => $allocation->last_name
+            ];
+        }
+        
+        // Calculate total balance
+        $balance = $loan->repayment_schedules->sum('principal') 
+                 + $loan->repayment_schedules->sum('interest')
+                 + $loan->repayment_schedules->sum('fees')
+                 + $loan->repayment_schedules->sum('penalties')
+                 - $loan->repayment_schedules->sum('principal_repaid_derived')
+                 - $loan->repayment_schedules->sum('interest_repaid_derived')
+                 - $loan->repayment_schedules->sum('fees_repaid_derived')
+                 - $loan->repayment_schedules->sum('penalties_repaid_derived');
+        
+        $payment_types = PaymentType::where('active', 1)->get();
+        
+        return theme_view('loan::loan_repayment.group_payment', compact('loan', 'allocations', 'balance', 'payment_types'));
+    }
+
+    public function store_group_payment(Request $request, $id)
+    {
+        $request->validate([
+            'date' => ['required', 'date'],
+            'payments' => ['required', 'array'],
+            'payment_sources' => ['required', 'array'],
+        ]);
+        
+        $loan = Loan::with('loan_product')->findOrFail($id);
+        
+        // Ensure this is a group loan
+        if ($loan->client_type != 'group') {
+            \flash('This is not a group loan')->error()->important();
+            return redirect()->back();
+        }
+        
+        // Calculate total payment amount
+        $totalAmount = 0;
+        foreach ($request->payments as $clientId => $amount) {
+            if ($amount > 0) {
+                $totalAmount += $amount;
+            }
+        }
+        
+        if ($totalAmount <= 0) {
+            \flash('Please enter at least one payment amount')->error()->important();
+            return redirect()->back();
+        }
+        
+        // Process each member's payment based on their payment source
+        foreach ($request->payments as $clientId => $amount) {
+            if ($amount > 0) {
+                $paymentSource = $request->payment_sources[$clientId];
+                
+                // If payment from savings, deduct from member's savings
+                if ($paymentSource == 'savings') {
+                    $savings = \Modules\Savings\Entities\Savings::where('client_id', $clientId)
+                        ->where('status', 'active')
+                        ->first();
+                    
+                    if (!$savings) {
+                        \flash('Client ID ' . $clientId . ' does not have an active savings account')->error()->important();
+                        return redirect()->back();
+                    }
+                    
+                    if ($savings->balance_derived < $amount) {
+                        \flash('Client ID ' . $clientId . ' has insufficient savings balance. Available: ' . number_format($savings->balance_derived, 2))->error()->important();
+                        return redirect()->back();
+                    }
+                    
+                    // Create savings withdrawal transaction
+                    $savingsTransaction = new \Modules\Savings\Entities\SavingsTransaction();
+                    $savingsTransaction->created_by_id = Auth::id();
+                    $savingsTransaction->savings_id = $savings->id;
+                    $savingsTransaction->name = 'Group Loan Repayment Deduction';
+                    $savingsTransaction->savings_transaction_type_id = 2; // withdrawal
+                    $savingsTransaction->amount = $amount;
+                    $savingsTransaction->debit = $amount;
+                    $savingsTransaction->submitted_on = $request->date;
+                    $savingsTransaction->created_on = date("Y-m-d");
+                    $savingsTransaction->save();
+                    
+                    // Update savings balance
+                    $savings->balance_derived = $savings->balance_derived - $amount;
+                    $savings->total_withdrawals_derived = $savings->total_withdrawals_derived + $amount;
+                    $savings->save();
+                }
+            }
+        }
+        
+        // Create payment detail
+        $payment_detail = new PaymentDetail();
+        $payment_detail->created_by_id = Auth::id();
+        $payment_detail->payment_type_id = null; // Individual payment types handled separately
+        $payment_detail->transaction_type = 'loan_transaction';
+        $payment_detail->description = $request->notes;
+        $payment_detail->save();
+        
+        // Create loan transaction for total amount
+        $loan_transaction = new LoanTransaction();
+        $loan_transaction->created_by_id = Auth::id();
+        $loan_transaction->loan_id = $loan->id;
+        $loan_transaction->payment_detail_id = $payment_detail->id;
+        $loan_transaction->name = trans_choice('loan::general.group', 1) . ' ' . trans_choice('loan::general.repayment', 1);
+        $loan_transaction->loan_transaction_type_id = 2;
+        $loan_transaction->submitted_on = $request->date;
+        $loan_transaction->created_on = date("Y-m-d");
+        $loan_transaction->amount = $totalAmount;
+        $loan_transaction->credit = $totalAmount;
+        $loan_transaction->save();
+        
+        // Update individual member allocations
+        foreach ($request->payments as $clientId => $amount) {
+            if ($amount > 0) {
+                $allocationId = $request->allocation_ids[$clientId];
+                $allocation = \DB::table('group_member_loan_allocations')->where('id', $allocationId)->first();
+                
+                if ($allocation) {
+                    // Update allocation payments
+                    \DB::table('group_member_loan_allocations')
+                        ->where('id', $allocationId)
+                        ->update([
+                            'total_paid' => $allocation->total_paid + $amount,
+                            'outstanding_balance' => $allocation->outstanding_balance - $amount,
+                            'updated_at' => now()
+                        ]);
+                }
+            }
+        }
+        
+        // Build payment sources summary for activity log
+        $paymentSourcesSummary = [];
+        foreach ($request->payment_sources as $clientId => $source) {
+            if (isset($request->payments[$clientId]) && $request->payments[$clientId] > 0) {
+                $paymentSourcesSummary[$clientId] = $source;
+            }
+        }
+        
+        activity()->on($loan_transaction)
+            ->withProperties([
+                'id' => $loan_transaction->id,
+                'total_amount' => $totalAmount,
+                'members_paid' => count(array_filter($request->payments)),
+                'payment_sources' => $paymentSourcesSummary
+            ])
+            ->log('Create Group Loan Repayment');
+        
+        // Fire transaction updated event
+        event(new TransactionUpdated($loan));
+        
+        \flash(trans_choice("core::general.successfully_saved", 1))->success()->important();
+        return redirect('loan/' . $loan->id . '/show');
     }
 }

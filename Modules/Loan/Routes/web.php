@@ -103,6 +103,9 @@ Route::prefix('loan')->group(function () {
     Route::get('repayment/{id}/reverse', 'LoanController@reverse_repayment');
     Route::post('repayment/{id}/update', 'LoanController@update_repayment');
     Route::get('repayment/{id}/destroy', 'LoanController@destroy_repayment');
+    //group payments
+    Route::get('{id}/group-payment', 'LoanController@group_payment');
+    Route::post('{id}/group-payment/store', 'LoanController@store_group_payment');
     //charges
     Route::get('charge/{id}/waive', 'LoanController@waive_charge');
     Route::get('{id}/charge/create', 'LoanController@create_loan_linked_charge');

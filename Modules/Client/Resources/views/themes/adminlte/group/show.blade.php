@@ -282,13 +282,27 @@
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
-                                <label for="client_id">Select Client</label>
-                                <select name="client_id" id="client_id" class="form-control select2" required>
-                                    <option value="">Select Client</option>
-                                    @foreach($clients as $client)
-                                        <option value="{{$client->id}}">{{$client->first_name}} {{$client->last_name}}</option>
-                                    @endforeach
-                                </select>
+                                <label for="account_search">Savings Account Number</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="account_search" 
+                                           placeholder="Enter savings account number" autocomplete="off">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary" type="button" id="search_btn">
+                                            <i class="fas fa-search"></i> Search
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">Type and click Search or press Enter</small>
+                            </div>
+                            
+                            <div id="client_result" style="display:none;" class="alert alert-info">
+                                <strong>Client Found:</strong>
+                                <div id="client_info"></div>
+                                <input type="hidden" name="client_id" id="client_id" required>
+                            </div>
+                            
+                            <div id="no_result" style="display:none;" class="alert alert-warning">
+                                No client found with that savings account number.
                             </div>
                             <div class="form-group">
                                 <label for="role">Role</label>
@@ -314,11 +328,69 @@
 @section('scripts')
     <script>
         $(document).ready(function() {
-            // Initialize Select2 for client dropdown in modal
-            $('#client_id').select2({
-                placeholder: 'Search and select a client...',
-                allowClear: true,
-                dropdownParent: $('#addMemberModal')
+            // Search function
+            function searchClient() {
+                var account = $('#account_search').val().trim();
+                
+                if (account.length < 2) {
+                    alert('Please enter at least 2 characters');
+                    return;
+                }
+                
+                $('#search_btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Searching...');
+                $('#client_result').hide();
+                $('#no_result').hide();
+                
+                $.ajax({
+                    url: '{{url("client/search-by-savings")}}',
+                    type: 'GET',
+                    data: { account: account },
+                    dataType: 'json',
+                    success: function(data) {
+                        $('#search_btn').prop('disabled', false).html('<i class="fas fa-search"></i> Search');
+                        
+                        if (data && data.length > 0) {
+                            var client = data[0]; // Take first result
+                            $('#client_info').html(
+                                '<p class="mb-0"><strong>' + client.first_name + ' ' + client.last_name + '</strong></p>' +
+                                '<p class="mb-0">Account: ' + client.savings_account + '</p>'
+                            );
+                            $('#client_id').val(client.id);
+                            $('#client_result').show();
+                            $('#no_result').hide();
+                        } else {
+                            $('#no_result').show();
+                            $('#client_result').hide();
+                        }
+                    },
+                    error: function() {
+                        $('#search_btn').prop('disabled', false).html('<i class="fas fa-search"></i> Search');
+                        alert('Error searching for client');
+                    }
+                });
+            }
+            
+            // Search button click
+            $('#search_btn').on('click', searchClient);
+            
+            // Enter key on input
+            $('#account_search').on('keyup', function(e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    searchClient();
+                }
+            });
+            
+            // Clear when modal closes
+            $('#addMemberModal').on('hidden.bs.modal', function () {
+                $('#account_search').val('');
+                $('#client_id').val('');
+                $('#client_result').hide();
+                $('#no_result').hide();
+            });
+            
+            // Focus on input when modal opens
+            $('#addMemberModal').on('shown.bs.modal', function () {
+                $('#account_search').focus();
             });
         });
 

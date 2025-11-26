@@ -293,10 +293,17 @@
                                     @endif
                                     @if($loan->status=='active')
                                         @can('loan.loans.transactions.create')
-                                            <a href="{{url('loan/'.$loan->id.'/repayment/create')}}"
-                                               class="btn btn-primary"><i class="fas fa-dollar-sign"></i>
-                                                {{ trans_choice('loan::general.make',1) }} {{ trans_choice('loan::general.repayment',1) }}
-                                            </a>
+                                            @if($loan->client_type == 'group')
+                                                <a href="{{url('loan/'.$loan->id.'/group-payment')}}"
+                                                   class="btn btn-success"><i class="fas fa-users"></i>
+                                                    {{ trans_choice('loan::general.group',1) }} {{ trans_choice('loan::general.payment',1) }}
+                                                </a>
+                                            @else
+                                                <a href="{{url('loan/'.$loan->id.'/repayment/create')}}"
+                                                   class="btn btn-primary"><i class="fas fa-dollar-sign"></i>
+                                                    {{ trans_choice('loan::general.make',1) }} {{ trans_choice('loan::general.repayment',1) }}
+                                                </a>
+                                            @endif
                                         @endcan
                                         @can('loan.loans.disburse_loan')
                                             <a href="{{url('loan/'.$loan->id.'/undo_disbursement')}}"
@@ -656,10 +663,17 @@
                                         @endcan
                                     @endif
                                     @if($loan->status=='written_off')
-                                        <a href="{{url('loan/'.$loan->id.'/repayment/create')}}"
-                                           class="btn btn-primary"><i class="fas fa-dollar-sign"></i>
-                                            {{ trans_choice('loan::general.recovery',1) }} {{ trans_choice('loan::general.payment',1) }}
-                                        </a>
+                                        @if($loan->client_type == 'group')
+                                            <a href="{{url('loan/'.$loan->id.'/group-payment')}}"
+                                               class="btn btn-success"><i class="fas fa-users"></i>
+                                                {{ trans_choice('loan::general.group',1) }} {{ trans_choice('loan::general.recovery',1) }} {{ trans_choice('loan::general.payment',1) }}
+                                            </a>
+                                        @else
+                                            <a href="{{url('loan/'.$loan->id.'/repayment/create')}}"
+                                               class="btn btn-primary"><i class="fas fa-dollar-sign"></i>
+                                                {{ trans_choice('loan::general.recovery',1) }} {{ trans_choice('loan::general.payment',1) }}
+                                            </a>
+                                        @endif
                                         <a href="{{url('loan/'.$loan->id.'/undo_write_off')}}"
                                            class="btn btn-primary confirm"><i class="fa fa-undo"></i>
                                             {{ trans_choice('loan::general.undo',1) }} {{ trans_choice('loan::general.loan',1) }} {{ trans_choice('loan::general.write_off',1) }}

@@ -788,13 +788,19 @@
                                             ?>
                                             @foreach($savings->transactions as $key)
                                                 <?php
-                                                $balance = $balance + $key->credit - $key->debit;
+                                                // Only include non-reversed transactions in balance calculation
+                                                if ($key->reversed == 0) {
+                                                    $balance = $balance + $key->credit - $key->debit;
+                                                }
                                                 ?>
-                                                <tr>
+                                                <tr @if($key->reversed == 1) style="text-decoration: line-through; opacity: 0.6;" @endif>
                                                     <td>{{$key->created_on}}</td>
                                                     <td>{{$key->submitted_on}}</td>
                                                     <td>
                                                         {{$key->name}}
+                                                        @if($key->reversed == 1)
+                                                            <span class="badge badge-danger">REVERSED</span>
+                                                        @endif
                                                     </td>
                                                     <td>{{$key->id}}</td>
                                                     <td>{{number_format($key->debit,$savings->decimals)}}</td>

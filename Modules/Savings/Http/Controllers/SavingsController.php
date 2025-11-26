@@ -104,7 +104,10 @@ class SavingsController extends Controller
 
         $query = DB::table("savings")
             ->leftJoin("clients", "clients.id", "savings.client_id")
-            ->leftJoin("savings_transactions", "savings_transactions.savings_id", "savings.id")
+            ->leftJoin("savings_transactions", function($join) {
+                $join->on("savings_transactions.savings_id", "=", "savings.id")
+                     ->where("savings_transactions.reversed", "=", 0);
+            })
             ->leftJoin("savings_products", "savings_products.id", "savings.savings_product_id")
             ->leftJoin("branches", "branches.id", "savings.branch_id")->leftJoin("users", "users.id", "savings.savings_officer_id")
             ->selectRaw("concat(clients.first_name,' ',clients.last_name) client,concat(users.first_name,' ',users.last_name) savings_officer,savings.id,savings.client_id,savings.interest_rate,savings.activated_on_date,savings.account_number,savings_products.name savings_product,savings.status,savings.balance_derived,savings.decimals,branches.name branch, COALESCE(SUM(COALESCE(savings_transactions.credit,0))-SUM(COALESCE(savings_transactions.debit,0)),0) balance")->when($status, function ($query) use ($status) {

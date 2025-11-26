@@ -702,13 +702,13 @@
                 serverSide: true,
                 ajax: '{!! url('loan/get_loans?client_id='.$client->id) !!}',
                 columns: [
-                    {data: 'id', name: 'id'},
-                    {data: 'principal', name: 'principal'},
-                    {data: 'balance', name: 'balance', orderable: false},
+                    {data: 'id', name: 'id', render: function(data) { return data; }},
+                    {data: 'principal', name: 'principal', render: function(data) { return data; }},
+                    {data: 'balance', name: 'balance', orderable: false, render: function(data) { return data; }},
                     {data: 'disbursed_on_date', name: 'disbursed_on_date'},
-                    {data: 'status', name: 'status'},
+                    {data: 'status', name: 'status', render: function(data) { return data; }},
                     {data: 'loan_product', name: 'loan_products.name'},
-                    {data: 'action', name: 'action', orderable: false, searchable: false}
+                    {data: 'action', name: 'action', orderable: false, searchable: false, render: function(data) { return data; }}
                 ],
                 "order": [[0, "desc"]],
                 "language": {

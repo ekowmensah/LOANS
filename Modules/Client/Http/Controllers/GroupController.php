@@ -252,9 +252,21 @@ class GroupController extends Controller
             return redirect()->back();
         }
         
-        // Check if client is already a member
+        // Check if client is already a member of THIS group
         if ($group->members()->where('client_id', $request->client_id)->where('status', 'active')->exists()) {
             \flash('Client is already an active member of this group')->error()->important();
+            return redirect()->back();
+        }
+        
+        // Check if client is already a member of ANY other group
+        $existingMembership = GroupMember::where('client_id', $request->client_id)
+            ->where('status', 'active')
+            ->where('group_id', '!=', $id)
+            ->with('group')
+            ->first();
+            
+        if ($existingMembership) {
+            \flash('Client is already an active member of another group: ' . $existingMembership->group->name)->error()->important();
             return redirect()->back();
         }
 

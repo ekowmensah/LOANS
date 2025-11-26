@@ -14,6 +14,7 @@
 Route::prefix('client')->group(function () {
     Route::get('/', 'ClientController@index');
     Route::get('/search', 'ClientController@search');
+    Route::get('/search-by-savings', 'ClientController@searchBySavings');
     Route::get('get_clients', 'ClientController@get_clients');
     Route::get('create', 'ClientController@create');
     Route::post('store', 'ClientController@store');

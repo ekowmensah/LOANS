@@ -388,27 +388,87 @@ class ClientController extends Controller
 
     public function search(Request $request)
     {
-        $s = $request->s;
-        return Client::where('status', 'active')
-            ->when($s, function (Builder $query) use ($s) {
-                $query->where('id', 'like', "%$s%")
-                    ->orWhere('first_name', 'like', "%$s%")
-                    ->orWhere('middle_name', 'like', "%$s%")
-                    ->orWhere('last_name', 'like', "%$s%")
-                    ->orWhere('external_id', 'like', "%$s%")
-                    ->orWhere('account_number', 'like', "%$s%")
-                    ->orWhere('reference', 'like', "%$s%");
-            })
-            ->select('id', 'first_name', 'middle_name', 'last_name', 'external_id', 'account_number')
+        $s = $request->s ?? $request->q; // Support both 's' and 'q' parameters
+        $includeSavings = $request->include_savings;
+        
+        $query = Client::where('status', 'active');
+        
+        // Include savings account if requested
+        if ($includeSavings) {
+            $query->leftJoin('savings', function($join) {
+                $join->on('clients.id', '=', 'savings.client_id')
+                     ->where('savings.status', '=', 'active');
+            });
+        }
+        
+        $query->when($s, function (Builder $query) use ($s, $includeSavings) {
+            $query->where(function($q) use ($s, $includeSavings) {
+                $q->where('clients.id', 'like', "%$s%")
+                    ->orWhere('clients.first_name', 'like', "%$s%")
+                    ->orWhere('clients.middle_name', 'like', "%$s%")
+                    ->orWhere('clients.last_name', 'like', "%$s%")
+                    ->orWhere('clients.external_id', 'like', "%$s%")
+                    ->orWhere('clients.account_number', 'like', "%$s%")
+                    ->orWhere('clients.reference', 'like', "%$s%");
+                
+                // Also search by savings account number if requested
+                if ($includeSavings) {
+                    $q->orWhere('savings.account_number', 'like', "%$s%");
+                }
+            });
+        });
+        
+        if ($includeSavings) {
+            $query->select('clients.id', 'clients.first_name', 'clients.middle_name', 'clients.last_name', 
+                          'clients.external_id', 'clients.account_number', 'savings.account_number as savings_account');
+        } else {
+            $query->select('clients.id', 'clients.first_name', 'clients.middle_name', 'clients.last_name', 
+                          'clients.external_id', 'clients.account_number');
+        }
+        
+        return $query->limit(50)
+            ->get()
+            ->map(function ($client) use ($includeSavings) {
+                $text = $client->first_name . ' ' . $client->last_name . ' (' . $client->account_number . ')';
+                
+                $result = [
+                    'id' => $client->id,
+                    'text' => $text,
+                    'first_name' => $client->first_name,
+                    'last_name' => $client->last_name,
+                    'account_number' => $client->account_number
+                ];
+                
+                if ($includeSavings && $client->savings_account) {
+                    $result['savings_account'] = $client->savings_account;
+                }
+                
+                return $result;
+            });
+    }
+
+    public function searchBySavings(Request $request)
+    {
+        $account = $request->account;
+        
+        if (!$account || strlen($account) < 2) {
+            return response()->json([]);
+        }
+        
+        return \DB::table('clients')
+            ->join('savings', 'clients.id', '=', 'savings.client_id')
+            ->where('clients.status', 'active')
+            ->where('savings.status', 'active')
+            ->where('savings.account_number', 'like', "%$account%")
+            ->select('clients.id', 'clients.first_name', 'clients.last_name', 'savings.account_number as savings_account')
             ->limit(50)
             ->get()
             ->map(function ($client) {
                 return [
                     'id' => $client->id,
-                    'text' => $client->first_name . ' ' . $client->last_name . ' (' . $client->account_number . ')',
                     'first_name' => $client->first_name,
                     'last_name' => $client->last_name,
-                    'account_number' => $client->account_number
+                    'savings_account' => $client->savings_account
                 ];
             });
     }

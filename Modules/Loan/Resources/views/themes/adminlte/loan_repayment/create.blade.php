@@ -31,142 +31,173 @@
         </div><!-- /.container-fluid -->
     </section>
     <section class="content" id="app">
-        <form method="post" action="{{ url('loan/'.$id.'/repayment/store') }}">
-            {{csrf_field()}}
-            <div class="card card-bordered card-preview">
-                <div class="card-body">
-                    <div class="form-group">
-                        <label class="control-label"
-                               for="amount">{{trans_choice('loan::general.amount',1)}}</label>
-                        <input type="text" name="amount" id="amount" v-model="amount"
-                               class="form-control numeric @error('amount') is-invalid @enderror" required>
-                        @error('amount')
-                        <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                        @enderror
-                    </div>
-                    <div class="form-group">
-                        <label class="control-label"
-                               for="date"> {{trans_choice('core::general.date',1)}}</label>
-                        <flat-pickr
-                                v-model="date"
-                                class="form-control  @error('date') is-invalid @enderror"
-                                name="date" id="date" required>
-                        </flat-pickr>
-                        @error('date')
-                        <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                        @enderror
-                    </div>
-                    <div id="payment_details">
-                        <div class="form-group">
-                            <label class="control-label"
-                                   for="payment_type_id">{{trans_choice('core::general.payment',1)}} {{trans_choice('core::general.type',1)}}</label>
-                            <v-select label="name" :options="payment_types"
-                                      :reduce="payment_type => payment_type.id"
-                                      v-model="payment_type_id">
-                                <template #search="{attributes, events}">
-                                    <input
-                                            autocomplete="off"
-                                            :required="!payment_type_id"
-                                            class="vs__search @error('payment_type_id') is-invalid @enderror"
-                                            v-bind="attributes"
-                                            v-on="events"
-                                    />
-                                </template>
-                            </v-select>
-                            <input type="hidden" name="payment_type_id"
-                                   v-model="payment_type_id">
-                            @error('payment_type_id')
-                            <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                            @enderror
-                        </div>
-                        <div class="form-group">
-                            <label class="control-label"
-                                   for="account_number">{{trans_choice('core::general.account',1)}}#</label>
-                            <input type="text" name="account_number" id="account_number" v-model="account_number"
-                                   class="form-control @error('account_number') is-invalid @enderror">
-                            @error('account_number')
-                            <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                            @enderror
-                        </div>
-                        <div class="form-group">
-                            <label class="control-label"
-                                   for="cheque_number">{{trans_choice('core::general.cheque',1)}}#</label>
-                            <input type="text" name="cheque_number" id="cheque_number" v-model="cheque_number"
-                                   class="form-control @error('cheque_number') is-invalid @enderror">
-                            @error('cheque_number')
-                            <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                            @enderror
-                        </div>
-                        <div class="form-group">
-                            <label class="control-label"
-                                   for="routing_code">{{trans_choice('core::general.routing_code',1)}}</label>
-                            <input type="text" name="routing_code" id="routing_code" v-model="routing_code"
-                                   class="form-control  @error('routing_code') is-invalid @enderror">
-                            @error('routing_code')
-                            <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                            @enderror
-                        </div>
-                        <div class="form-group">
-                            <label class="control-label"
-                                   for="receipt">{{trans_choice('core::general.receipt',1)}}#</label>
-                            <input type="text" name="receipt" id="receipt" v-model="receipt"
-                                   class="form-control  @error('receipt') is-invalid @enderror">
-                            @error('receipt')
-                            <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                            @enderror
-                        </div>
-                        <div class="form-group">
-                            <label class="control-label"
-                                   for="bank_name">{{trans_choice('core::general.bank',1)}}#</label>
-                            <input type="text" name="bank_name" id="bank_name" v-model="bank_name"
-                                   class="form-control @error('bank_name') is-invalid @enderror">
-                            @error('bank_name')
-                            <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                            @enderror
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <form method="post" action="{{ url('loan/'.$id.'/repayment/store') }}">
+                    {{csrf_field()}}
+                    
+                    <!-- Payment Source Selection -->
+                    <div class="card shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="mb-4"><i class="fas fa-hand-holding-usd text-primary"></i> Payment Method</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="payment-option" :class="{'active': payment_source === 'cash'}" @click="payment_source = 'cash'">
+                                        <input type="radio" name="payment_source" value="cash" v-model="payment_source" required hidden>
+                                        <div class="text-center p-4">
+                                            <i class="fas fa-money-bill-wave fa-3x text-success mb-3"></i>
+                                            <h6 class="mb-0">Cash Payment</h6>
+                                            <small class="text-muted">Pay with cash or bank transfer</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="payment-option" :class="{'active': payment_source === 'savings'}" @click="payment_source = 'savings'">
+                                        <input type="radio" name="payment_source" value="savings" v-model="payment_source" required hidden>
+                                        <div class="text-center p-4">
+                                            <i class="fas fa-piggy-bank fa-3x text-info mb-3"></i>
+                                            <h6 class="mb-0">Savings Account</h6>
+                                            <small class="text-muted">Balance: <strong>{{ number_format($savings_balance ?? 0, 2) }}</strong></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label class="control-label" for="description">{{trans_choice('general.description',1)}}</label>
-                        <textarea type="text" name="description" v-model="description"
-                                  id="description"
-                                  class="form-control @error('description') is-invalid @enderror">
-                                </textarea>
-                        @error('description')
-                        <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                        @enderror
+
+                    <!-- Payment Details -->
+                    <div class="card shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="mb-4"><i class="fas fa-file-invoice-dollar text-primary"></i> Payment Details</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Amount</label>
+                                        <div class="input-group input-group-lg">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
+                                            </div>
+                                            <input type="number" step="0.01" name="amount" v-model="amount"
+                                                   class="form-control form-control-lg @error('amount') is-invalid @enderror" 
+                                                   placeholder="0.00" required>
+                                        </div>
+                                        @error('amount')
+                                        <span class="text-danger small">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Payment Date</label>
+                                        <div class="input-group input-group-lg">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                            </div>
+                                            <flat-pickr v-model="date" name="date"
+                                                       class="form-control form-control-lg @error('date') is-invalid @enderror" required>
+                                            </flat-pickr>
+                                        </div>
+                                        @error('date')
+                                        <span class="text-danger small">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cash Payment Type -->
+                            <div v-show="payment_source === 'cash'" class="mt-3">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Payment Type</label>
+                                    <v-select label="name" :options="payment_types"
+                                              :reduce="payment_type => payment_type.id"
+                                              v-model="payment_type_id"
+                                              placeholder="Select payment type"
+                                              class="form-control-lg">
+                                        <template #search="{attributes, events}">
+                                            <input autocomplete="off"
+                                                   :required="payment_source === 'cash' && !payment_type_id"
+                                                   class="vs__search"
+                                                   v-bind="attributes"
+                                                   v-on="events" />
+                                        </template>
+                                    </v-select>
+                                    <input type="hidden" name="payment_type_id" v-model="payment_type_id">
+                                </div>
+                            </div>
+
+                            <!-- Notes -->
+                            <div class="form-group mt-3">
+                                <label class="font-weight-bold">Notes (Optional)</label>
+                                <textarea name="description" v-model="description"
+                                          class="form-control" rows="3"
+                                          placeholder="Add any additional notes about this payment..."></textarea>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="card-footer border-top ">
-                    <button type="submit"
-                            class="btn btn-primary  float-right">{{trans_choice('core::general.save',1)}}</button>
-                </div>
+
+                    <!-- Action Buttons -->
+                    <div class="card shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between">
+                                <button type="button" onclick="window.history.back()" class="btn btn-lg btn-outline-secondary">
+                                    <i class="fas fa-arrow-left"></i> Cancel
+                                </button>
+                                <button type="submit" class="btn btn-lg btn-primary px-5">
+                                    <i class="fas fa-check-circle"></i> Process Payment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
     </section>
+@endsection
+@section('styles')
+    <style>
+        .payment-option {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+        .payment-option:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+            transform: translateY(-2px);
+        }
+        .payment-option.active {
+            border-color: #007bff;
+            background: #f0f8ff;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.2);
+        }
+        .card.shadow-sm {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+            border: none;
+            margin-bottom: 1.5rem;
+        }
+        .input-group-lg .input-group-text {
+            background: #f8f9fa;
+            border-right: none;
+        }
+        .input-group-lg .form-control {
+            border-left: none;
+        }
+        .input-group-lg .form-control:focus {
+            box-shadow: none;
+            border-color: #ced4da;
+        }
+    </style>
 @endsection
 @section('scripts')
     <script>
         var app = new Vue({
             el: '#app',
             data: {
+                payment_source: "{{old('payment_source', 'cash')}}",
                 amount: "{{old('amount')}}",
                 date: "{{old('date',date('Y-m-d'))}}",
                 payment_type_id: parseInt("{{old('payment_type_id')}}"),
