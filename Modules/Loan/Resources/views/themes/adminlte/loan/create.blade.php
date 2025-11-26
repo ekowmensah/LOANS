@@ -59,7 +59,7 @@
                             <div class="form-group">
                                 <label for="client_id"
                                        class="control-label">{{trans_choice('client::general.client',1)}}</label>
-                                <v-select label="full_name" :options="clients"
+                                <v-select label="name_id" :options="clients"
                                           :reduce="client => client.id"
                                           v-model="client_id"
                                           v-on:input="change_client">
