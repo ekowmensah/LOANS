@@ -19,6 +19,9 @@ class EventServiceProvider extends ServiceProvider
         'Modules\Loan\Events\TransactionUpdated' => [
             'Modules\Loan\Listeners\UpdateTransactions',
         ],
+        'Modules\Loan\Events\LoanDisbursed' => [
+            'Modules\Loan\Listeners\DepositDisbursementToSavings',
+        ],
     ];
 
     /**

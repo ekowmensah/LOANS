@@ -767,34 +767,24 @@
                                                                             :required="true"
                                                                             id="first_payment_date"></flat-pickr>
                                                                 </div>
-                                                                <div class="form-group">
-                                                                    <label for="payment_type_id"
-                                                                           class="control-label">{{ trans_choice('loan::general.payment',1) }}
-                                                                        {{ trans_choice('core::general.type',1) }}
-                                                                    </label>
-                                                                    <select class="form-control select2"
-                                                                            name="payment_type_id"
-                                                                            id="payment_type_id"
-                                                                            v-model="payment_type_id"
-                                                                            required>
-                                                                        <option value=""></option>
-                                                                        @foreach($payment_types as $key)
-                                                                            <option value="{{$key->id}}">{{$key->name}}</option>
-                                                                        @endforeach
-                                                                    </select>
+                                                                <!-- Hidden field: Payment type automatically set to Internal Transfer (deposit to savings) -->
+                                                                <input type="hidden" name="payment_type_id" value="1">
+                                                                <div class="alert alert-info">
+                                                                    <i class="fas fa-info-circle"></i>
+                                                                    <strong>Note:</strong> Loan disbursement will be automatically deposited to the client's savings account.
                                                                 </div>
-                                                                <div class="form-group">
+                                                               <!-- <div class="form-group">
                                                                     <label for="approved_amount"
                                                                            class="control-label">{{ trans_choice('core::general.show',1) }}
                                                                         {{ trans_choice('loan::general.payment',1) }} {{ trans_choice('core::general.detail',2) }}</label>
-                                                                    <button type="button"
+                                                                     <button type="button"
                                                                             class="btn btn-primary collapsed"
                                                                             data-toggle="collapse"
                                                                             data-target="#show_payment_details"
                                                                             aria-expanded="false">
                                                                         <i class="fa fa-plus"></i>
-                                                                    </button>
-                                                                </div>
+                                                                    </button> 
+                                                                </div> -->
                                                                 <div id="show_payment_details" class="collapse">
                                                                     <div class="form-group">
                                                                         <label for="account_number"

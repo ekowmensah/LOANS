@@ -29,8 +29,11 @@ use Modules\Loan\Entities\LoanProvisioning;
 use Modules\Loan\Entities\LoanPurpose;
 use Modules\Loan\Entities\LoanRepaymentSchedule;
 use Modules\Loan\Entities\LoanTransaction;
+use Modules\Loan\Events\LoanDisbursed;
 use Modules\Loan\Events\LoanStatusChanged;
 use Modules\Loan\Events\TransactionUpdated;
+use Modules\Savings\Entities\Savings;
+use Modules\Setting\Entities\Setting;
 use Modules\User\Entities\User;
 use JavaScript;
 use PDF;
@@ -1193,6 +1196,42 @@ class LoanController extends Controller
             \flash(trans_choice('loan::general.loan', 1) . ' ' . trans_choice('core::general.not', 1) . ' ' . trans_choice('loan::general.approved', 1))->warning()->important();
             return redirect()->back();
         }
+
+        // Check if auto-deposit to savings is enabled
+        $autoDeposit = Setting::where('setting_key', 'auto_deposit_loan_to_savings')->first();
+        if ($autoDeposit && $autoDeposit->setting_value == '1') {
+            // For individual loans, check if client has active savings account
+            if ($loan->client_type === 'individual' || $loan->client_type === 'client') {
+                $savings = Savings::where('client_id', $loan->client_id)
+                    ->where('status', 'active')
+                    ->first();
+                
+                if (!$savings) {
+                    \flash('Cannot disburse loan: Client does not have an active savings account. Please create a savings account for the client first.')->error()->important();
+                    return redirect()->back();
+                }
+            }
+
+            // For group loans, check if all members have active savings accounts
+            if ($loan->client_type === 'group' && $loan->memberAllocations && $loan->memberAllocations->count() > 0) {
+                $membersWithoutSavings = [];
+                foreach ($loan->memberAllocations as $allocation) {
+                    $savings = Savings::where('client_id', $allocation->client_id)
+                        ->where('status', 'active')
+                        ->first();
+                    
+                    if (!$savings) {
+                        $membersWithoutSavings[] = $allocation->client->first_name . ' ' . $allocation->client->last_name;
+                    }
+                }
+                
+                if (!empty($membersWithoutSavings)) {
+                    $membersList = implode(', ', $membersWithoutSavings);
+                    \flash("Cannot disburse loan: The following group members do not have active savings accounts: {$membersList}. Please create savings accounts for all members first.")->error()->important();
+                    return redirect()->back();
+                }
+            }
+        }
         //payment details
         $payment_detail = new PaymentDetail();
         $payment_detail->created_by_id = Auth::id();
@@ -1608,6 +1647,10 @@ class LoanController extends Controller
             ->log('Disburse Loan');
         //fire loan status changed event
         event(new LoanStatusChanged($loan, $previous_status));
+        
+        // Fire loan disbursed event to auto-deposit to savings
+        event(new LoanDisbursed($loan, $loan->principal, $loan->disbursed_on_date, $request->payment_type_id));
+        
         \flash(trans_choice("core::general.successfully_saved", 1))->success()->important();
         return redirect('loan/' . $loan->id . '/show');
     }

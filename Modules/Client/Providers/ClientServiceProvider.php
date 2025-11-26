@@ -5,7 +5,10 @@ namespace Modules\Client\Providers;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Database\Eloquent\Factory;
+use Illuminate\Support\Facades\Event;
 use Modules\Client\Console\DeactivateInactiveClients;
+use Modules\Client\Events\ClientCreated;
+use Modules\Client\Listeners\CreateDefaultSavingsAccount;
 
 class ClientServiceProvider extends ServiceProvider
 {
@@ -21,10 +24,24 @@ class ClientServiceProvider extends ServiceProvider
         $this->registerViews();
         //$this->registerFactories();
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
+        $this->registerEvents();
         $this->app->booted(function () {
             $schedule = $this->app->make(Schedule::class);
             $schedule->command('clients:deactivate-inactive-clients')->daily();
         });
+    }
+    
+    /**
+     * Register event listeners.
+     *
+     * @return void
+     */
+    protected function registerEvents()
+    {
+        Event::listen(
+            ClientCreated::class,
+            CreateDefaultSavingsAccount::class
+        );
     }
 
     /**

@@ -17,6 +17,7 @@ use Modules\Client\Entities\ClientType;
 use Modules\Client\Entities\ClientUser;
 use Modules\Client\Entities\Profession;
 use Modules\Client\Entities\Title;
+use Modules\Client\Events\ClientCreated;
 use Modules\Core\Entities\Country;
 use Modules\CustomField\Entities\CustomField;
 use Modules\User\Entities\User;
@@ -196,6 +197,10 @@ class ClientController extends Controller
         activity()->on($client)
             ->withProperties(['id' => $client->id])
             ->log('Create Client');
+        
+        // Fire event to auto-create savings account
+        event(new ClientCreated($client));
+        
         \flash(trans_choice("core::general.successfully_saved", 1))->success()->important();
         return redirect('client');
     }
