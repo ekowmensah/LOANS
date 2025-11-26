@@ -30,6 +30,7 @@ use Modules\Loan\Entities\LoanPurpose;
 use Modules\Loan\Entities\LoanRepaymentSchedule;
 use Modules\Loan\Entities\LoanTransaction;
 use Modules\Loan\Events\LoanDisbursed;
+use Modules\Loan\Events\LoanDisbursementUndone;
 use Modules\Loan\Events\LoanStatusChanged;
 use Modules\Loan\Events\TransactionUpdated;
 use Modules\Savings\Entities\Savings;
@@ -1658,8 +1659,12 @@ class LoanController extends Controller
     public function undo_disbursement(Request $request, $id)
     {
 
-        $loan = Loan::find($id);
+        $loan = Loan::with(['memberAllocations.client'])->find($id);
         $previous_status = $loan->status;
+        
+        // Fire event to reverse savings deposits BEFORE deleting transactions
+        event(new LoanDisbursementUndone($loan));
+        
         $loan->disbursed_by_user_id = null;
         $loan->disbursed_on_date = null;
         $loan->status = 'approved';
