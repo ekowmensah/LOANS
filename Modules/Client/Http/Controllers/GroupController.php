@@ -238,6 +238,86 @@ class GroupController extends Controller
     }
 
     /**
+     * Show form to add client to a group
+     */
+    public function createMember(Request $request)
+    {
+        $clientId = $request->client_id;
+        $client = null;
+        
+        if ($clientId) {
+            $client = Client::findOrFail($clientId);
+            
+            // Check if client is already in a group
+            $existingMembership = GroupMember::where('client_id', $clientId)
+                ->where('status', 'active')
+                ->with('group')
+                ->first();
+                
+            if ($existingMembership) {
+                \flash('Client is already a member of group: ' . $existingMembership->group->name)->error()->important();
+                return redirect('client/' . $clientId . '/show');
+            }
+        }
+        
+        $groups = Group::where('status', 'active')->get();
+        
+        return theme_view('client::group.add_member', compact('groups', 'client'));
+    }
+    
+    /**
+     * Store client as member of selected group
+     */
+    public function storeMember(Request $request)
+    {
+        $request->validate([
+            'client_id' => ['required', 'exists:clients,id'],
+            'group_id' => ['required', 'exists:groups,id'],
+            'role' => ['required', 'in:member,leader,treasurer,secretary']
+        ]);
+        
+        $group = Group::findOrFail($request->group_id);
+        
+        // Check if group has active loans
+        if ($group->loans()->where('status', 'active')->exists()) {
+            \flash('Cannot add members to group with active loans')->error()->important();
+            return redirect()->back();
+        }
+        
+        // Check if client is already a member of THIS group
+        if ($group->members()->where('client_id', $request->client_id)->where('status', 'active')->exists()) {
+            \flash('Client is already an active member of this group')->error()->important();
+            return redirect()->back();
+        }
+        
+        // Check if client is already a member of ANY other group
+        $existingMembership = GroupMember::where('client_id', $request->client_id)
+            ->where('status', 'active')
+            ->with('group')
+            ->first();
+            
+        if ($existingMembership) {
+            \flash('Client is already an active member of another group: ' . $existingMembership->group->name)->error()->important();
+            return redirect()->back();
+        }
+
+        $member = new GroupMember();
+        $member->group_id = $request->group_id;
+        $member->client_id = $request->client_id;
+        $member->role = $request->role;
+        $member->status = 'active';
+        $member->joined_at = now();
+        $member->save();
+
+        activity()->on($member)
+            ->withProperties(['group_id' => $request->group_id, 'client_id' => $request->client_id])
+            ->log('Add Client to Group');
+
+        \flash('Client added to group successfully')->success()->important();
+        return redirect('client/' . $request->client_id . '/show');
+    }
+
+    /**
      * Add a member to the group
      */
     public function addMember(Request $request, $id)

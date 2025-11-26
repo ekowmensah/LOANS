@@ -111,6 +111,8 @@ Route::prefix('client')->group(function () {
         Route::get('{id}/edit', 'GroupController@edit');
         Route::post('{id}/update', 'GroupController@update');
         Route::get('{id}/destroy', 'GroupController@destroy');
+        Route::get('member/create', 'GroupController@createMember');
+        Route::post('member/store', 'GroupController@storeMember');
         Route::post('{id}/members', 'GroupController@addMember');
         Route::get('{id}/members/{memberId}/remove', 'GroupController@removeMember');
         Route::post('{id}/members/{memberId}/update', 'GroupController@updateMember');
