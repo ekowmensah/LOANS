@@ -1,7 +1,7 @@
 @extends('core::layouts.master')
 
 @section('title')
-    Record {{ trans_choice('fieldagent::general.collection', 1) }}
+    Edit {{ trans_choice('fieldagent::general.collection', 1) }}
 @endsection
 
 @section('content')
@@ -9,32 +9,36 @@
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1>Record {{ trans_choice('fieldagent::general.collection', 1) }}</h1>
+                    <h1>Edit {{ trans_choice('fieldagent::general.collection', 1) }}</h1>
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{ url('dashboard') }}">{{ trans_choice('dashboard::general.dashboard', 1) }}</a></li>
                         <li class="breadcrumb-item"><a href="{{ url('field-agent/collection') }}">{{ trans_choice('fieldagent::general.collection', 2) }}</a></li>
-                        <li class="breadcrumb-item active">Record</li>
+                        <li class="breadcrumb-item active">Edit</li>
                     </ol>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="content" id="app">
+    <section class="content">
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Record New Collection</h3>
+                <h3 class="card-title">Edit Collection #{{ $collection->receipt_number }}</h3>
                 <div class="card-tools">
                     <a href="{{ url('field-agent/collection') }}" class="btn btn-sm btn-default">
                         <i class="fas fa-arrow-left"></i> {{ trans_choice('core::general.back', 1) }}
                     </a>
                 </div>
             </div>
-            <form method="post" action="{{ url('field-agent/collection/store') }}" enctype="multipart/form-data" id="collection-form">
+            <form method="post" action="{{ url('field-agent/collection/' . $collection->id . '/update') }}" enctype="multipart/form-data" id="collection-form">
                 @csrf
                 <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> You can only edit collections that are in <strong>Pending</strong> status.
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -49,7 +53,7 @@
                                     <select class="form-control select2" name="field_agent_id" id="field_agent_id" required>
                                         <option value="">{{ trans_choice('core::general.select', 1) }}</option>
                                         @foreach($fieldAgents as $agent)
-                                            <option value="{{ $agent->id }}" {{ old('field_agent_id') == $agent->id ? 'selected' : '' }}>
+                                            <option value="{{ $agent->id }}" {{ old('field_agent_id', $collection->field_agent_id) == $agent->id ? 'selected' : '' }}>
                                                 {{ $agent->agent_code }} - {{ $agent->full_name }}
                                             </option>
                                         @endforeach
@@ -62,27 +66,19 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="client_search_input" class="control-label">{{ trans_choice('client::general.client', 1) }} <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="client_search_input" v-model="client_search" 
-                                           placeholder="Enter client name, phone, or account number" @keyup.enter="searchClient">
-                                    <div class="input-group-append">
-                                        <button class="btn btn-primary" type="button" @click="searchClient" :disabled="searching_client">
-                                            <i class="fas fa-search"></i> Search
-                                        </button>
-                                    </div>
-                                </div>
-                                <input type="hidden" name="client_id" id="client_id" v-model="selected_client_id" required>
+                                <label for="client_id" class="control-label">{{ trans_choice('client::general.client', 1) }} <span class="text-danger">*</span></label>
+                                <select class="form-control select2" name="client_id" id="client_id" required>
+                                    <option value="">{{ trans_choice('core::general.select', 1) }}</option>
+                                    @foreach($clients as $client)
+                                        <option value="{{ $client->id }}" {{ old('client_id', $collection->client_id) == $client->id ? 'selected' : '' }}>
+                                            {{ $client->first_name }} {{ $client->last_name }} ({{ $client->mobile ?? $client->account_number }})
+                                        </option>
+                                    @endforeach
+                                </select>
                                 @error('client_id')
                                     <span class="text-danger">{{ $message }}</span>
                                 @enderror
-                                <small class="form-text text-muted">Type name, phone, or account number and click Search</small>
-                            </div>
-                            
-                            <!-- Client Details (shown after search) -->
-                            <div v-if="client" class="alert alert-success">
-                                <strong>Selected Client:</strong> @{{ client.first_name }} @{{ client.last_name }}<br>
-                                <small>Phone: @{{ client.mobile || 'N/A' }} | Account: @{{ client.account_number }}</small>
+                                <small class="form-text text-muted">Type to search by name or phone</small>
                             </div>
                         </div>
                     </div>
@@ -240,65 +236,14 @@
     <script>
         console.log('Field Agent Collection Script Loaded');
         
-        // Vue.js App
-        var app = new Vue({
-            el: '#app',
-            data: {
-                client_search: '',
-                searching_client: false,
-                client: null,
-                selected_client_id: ''
-            },
-            methods: {
-                searchClient() {
-                    if (!this.client_search) {
-                        alert('Please enter client name, phone, or account number');
-                        return;
-                    }
-
-                    this.searching_client = true;
-                    this.client = null;
-                    this.selected_client_id = '';
-
-                    axios.post('{{url("field-agent/collection/search-clients")}}', {
-                        search: this.client_search
-                    })
-                    .then(response => {
-                        this.searching_client = false;
-                        if (response.data.success) {
-                            this.client = response.data.data;
-                            this.selected_client_id = this.client.id;
-                            // Trigger change event for collection type dropdown
-                            $('#client_id').trigger('change');
-                        } else {
-                            alert(response.data.message || 'Client not found');
-                        }
-                    })
-                    .catch(error => {
-                        this.searching_client = false;
-                        console.error(error);
-                        if (error.response && error.response.data && error.response.data.message) {
-                            alert(error.response.data.message);
-                        } else {
-                            alert('Error searching for client. Please try again.');
-                        }
-                    });
-                }
-            }
-        });
-        
         $(document).ready(function() {
             console.log('Document ready - initializing...');
             
             // Initialize select2 only if available
             if (typeof $.fn.select2 !== 'undefined') {
-                // Initialize all select2 dropdowns with search
                 $('.select2').select2({
-                    theme: 'bootstrap4',
-                    placeholder: 'Select an option',
-                    allowClear: true
+                    theme: 'bootstrap4'
                 });
-                
                 console.log('Select2 initialized');
             } else {
                 console.log('Select2 not available, using standard dropdowns');

@@ -35,6 +35,9 @@ Route::prefix('field-agent')->middleware(['auth'])->group(function () {
         Route::get('create', [FieldCollectionController::class, 'create']);
         Route::post('store', [FieldCollectionController::class, 'store']);
         Route::get('{id}/show', [FieldCollectionController::class, 'show']);
+        Route::get('{id}/edit', [FieldCollectionController::class, 'edit']);
+        Route::post('{id}/update', [FieldCollectionController::class, 'update']);
+        Route::post('search-clients', [FieldCollectionController::class, 'search_clients']);
         Route::get('get-client-accounts', [FieldCollectionController::class, 'get_client_accounts']);
         Route::get('get-loan-payment-info', [FieldCollectionController::class, 'get_loan_payment_info']);
         

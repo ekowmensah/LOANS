@@ -19,7 +19,7 @@ class FieldCollectionController extends Controller
     {
         $this->middleware('auth');
         $this->middleware(['permission:field_agent.collections.index'])->only(['index', 'get_collections']);
-        $this->middleware(['permission:field_agent.collections.create'])->only(['create', 'store']);
+        $this->middleware(['permission:field_agent.collections.create'])->only(['create', 'store', 'edit', 'update']);
         $this->middleware(['permission:field_agent.collections.view'])->only(['show']);
         $this->middleware(['permission:field_agent.collections.verify'])->only(['verify_index', 'verify', 'reject']);
         $this->middleware(['permission:field_agent.collections.post'])->only(['post']);
@@ -96,6 +96,11 @@ class FieldCollectionController extends Controller
                 $actions = '<div class="btn-group">';
                 $actions .= '<a href="' . url('field-agent/collection/' . $data->id . '/show') . '" class="btn btn-info btn-sm"><i class="fa fa-eye"></i></a>';
                 
+                // Add edit button for pending collections
+                if ($data->status === 'pending' && Auth::user()->can('field_agent.collections.create')) {
+                    $actions .= '<a href="' . url('field-agent/collection/' . $data->id . '/edit') . '" class="btn btn-warning btn-sm"><i class="fa fa-edit"></i> Edit</a>';
+                }
+                
                 if ($data->canBeVerified() && Auth::user()->can('field_agent.collections.verify')) {
                     $actions .= '<a href="' . url('field-agent/collection/' . $data->id . '/verify') . '" class="btn btn-success btn-sm"><i class="fa fa-check"></i> Verify</a>';
                 }
@@ -116,10 +121,17 @@ class FieldCollectionController extends Controller
      */
     public function create()
     {
+        $user = Auth::user();
+        
+        // Check if logged-in user is a field agent
+        $currentFieldAgent = FieldAgent::where('user_id', $user->id)->first();
+        
         $fieldAgents = FieldAgent::active()->get();
-        $clients = Client::where('status', 'active')->get();
+        $clients = Client::where('status', 'active')
+            ->select('id', 'first_name', 'last_name', 'mobile', 'account_number')
+            ->get();
 
-        return theme_view('fieldagent::collection.create', compact('fieldAgents', 'clients'));
+        return theme_view('fieldagent::collection.create', compact('fieldAgents', 'currentFieldAgent', 'clients'));
     }
 
     /**
@@ -247,6 +259,50 @@ class FieldCollectionController extends Controller
             \Log::error('Error loading loan payment info: ' . $e->getMessage());
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
+    }
+    
+    /**
+     * Search clients via AJAX (like teller search)
+     */
+    public function search_clients(Request $request)
+    {
+        $search = $request->search;
+        
+        if (empty($search)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please enter a search term'
+            ], 400);
+        }
+        
+        $client = Client::where('status', 'active')
+            ->where(function($query) use ($search) {
+                $query->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
+                      ->orWhere('mobile', 'like', "%{$search}%")
+                      ->orWhere('account_number', 'like', "%{$search}%");
+            })
+            ->first();
+        
+        if (!$client) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Client not found'
+            ], 404);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $client->id,
+                'first_name' => $client->first_name,
+                'last_name' => $client->last_name,
+                'mobile' => $client->mobile,
+                'account_number' => $client->account_number,
+                'email' => $client->email,
+                'photo' => $client->photo,
+            ]
+        ]);
     }
     
     /**
@@ -392,6 +448,93 @@ class FieldCollectionController extends Controller
     }
 
     /**
+     * Show the form for editing a collection
+     */
+    public function edit($id)
+    {
+        $collection = FieldCollection::findOrFail($id);
+        
+        // Only allow editing if status is pending
+        if ($collection->status !== 'pending') {
+            flash('Cannot edit collection. Status: ' . $collection->status)->error();
+            return redirect()->back();
+        }
+        
+        $user = Auth::user();
+        $currentFieldAgent = FieldAgent::where('user_id', $user->id)->first();
+        
+        $fieldAgents = FieldAgent::active()->get();
+        $clients = Client::where('status', 'active')
+            ->select('id', 'first_name', 'last_name', 'mobile', 'account_number')
+            ->get();
+        
+        // Get accounts based on collection type
+        if ($collection->collection_type === 'savings_deposit') {
+            $accounts = Savings::where('client_id', $collection->client_id)
+                ->where('status', 'active')
+                ->get();
+        } elseif ($collection->collection_type === 'loan_repayment') {
+            $accounts = Loan::where('client_id', $collection->client_id)
+                ->where('status', 'active')
+                ->get();
+        } else {
+            $accounts = collect();
+        }
+        
+        return theme_view('fieldagent::collection.edit', compact('collection', 'fieldAgents', 'currentFieldAgent', 'clients', 'accounts'));
+    }
+
+    /**
+     * Update the specified collection
+     */
+    public function update(Request $request, $id)
+    {
+        $collection = FieldCollection::findOrFail($id);
+        
+        // Only allow updating if status is pending
+        if ($collection->status !== 'pending') {
+            flash('Cannot update collection. Status: ' . $collection->status)->error();
+            return redirect()->back();
+        }
+        
+        $request->validate([
+            'field_agent_id' => 'required|exists:field_agents,id',
+            'collection_type' => 'required|in:savings_deposit,loan_repayment,share_purchase',
+            'reference_id' => 'required|integer',
+            'client_id' => 'required|exists:clients,id',
+            'amount' => 'required|numeric|min:0.01',
+            'collection_date' => 'required|date',
+            'collection_time' => 'required',
+            'payment_method' => 'required|in:cash,mobile_money,cheque,bank_transfer',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'location_address' => 'nullable|string',
+            'photo_proof' => 'nullable|image|max:5120',
+            'notes' => 'nullable|string',
+        ]);
+
+        $data = $request->except('photo_proof');
+
+        // Handle photo upload
+        if ($request->hasFile('photo_proof')) {
+            // Delete old photo if exists
+            if ($collection->photo_proof && file_exists(public_path($collection->photo_proof))) {
+                unlink(public_path($collection->photo_proof));
+            }
+            
+            $file = $request->file('photo_proof');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('uploads/field_collections'), $filename);
+            $data['photo_proof'] = 'uploads/field_collections/' . $filename;
+        }
+
+        $collection->update($data);
+
+        flash('Collection updated successfully')->success();
+        return redirect('field-agent/collection/' . $collection->id . '/show');
+    }
+
+    /**
      * Display verification dashboard
      */
     public function verify_index()
@@ -466,90 +609,43 @@ class FieldCollectionController extends Controller
                 // Record loan repayment
                 $loan = \Modules\Loan\Entities\Loan::findOrFail($collection->reference_id);
                 
+                \Log::info('Processing loan repayment', [
+                    'collection_id' => $collection->id,
+                    'loan_id' => $loan->id,
+                    'amount' => $collection->amount
+                ]);
+                
                 // Create payment detail
                 $payment_detail = new \Modules\Core\Entities\PaymentDetail();
                 $payment_detail->created_by_id = Auth::id();
-                $payment_detail->payment_type_id = $collection->payment_type_id ?? 1;
+                $payment_detail->payment_type_id = 1; // Cash
                 $payment_detail->transaction_type = 'loan_transaction';
                 $payment_detail->receipt = $collection->receipt_number;
                 $payment_detail->save();
+                
+                \Log::info('Payment detail created', ['payment_detail_id' => $payment_detail->id]);
                 
                 // Create loan transaction
                 $loan_transaction = new \Modules\Loan\Entities\LoanTransaction();
                 $loan_transaction->created_by_id = Auth::id();
                 $loan_transaction->loan_id = $loan->id;
+                $loan_transaction->branch_id = $loan->branch_id;
                 $loan_transaction->payment_detail_id = $payment_detail->id;
                 $loan_transaction->name = 'Repayment';
-                $loan_transaction->loan_transaction_type_id = 1; // Repayment
-                $loan_transaction->submitted_on = $collection->collection_date;
+                $loan_transaction->loan_transaction_type_id = 2; // Repayment (NOT 1 which is Disbursement!)
+                $loan_transaction->submitted_on = $collection->collection_date->format('Y-m-d');
                 $loan_transaction->created_on = date("Y-m-d");
+                $loan_transaction->reversible = 1;
                 $loan_transaction->amount = $collection->amount;
                 $loan_transaction->credit = $collection->amount;
                 $loan_transaction->save();
                 
-                // Update loan repayment schedules
-                $balance = $collection->amount;
-                $schedules = $loan->repayment_schedules()
-                    ->orderBy('due_date', 'asc')
-                    ->get();
+                \Log::info('Loan transaction created', ['loan_transaction_id' => $loan_transaction->id]);
                 
-                foreach ($schedules as $schedule) {
-                    if ($balance <= 0) break;
-                    
-                    // Calculate outstanding amounts
-                    $principal_outstanding = $schedule->principal - $schedule->principal_repaid_derived;
-                    $interest_outstanding = $schedule->interest - $schedule->interest_repaid_derived;
-                    $fees_outstanding = $schedule->fees - $schedule->fees_repaid_derived;
-                    $penalties_outstanding = $schedule->penalties - $schedule->penalties_repaid_derived;
-                    
-                    $total_outstanding = $principal_outstanding + $interest_outstanding + $fees_outstanding + $penalties_outstanding;
-                    
-                    if ($total_outstanding > 0) {
-                        // Pay penalties first, then fees, then interest, then principal
-                        if ($penalties_outstanding > 0 && $balance > 0) {
-                            $penalty_payment = min($penalties_outstanding, $balance);
-                            $schedule->penalties_repaid_derived += $penalty_payment;
-                            $balance -= $penalty_payment;
-                        }
-                        
-                        if ($fees_outstanding > 0 && $balance > 0) {
-                            $fee_payment = min($fees_outstanding, $balance);
-                            $schedule->fees_repaid_derived += $fee_payment;
-                            $balance -= $fee_payment;
-                        }
-                        
-                        if ($interest_outstanding > 0 && $balance > 0) {
-                            $interest_payment = min($interest_outstanding, $balance);
-                            $schedule->interest_repaid_derived += $interest_payment;
-                            $balance -= $interest_payment;
-                        }
-                        
-                        if ($principal_outstanding > 0 && $balance > 0) {
-                            $principal_payment = min($principal_outstanding, $balance);
-                            $schedule->principal_repaid_derived += $principal_payment;
-                            $balance -= $principal_payment;
-                        }
-                        
-                        $schedule->save();
-                    }
-                }
+                // Fire loan updated event - this will update all schedules and balances
+                event(new \Modules\Loan\Events\TransactionUpdated($loan));
                 
-                // Update loan totals
-                $loan->principal_repaid_derived = $loan->repayment_schedules()->sum('principal_repaid_derived');
-                $loan->interest_repaid_derived = $loan->repayment_schedules()->sum('interest_repaid_derived');
-                $loan->fees_repaid_derived = $loan->repayment_schedules()->sum('fees_repaid_derived');
-                $loan->penalties_repaid_derived = $loan->repayment_schedules()->sum('penalties_repaid_derived');
-                
-                // Check if loan is fully paid
-                $total_due = $loan->principal + $loan->interest_disbursed_derived + $loan->fees_disbursed_derived + $loan->penalties_disbursed_derived;
-                $total_paid = $loan->principal_repaid_derived + $loan->interest_repaid_derived + $loan->fees_repaid_derived + $loan->penalties_repaid_derived;
-                
-                if ($total_paid >= $total_due) {
-                    $loan->status = 'closed';
-                    $loan->closed_on_date = date("Y-m-d");
-                }
-                
-                $loan->save();
+                \Log::info('TransactionUpdated event fired for loan', ['loan_id' => $loan->id]);
                 
                 // Update group member allocation if it's a group loan
                 if ($loan->client_type === 'group' && $collection->client_id) {
@@ -586,9 +682,15 @@ class FieldCollectionController extends Controller
                 // Record savings deposit
                 $savings = \Modules\Savings\Entities\Savings::findOrFail($collection->reference_id);
                 
+                \Log::info('Processing savings deposit', [
+                    'collection_id' => $collection->id,
+                    'savings_id' => $savings->id,
+                    'amount' => $collection->amount
+                ]);
+                
                 $payment_detail = new \Modules\Core\Entities\PaymentDetail();
                 $payment_detail->created_by_id = Auth::id();
-                $payment_detail->payment_type_id = $collection->payment_type_id ?? 1;
+                $payment_detail->payment_type_id = 1; // Cash
                 $payment_detail->transaction_type = 'savings_transaction';
                 $payment_detail->receipt = $collection->receipt_number;
                 $payment_detail->save();
@@ -596,18 +698,24 @@ class FieldCollectionController extends Controller
                 $savings_transaction = new \Modules\Savings\Entities\SavingsTransaction();
                 $savings_transaction->created_by_id = Auth::id();
                 $savings_transaction->savings_id = $savings->id;
+                $savings_transaction->branch_id = $savings->branch_id;
                 $savings_transaction->payment_detail_id = $payment_detail->id;
                 $savings_transaction->name = 'Deposit';
                 $savings_transaction->savings_transaction_type_id = 1; // Deposit
-                $savings_transaction->submitted_on = $collection->collection_date;
+                $savings_transaction->submitted_on = $collection->collection_date->format('Y-m-d');
                 $savings_transaction->created_on = date("Y-m-d");
+                $savings_transaction->reversible = 1;
                 $savings_transaction->amount = $collection->amount;
                 $savings_transaction->credit = $collection->amount;
                 $savings_transaction->save();
                 
+                \Log::info('Savings transaction created', ['savings_transaction_id' => $savings_transaction->id]);
+                
                 // Update savings balance
                 $savings->balance_derived = $savings->transactions()->sum('credit') - $savings->transactions()->sum('debit');
                 $savings->save();
+                
+                \Log::info('Savings balance updated', ['new_balance' => $savings->balance_derived]);
             }
 
             DB::commit();
@@ -615,7 +723,12 @@ class FieldCollectionController extends Controller
             return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error posting collection: ' . $e->getMessage());
+            \Log::error('Error posting collection: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+                'collection_id' => $id,
+                'collection_type' => $collection->collection_type ?? 'unknown'
+            ]);
             flash('Error posting collection: ' . $e->getMessage())->error();
             return redirect()->back();
         }

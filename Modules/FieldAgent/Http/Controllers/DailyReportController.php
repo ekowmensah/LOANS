@@ -107,10 +107,16 @@ class DailyReportController extends Controller
     public function create()
     {
         $user = Auth::user();
+        
+        // Check if user is a field agent
         $fieldAgent = FieldAgent::where('user_id', $user->id)->first();
 
+        // If not a field agent, allow admin to select field agent
         if (!$fieldAgent) {
-            return redirect()->back()->with('error', 'You are not registered as a field agent');
+            // Get all active field agents for admin to choose
+            $fieldAgents = FieldAgent::with('user')->where('status', 'active')->get();
+            
+            return theme_view('fieldagent::daily_report.create', compact('fieldAgents'));
         }
 
         // Check if report already exists for today
@@ -120,8 +126,8 @@ class DailyReportController extends Controller
             ->first();
 
         if ($existingReport) {
-            return redirect('field-agent/daily-report/' . $existingReport->id . '/show')
-                ->with('info', 'Report for today already exists');
+            flash('Report for today already exists. You can edit it below.')->info();
+            return redirect('field-agent/daily-report/' . $existingReport->id . '/show');
         }
 
         // Get today's collections

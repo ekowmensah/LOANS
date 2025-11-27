@@ -67,15 +67,17 @@ class FieldAgentController extends Controller
             ->where('status', 'pending')
             ->count();
         
-        // Get assigned clients count
-        $assignedClients = \Modules\Client\Entities\Client::where('field_agent_id', $fieldAgent->id)
-            ->where('status', 'active')
-            ->count();
+        // Get unique clients from collections
+        $assignedClients = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
+            ->distinct('client_id')
+            ->count('client_id');
         
-        // Get active loans for assigned clients
-        $activeLoans = \Modules\Loan\Entities\Loan::whereHas('client', function($q) use ($fieldAgent) {
-            $q->where('field_agent_id', $fieldAgent->id);
-        })->where('status', 'active')->count();
+        // Get active loans from collections
+        $activeLoans = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
+            ->whereNotNull('reference_id')
+            ->where('collection_type', 'loan_repayment')
+            ->distinct('reference_id')
+            ->count('reference_id');
         
         // Get recent collections (last 10)
         $recentCollections = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
@@ -89,23 +91,27 @@ class FieldAgentController extends Controller
             ->whereDate('report_date', today())
             ->first();
         
-        // Get clients with loans due today or overdue
-        $dueLoans = \Modules\Loan\Entities\Loan::whereHas('client', function($q) use ($fieldAgent) {
-            $q->where('field_agent_id', $fieldAgent->id);
-        })
-        ->where('status', 'active')
-        ->whereHas('repayment_schedules', function($q) {
-            $q->where('due_date', '<=', today())
-              ->whereRaw('principal_repaid_derived < principal')
-              ->orWhereRaw('interest_repaid_derived < interest');
-        })
-        ->with(['client', 'repayment_schedules' => function($q) {
-            $q->where('due_date', '<=', today())
-              ->whereRaw('principal_repaid_derived < principal')
-              ->orWhereRaw('interest_repaid_derived < interest');
-        }])
-        ->limit(10)
-        ->get();
+        // Get loans with due/overdue payments from field agent's collections
+        $loanIds = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
+            ->where('collection_type', 'loan_repayment')
+            ->whereNotNull('reference_id')
+            ->distinct()
+            ->pluck('reference_id');
+        
+        $dueLoans = \Modules\Loan\Entities\Loan::whereIn('id', $loanIds)
+            ->where('status', 'active')
+            ->whereHas('repayment_schedules', function($q) {
+                $q->where('due_date', '<=', today())
+                  ->whereRaw('principal_repaid_derived < principal')
+                  ->orWhereRaw('interest_repaid_derived < interest');
+            })
+            ->with(['client', 'repayment_schedules' => function($q) {
+                $q->where('due_date', '<=', today())
+                  ->whereRaw('principal_repaid_derived < principal')
+                  ->orWhereRaw('interest_repaid_derived < interest');
+            }])
+            ->limit(10)
+            ->get();
         
         return theme_view('fieldagent::dashboard', compact(
             'fieldAgent',

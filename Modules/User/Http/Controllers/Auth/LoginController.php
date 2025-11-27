@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Support\Facades\Auth;
 use Laracasts\Flash\Flash;
 use Modules\Client\Entities\ClientUser;
+use Modules\FieldAgent\Entities\FieldAgent;
 
 class LoginController extends Controller
 {
@@ -57,6 +58,7 @@ class LoginController extends Controller
      */
     protected function authenticated(Request $request, $user)
     {
+        // Check if user is a client
         if (Auth::user()->hasRole('client')) {
             $client = ClientUser::with('client')->where('user_id', Auth::id())->first();
             if (!empty($client->client)) {
@@ -68,8 +70,15 @@ class LoginController extends Controller
                 $request->session()->invalidate();
                 return redirect('login');
             }
-        } else {
-            return redirect()->intended($this->redirectPath());
         }
+        
+        // Check if user is a field agent
+        $fieldAgent = FieldAgent::where('user_id', Auth::id())->first();
+        if ($fieldAgent && $fieldAgent->status === 'active') {
+            return redirect('/field-agent/dashboard');
+        }
+        
+        // Default redirect for other users (admin, staff, etc.)
+        return redirect()->intended($this->redirectPath());
     }
 }

@@ -23,6 +23,7 @@
     </section>
 
     <section class="content">
+        @if(isset($fieldAgent))
         <div class="row">
             <!-- Summary Cards -->
             <div class="col-md-3">
@@ -70,6 +71,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <div class="card">
             <div class="card-header">
@@ -82,10 +84,39 @@
             </div>
             <form method="post" action="{{ url('field-agent/daily-report/store') }}">
                 @csrf
-                <input type="hidden" name="field_agent_id" value="{{ $fieldAgent->id }}">
-                <input type="hidden" name="report_date" value="{{ now()->format('Y-m-d') }}">
                 
                 <div class="card-body">
+                    @if(!isset($fieldAgent))
+                    <!-- Field Agent Selection for Admin -->
+                    <div class="form-group">
+                        <label for="field_agent_id" class="control-label">
+                            Select Field Agent <span class="text-danger">*</span>
+                        </label>
+                        <select name="field_agent_id" id="field_agent_id" class="form-control select2" required>
+                            <option value="">-- Select Field Agent --</option>
+                            @foreach($fieldAgents as $agent)
+                                <option value="{{ $agent->id }}">{{ $agent->agent_code }} - {{ $agent->full_name }}</option>
+                            @endforeach
+                        </select>
+                        @error('field_agent_id')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="report_date" class="control-label">
+                            Report Date <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" name="report_date" id="report_date" class="form-control" 
+                               value="{{ now()->format('Y-m-d') }}" required>
+                        @error('report_date')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    @else
+                    <input type="hidden" name="field_agent_id" value="{{ $fieldAgent->id }}">
+                    <input type="hidden" name="report_date" value="{{ now()->format('Y-m-d') }}">
+                    
                     <!-- Today's Collections Summary -->
                     <div class="card bg-light mb-3">
                         <div class="card-header">
@@ -135,6 +166,7 @@
                             @endif
                         </div>
                     </div>
+                    @endif
 
                     <!-- Cash Reconciliation -->
                     <div class="row">
