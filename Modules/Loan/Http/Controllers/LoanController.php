@@ -911,14 +911,65 @@ class LoanController extends Controller
             // Delete existing allocations if any (for re-approval scenarios)
             \Modules\Client\Entities\GroupMemberLoanAllocation::where('loan_id', $loan->id)->delete();
             
+            // Calculate total loan interest
+            $totalInterest = $loan->interest_derived ?? 0;
+            
+            // If interest_derived is not set, calculate it manually
+            if ($totalInterest == 0 && $loan->approved_amount > 0) {
+                $principal = $loan->approved_amount;
+                $interestRate = $loan->interest_rate / 100;
+                $loanTerm = $loan->loan_term;
+                $interestRateType = $loan->loan_product->interest_rate_type;
+                $repaymentFrequencyType = $loan->repayment_frequency_type;
+                
+                // Calculate loan term in years for interest calculation
+                $termInYears = 0;
+                if ($repaymentFrequencyType === 'days') {
+                    $termInYears = $loanTerm / 365;
+                } elseif ($repaymentFrequencyType === 'weeks') {
+                    $termInYears = $loanTerm / 52;
+                } elseif ($repaymentFrequencyType === 'months') {
+                    $termInYears = $loanTerm / 12;
+                } elseif ($repaymentFrequencyType === 'years') {
+                    $termInYears = $loanTerm;
+                }
+                
+                // Calculate total interest based on interest rate type
+                if ($interestRateType === 'year') {
+                    // Annual interest rate: Interest = Principal × Rate × Time (in years)
+                    $totalInterest = $principal * $interestRate * $termInYears;
+                } elseif ($interestRateType === 'month') {
+                    // Monthly interest rate: Interest = Principal × Rate × Term (in months)
+                    $termInMonths = 0;
+                    if ($repaymentFrequencyType === 'days') {
+                        $termInMonths = $loanTerm / 30;
+                    } elseif ($repaymentFrequencyType === 'weeks') {
+                        $termInMonths = $loanTerm / 4.33;
+                    } elseif ($repaymentFrequencyType === 'months') {
+                        $termInMonths = $loanTerm;
+                    } elseif ($repaymentFrequencyType === 'years') {
+                        $termInMonths = $loanTerm * 12;
+                    }
+                    $totalInterest = $principal * $interestRate * $termInMonths;
+                }
+            }
+            
             foreach ($request->member_allocations as $allocation) {
+                $allocatedAmount = $allocation['amount'];
+                $allocatedPercentage = ($allocatedAmount / $loan->approved_amount) * 100;
+                
+                // Calculate member's share of interest
+                $memberInterest = ($totalInterest * $allocatedPercentage) / 100;
+                
                 $memberAllocation = new \Modules\Client\Entities\GroupMemberLoanAllocation();
                 $memberAllocation->loan_id = $loan->id;
                 $memberAllocation->group_id = $loan->group_id;
                 $memberAllocation->client_id = $allocation['client_id'];
-                $memberAllocation->allocated_amount = $allocation['amount'];
-                $memberAllocation->allocated_percentage = ($allocation['amount'] / $loan->approved_amount) * 100;
-                $memberAllocation->outstanding_balance = $allocation['amount'];
+                $memberAllocation->allocated_amount = $allocatedAmount;
+                $memberAllocation->allocated_interest = $memberInterest;
+                $memberAllocation->interest_outstanding = $memberInterest;
+                $memberAllocation->allocated_percentage = $allocatedPercentage;
+                $memberAllocation->outstanding_balance = $allocatedAmount;
                 $memberAllocation->status = 'active';
                 $memberAllocation->created_by_id = Auth::id();
                 $memberAllocation->save();
@@ -1228,6 +1279,12 @@ class LoanController extends Controller
             'first_payment_date' => ['required', 'date', 'after:disbursed_on_date'],
             'payment_type_id' => ['required'],
         ]);
+        
+        // Additional safeguard: Ensure first_payment_date is never empty
+        if (empty($request->first_payment_date)) {
+            \flash('First payment date is required for loan disbursement.')->error()->important();
+            return redirect()->back();
+        }
 
         $loan = Loan::with(['memberAllocations.client'])->find($id);
         if ($loan->status != 'approved') {
@@ -1306,11 +1363,15 @@ class LoanController extends Controller
             //adjust $next_payment_date if weekend or holiday
             $adjusted_next_payment_date = $next_payment_date;
             if ($loan->loan_product->exclude_weekends) {
-                $adjusted_next_payment_date = get_next_week_day($next_payment_date);
+                $result = get_next_week_day($next_payment_date);
+                $adjusted_next_payment_date = $result ?: $adjusted_next_payment_date;
             }
             if ($loan->loan_product->exclude_holidays) {
-                $adjusted_next_payment_date = get_next_non_holiday_day($next_payment_date);
+                $result = get_next_non_holiday_day($next_payment_date);
+                $adjusted_next_payment_date = $result ?: $adjusted_next_payment_date;
             }
+            // Ensure adjusted date is never empty
+            $adjusted_next_payment_date = $adjusted_next_payment_date ?: $next_payment_date;
             $loan_repayment_schedule->due_date = $adjusted_next_payment_date;
             $loan_repayment_schedule->from_date = $payment_from_date;
             $date = explode('-', $next_payment_date);
@@ -1394,6 +1455,19 @@ class LoanController extends Controller
             $total_principal = $total_principal + $loan_repayment_schedule->principal;
             $total_interest = $total_interest + $loan_repayment_schedule->interest;
             $loan_repayment_schedule->total_due = $loan_repayment_schedule->principal + $loan_repayment_schedule->interest;
+            
+            // Safeguard: Ensure due_date is never NULL
+            if (empty($loan_repayment_schedule->due_date)) {
+                if ($i == 1) {
+                    // For first schedule, use loan's first_payment_date (which stores the actual date, even if overridden)
+                    $loan_repayment_schedule->due_date = $loan->first_payment_date;
+                } else {
+                    // For subsequent schedules, calculate from previous date
+                    $loan_repayment_schedule->due_date = $adjusted_next_payment_date;
+                }
+                \Log::warning("Loan #{$loan->id}: Schedule #{$i} had NULL due_date, auto-corrected to {$loan_repayment_schedule->due_date}");
+            }
+            
             $loan_repayment_schedule->save();
         }
         $loan->expected_maturity_date = $next_payment_date;

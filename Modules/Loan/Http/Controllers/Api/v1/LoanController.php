@@ -591,13 +591,19 @@ class LoanController extends Controller
         ]);
         if ($validator->fails()) {
             return response()->json(["success" => false, "errors" => $validator->errors()], 400);
-        } else {
-            $loan = Loan::find($id);
-            if ($loan->status != 'approved') {
-                return response()->json(['data' => $loan, "message" => trans_choice('loan::general.loan', 1) . ' ' . trans_choice('core::general.not', 1) . ' ' . trans_choice('loan::general.approved', 1), "success" => false]);
-            }
-            //payment details
-            $payment_detail = new PaymentDetail();
+        }
+        
+        // Additional safeguard: Ensure first_payment_date is never empty
+        if (empty($request->first_payment_date)) {
+            return response()->json(["success" => false, "message" => "First payment date is required for loan disbursement."], 400);
+        }
+        
+        $loan = Loan::find($id);
+        if ($loan->status != 'approved') {
+            return response()->json(['data' => $loan, "message" => trans_choice('loan::general.loan', 1) . ' ' . trans_choice('core::general.not', 1) . ' ' . trans_choice('loan::general.approved', 1), "success" => false]);
+        }
+        //payment details
+        $payment_detail = new PaymentDetail();
             $payment_detail->created_by_id = Auth::id();
             $payment_detail->payment_type_id = $request->payment_type_id;
             $payment_detail->transaction_type = 'loan_transaction';
@@ -935,10 +941,9 @@ class LoanController extends Controller
                     $journal_entry->save();
                 }
             }
-            //fire loan status changed event
-            event(new LoanStatusChanged($loan, $previous_status));
-            return response()->json(['data' => $loan, "message" => trans_choice("core::general.successfully_saved", 1), "success" => true]);
-        }
+        //fire loan status changed event
+        event(new LoanStatusChanged($loan, $previous_status));
+        return response()->json(['data' => $loan, "message" => trans_choice("core::general.successfully_saved", 1), "success" => true]);
     }
 
     public function undo_disbursement(Request $request, $id)

@@ -12,6 +12,8 @@ class GroupMemberLoanAllocation extends Model
         'group_id', 
         'client_id',
         'allocated_amount',
+        'allocated_interest',
+        'interest_outstanding',
         'allocated_percentage',
         'principal_paid',
         'interest_paid',
@@ -20,11 +22,14 @@ class GroupMemberLoanAllocation extends Model
         'total_paid',
         'outstanding_balance',
         'status',
-        'notes'
+        'notes',
+        'created_by_id'
     ];
 
     protected $casts = [
         'allocated_amount' => 'decimal:6',
+        'allocated_interest' => 'decimal:6',
+        'interest_outstanding' => 'decimal:6',
         'allocated_percentage' => 'decimal:2',
         'principal_paid' => 'decimal:6',
         'interest_paid' => 'decimal:6',
@@ -109,12 +114,42 @@ class GroupMemberLoanAllocation extends Model
     }
 
     /**
-     * Calculate outstanding balance
+     * Calculate and set allocated interest based on loan
+     */
+    public function calculateAllocatedInterest()
+    {
+        if (!$this->loan) {
+            return 0;
+        }
+
+        // Get total loan interest
+        $totalInterest = $this->loan->interest_derived ?? 0;
+        
+        // Calculate member's share based on percentage
+        $memberInterest = ($totalInterest * $this->allocated_percentage) / 100;
+        
+        $this->allocated_interest = $memberInterest;
+        $this->interest_outstanding = $memberInterest - $this->interest_paid;
+        
+        return $memberInterest;
+    }
+
+    /**
+     * Calculate outstanding balance (principal only)
      */
     public function calculateOutstandingBalance()
     {
-        $this->outstanding_balance = $this->allocated_amount - $this->total_paid;
+        $this->outstanding_balance = $this->allocated_amount - $this->principal_paid;
         return $this->outstanding_balance;
+    }
+    
+    /**
+     * Update interest outstanding after payment
+     */
+    public function updateInterestOutstanding()
+    {
+        $this->interest_outstanding = $this->allocated_interest - $this->interest_paid;
+        return $this->interest_outstanding;
     }
 
     /**

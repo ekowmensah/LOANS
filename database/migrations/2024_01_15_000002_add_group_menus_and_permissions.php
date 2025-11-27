@@ -46,11 +46,14 @@ class AddGroupMenusAndPermissions extends Migration
             // Insert parent menu first
             $parentMenuId = DB::table('menus')->insertGetId([
                 'name' => 'Groups',
+                'title' => 'Groups',
                 'parent_id' => null,
                 'url' => '/client/group',
                 'icon' => 'fas fa-users',
-                'permission' => 'client.groups.index',
-                'order' => 15,
+                'permissions' => 'client.groups.index',
+                'menu_order' => 15,
+                'is_parent' => 1,
+                'module' => 'Client',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -59,21 +62,27 @@ class AddGroupMenusAndPermissions extends Migration
             DB::table('menus')->insert([
                 [
                     'name' => 'All Groups',
+                    'title' => 'All Groups',
                     'parent_id' => $parentMenuId,
                     'url' => '/client/group',
                     'icon' => 'far fa-circle',
-                    'permission' => 'client.groups.index',
-                    'order' => 1,
+                    'permissions' => 'client.groups.index',
+                    'menu_order' => 1,
+                    'is_parent' => 0,
+                    'module' => 'Client',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ],
                 [
                     'name' => 'Create Group',
+                    'title' => 'Create Group',
                     'parent_id' => $parentMenuId,
                     'url' => '/client/group/create',
                     'icon' => 'far fa-circle',
-                    'permission' => 'client.groups.create',
-                    'order' => 2,
+                    'permissions' => 'client.groups.create',
+                    'menu_order' => 2,
+                    'is_parent' => 0,
+                    'module' => 'Client',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]
@@ -85,11 +94,12 @@ class AddGroupMenusAndPermissions extends Migration
         if ($loanMenu) {
             DB::table('menus')->insertOrIgnore([
                 'name' => 'Group Loan Allocations',
+                'title' => 'Group Loan Allocations',
                 'parent_id' => $loanMenu->id,
                 'url' => '/loan/group-allocations',
                 'icon' => 'far fa-circle',
-                'permission' => 'loan.member-allocations.index',
-                'order' => 10,
+                'permissions' => 'loan.member-allocations.index',
+                'menu_order' => 10,
                 'is_parent' => 0,
                 'module' => 'Loan',
                 'created_at' => now(),

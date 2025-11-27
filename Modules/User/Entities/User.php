@@ -52,4 +52,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Widget::class, 'user_id', 'id');
     }
+
+    public function fieldAgent()
+    {
+        return $this->hasOne(\Modules\FieldAgent\Entities\FieldAgent::class, 'user_id', 'id');
+    }
 }

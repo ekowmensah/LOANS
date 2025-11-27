@@ -1,0 +1,11 @@
+{
+    "name": "FieldAgent",
+    "alias": "fieldagent",
+    "description": "Manages field agents",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\FieldAgent\\Providers\\FieldAgentServiceProvider"
+    ],
+    "files": []
+}

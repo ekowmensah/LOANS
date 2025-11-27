@@ -80,15 +80,24 @@ class GroupMemberLoanAllocationController extends Controller
 
         // Create allocations
         foreach ($request->allocations as $allocation) {
+            // Calculate member's share of total loan interest
+            // allocated_percentage = % of principal they get
+            // Interest is calculated proportionally based on their share
+            $totalInterest = $loan->interest_derived ?? 0;
+            $memberInterest = ($totalInterest * $allocation['allocated_percentage']) / 100;
+            
             $memberAllocation = GroupMemberLoanAllocation::create([
                 'loan_id' => $loan->id,
                 'group_id' => $loan->group_id,
                 'client_id' => $allocation['client_id'],
                 'allocated_amount' => $allocation['allocated_amount'],
+                'allocated_interest' => $memberInterest,
+                'interest_outstanding' => $memberInterest,
                 'allocated_percentage' => $allocation['allocated_percentage'],
                 'outstanding_balance' => $allocation['allocated_amount'],
                 'status' => 'active',
                 'notes' => $allocation['notes'] ?? null,
+                'created_by_id' => auth()->id(),
             ]);
             
             // Generate payment schedules for this allocation
@@ -147,12 +156,62 @@ class GroupMemberLoanAllocationController extends Controller
             return back()->withErrors(['allocations' => 'Total allocation percentage must equal 100%']);
         }
 
+        // Calculate total loan interest
+        $totalInterest = $loan->interest_derived ?? 0;
+        
+        // If interest_derived is not set, calculate it manually
+        if ($totalInterest == 0 && $loan->principal > 0) {
+            $principal = $loan->principal;
+            $interestRate = $loan->interest_rate / 100;
+            $loanTerm = $loan->loan_term;
+            $interestRateType = $loan->loan_product->interest_rate_type;
+            $repaymentFrequencyType = $loan->repayment_frequency_type;
+            
+            // Calculate loan term in years for interest calculation
+            $termInYears = 0;
+            if ($repaymentFrequencyType === 'days') {
+                $termInYears = $loanTerm / 365;
+            } elseif ($repaymentFrequencyType === 'weeks') {
+                $termInYears = $loanTerm / 52;
+            } elseif ($repaymentFrequencyType === 'months') {
+                $termInYears = $loanTerm / 12;
+            } elseif ($repaymentFrequencyType === 'years') {
+                $termInYears = $loanTerm;
+            }
+            
+            // Calculate total interest based on interest rate type
+            if ($interestRateType === 'year') {
+                // Annual interest rate: Interest = Principal × Rate × Time (in years)
+                $totalInterest = $principal * $interestRate * $termInYears;
+            } elseif ($interestRateType === 'month') {
+                // Monthly interest rate: Interest = Principal × Rate × Term (in months)
+                $termInMonths = 0;
+                if ($repaymentFrequencyType === 'days') {
+                    $termInMonths = $loanTerm / 30;
+                } elseif ($repaymentFrequencyType === 'weeks') {
+                    $termInMonths = $loanTerm / 4.33;
+                } elseif ($repaymentFrequencyType === 'months') {
+                    $termInMonths = $loanTerm;
+                } elseif ($repaymentFrequencyType === 'years') {
+                    $termInMonths = $loanTerm * 12;
+                }
+                $totalInterest = $principal * $interestRate * $termInMonths;
+            }
+        }
+        
         // Update allocations
         foreach ($request->allocations as $allocationData) {
             $allocation = GroupMemberLoanAllocation::findOrFail($allocationData['id']);
+            
+            // Calculate member's share of interest based on new percentage
+            $allocatedPercentage = $allocationData['allocated_percentage'];
+            $memberInterest = ($totalInterest * $allocatedPercentage) / 100;
+            
             $allocation->update([
                 'allocated_amount' => $allocationData['allocated_amount'],
-                'allocated_percentage' => $allocationData['allocated_percentage'],
+                'allocated_percentage' => $allocatedPercentage,
+                'allocated_interest' => $memberInterest,
+                'interest_outstanding' => $memberInterest - ($allocation->interest_paid ?? 0),
                 'notes' => $allocationData['notes'] ?? $allocation->notes,
             ]);
             $allocation->calculateOutstandingBalance();

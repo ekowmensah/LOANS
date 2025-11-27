@@ -11,8 +11,12 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('loan_products', function (Blueprint $table) {
-            $table->tinyInteger('exclude_weekends')->default(0);
-            $table->tinyInteger('exclude_holidays')->default(0);
+            if (!Schema::hasColumn('loan_products', 'exclude_weekends')) {
+                $table->tinyInteger('exclude_weekends')->default(0);
+            }
+            if (!Schema::hasColumn('loan_products', 'exclude_holidays')) {
+                $table->tinyInteger('exclude_holidays')->default(0);
+            }
         });
     }
 

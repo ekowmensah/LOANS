@@ -71,7 +71,7 @@
                                         @endcan
                                         @can('loan.loans.approve_loan')
                                             <div class="modal fade" id="approve_loan_modal">
-                                                <div class="modal-dialog">
+                                                <div class="modal-dialog modal-xl">
                                                     <div class="modal-content">
                                                         <div class="modal-header">
                                                             <h4 class="modal-title">{{ trans_choice('loan::general.approve',1) }} {{ trans_choice('loan::general.loan',1) }}</h4>
@@ -122,12 +122,20 @@
                                                                     </div>
                                                                 </div>
                                                                 <div class="form-group">
-                                                                    <label class="control-label">Expected Payment Per Installment</label>
-                                                                    <div class="alert alert-success" id="expected-payment-info">
-                                                                        <i class="fas fa-calculator"></i>
-                                                                        <strong>Principal + Interest: <span id="expected-payment-amount">Calculating...</span></strong>
-                                                                        <br>
-                                                                        <small>Based on {{$loan->interest_rate}}% interest rate ({{ucfirst($loan->loan_product->interest_rate_type)}}ly)</small>
+                                                                    <label class="control-label">Loan Summary</label>
+                                                                    <div class="alert alert-info" id="loan-summary-info">
+                                                                        <div class="row">
+                                                                            <div class="col-md-6">
+                                                                                <strong><i class="fas fa-money-bill-wave"></i> Principal:</strong> <span id="summary-principal">{{number_format($loan->applied_amount, 2)}}</span><br>
+                                                                                <strong><i class="fas fa-percent"></i> Interest Rate:</strong> {{$loan->interest_rate}}% ({{ucfirst($loan->loan_product->interest_rate_type)}}ly)<br>
+                                                                                <strong><i class="fas fa-calendar"></i> Term:</strong> {{$loan->loan_term}} {{ucfirst($loan->repayment_frequency_type)}}(s)
+                                                                            </div>
+                                                                            <div class="col-md-6">
+                                                                                <strong><i class="fas fa-calculator"></i> Total Interest:</strong> <span id="summary-interest" class="text-info">0.00</span><br>
+                                                                                <strong><i class="fas fa-hand-holding-usd"></i> Total Repayment:</strong> <span id="summary-total" class="text-success">0.00</span><br>
+                                                                                <strong><i class="fas fa-calendar-check"></i> Payment/Install:</strong> <span id="expected-payment-amount">0.00</span>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                                 @if($loan->client_type == 'group')
@@ -138,16 +146,18 @@
                                                                                 <thead>
                                                                                     <tr>
                                                                                         <th>Member Name</th>
-                                                                                        <th>Allocation Amount</th>
-                                                                                        <th>Percentage</th>
-                                                                                        <th>Expected Payment</th>
+                                                                                        <th>Principal</th>
+                                                                                        <th>Interest</th>
+                                                                                        <th>Total (P+I)</th>
+                                                                                        <th>%</th>
+                                                                                        <th>Payment/Install</th>
                                                                                     </tr>
                                                                                 </thead>
                                                                                 <tbody id="member-allocations">
                                                                                     @if($loan->group && $loan->group->active_members)
                                                                                         @foreach($loan->group->active_members as $index => $member)
                                                                                             <tr>
-                                                                                                <td>{{ $member->client->first_name }} {{ $member->client->last_name }}</td>
+                                                                                                <td><strong>{{ $member->client->first_name }} {{ $member->client->last_name }}</strong></td>
                                                                                                 <td>
                                                                                                     <input type="number" 
                                                                                                            name="member_allocations[{{ $member->client_id }}][amount]" 
@@ -161,7 +171,13 @@
                                                                                                            value="{{ $member->client_id }}">
                                                                                                 </td>
                                                                                                 <td>
-                                                                                                    <span class="allocation-percentage" data-member-id="{{ $member->client_id }}">0%</span>
+                                                                                                    <span class="member-interest text-info" data-member-id="{{ $member->client_id }}">0.00</span>
+                                                                                                </td>
+                                                                                                <td>
+                                                                                                    <span class="member-total text-success" data-member-id="{{ $member->client_id }}">0.00</span>
+                                                                                                </td>
+                                                                                                <td>
+                                                                                                    <span class="allocation-percentage badge badge-secondary" data-member-id="{{ $member->client_id }}">0%</span>
                                                                                                 </td>
                                                                                                 <td>
                                                                                                     <span class="member-expected-payment" data-member-id="{{ $member->client_id }}">0.00</span>
@@ -171,11 +187,13 @@
                                                                                     @endif
                                                                                 </tbody>
                                                                                 <tfoot>
-                                                                                    <tr>
+                                                                                    <tr class="table-active">
                                                                                         <th>Total</th>
-                                                                                        <th><span id="total-allocation">0.00</span></th>
-                                                                                        <th><span id="total-percentage">0%</span></th>
-                                                                                        <th><span id="total-expected-payment">0.00</span></th>
+                                                                                        <th><strong><span id="total-allocation">0.00</span></strong></th>
+                                                                                        <th><strong><span id="total-interest" class="text-info">0.00</span></strong></th>
+                                                                                        <th><strong><span id="total-principal-interest" class="text-success">0.00</span></strong></th>
+                                                                                        <th><strong><span id="total-percentage" class="badge badge-secondary">0%</span></strong></th>
+                                                                                        <th><strong><span id="total-expected-payment">0.00</span></strong></th>
                                                                                     </tr>
                                                                                 </tfoot>
                                                                             </table>
@@ -681,10 +699,17 @@
                                     @endif
                                     @if($loan->status=='approved')
                                         @can('loan.loans.disburse_loan')
-                                            <a href="#" data-toggle="modal" data-target="#disburse_loan_modal"
-                                               class="btn btn-primary"><i class="fas fa-flag"></i>
-                                                {{ trans_choice('loan::general.disburse',1) }}
-                                            </a>
+                                            @if($loan->client_type == 'group')
+                                                <a href="#" data-toggle="modal" data-target="#check_allocations_modal"
+                                                   class="btn btn-primary"><i class="fas fa-flag"></i>
+                                                    {{ trans_choice('loan::general.disburse',1) }}
+                                                </a>
+                                            @else
+                                                <a href="#" data-toggle="modal" data-target="#disburse_loan_modal"
+                                                   class="btn btn-primary"><i class="fas fa-flag"></i>
+                                                    {{ trans_choice('loan::general.disburse',1) }}
+                                                </a>
+                                            @endif
                                         @endcan
                                         @can('loan.loans.edit')
                                             <a href="#" data-toggle="modal" data-target="#change_loan_officer_modal"
@@ -744,6 +769,76 @@
                                             </div>
                                         @endcan
                                         @can('loan.loans.disburse_loan')
+                                            <!-- Check Allocations Modal for Group Loans -->
+                                            @if($loan->client_type == 'group')
+                                            <div class="modal fade" id="check_allocations_modal">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header bg-warning">
+                                                            <h4 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Check Member Allocations</h4>
+                                                            <button type="button" class="close" data-dismiss="modal">
+                                                                <span>×</span>
+                                                            </button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div class="alert alert-info">
+                                                                <i class="fas fa-info-circle"></i>
+                                                                <strong>Group Loan Detected!</strong>
+                                                                <p class="mb-0">This is a group loan. Before disbursing, please ensure that member allocations have been properly set up.</p>
+                                                            </div>
+                                                            
+                                                            @if($loan->memberAllocations()->exists())
+                                                                <div class="alert alert-success">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                    <strong>Allocations Found:</strong> {{$loan->memberAllocations->count()}} member(s) allocated
+                                                                </div>
+                                                                
+                                                                <table class="table table-sm table-bordered">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Member</th>
+                                                                            <th>Amount</th>
+                                                                            <th>%</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        @foreach($loan->memberAllocations as $allocation)
+                                                                        <tr>
+                                                                            <td>{{$allocation->client->first_name}} {{$allocation->client->last_name}}</td>
+                                                                            <td>{{number_format($allocation->allocated_amount, 2)}}</td>
+                                                                            <td>{{number_format($allocation->allocated_percentage, 2)}}%</td>
+                                                                        </tr>
+                                                                        @endforeach
+                                                                    </tbody>
+                                                                </table>
+                                                            @else
+                                                                <div class="alert alert-warning">
+                                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                                    <strong>Warning:</strong> No member allocations found! Please create allocations before disbursing.
+                                                                </div>
+                                                            @endif
+                                                            
+                                                            <p class="mt-3"><strong>What would you like to do?</strong></p>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <a href="{{url('client/loan/'.$loan->id.'/member-allocations')}}" class="btn btn-info">
+                                                                <i class="fas fa-eye"></i> Check Allocations First
+                                                            </a>
+                                                            @if($loan->memberAllocations()->exists())
+                                                                <button type="button" class="btn btn-success" data-dismiss="modal" data-toggle="modal" data-target="#disburse_loan_modal">
+                                                                    <i class="fas fa-hand-holding-usd"></i> Continue to Disburse
+                                                                </button>
+                                                            @else
+                                                                <button type="button" class="btn btn-secondary" disabled title="Please create allocations first">
+                                                                    <i class="fas fa-lock"></i> Continue to Disburse
+                                                                </button>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @endif
+                                            
                                             <div class="modal fade in" id="disburse_loan_modal">
                                                 <div class="modal-dialog">
                                                     <div class="modal-content">
@@ -1157,6 +1252,14 @@
                                                 {{$loan->disbursed_on_date}}
                                             </td>
                                         </tr>
+                                        @if($loan->expected_first_payment_date)
+                                        <tr>
+                                            <th class="table-bold-loan">{{ trans_choice('core::general.first',1) }} {{ trans_choice('loan::general.payment',1) }} {{ trans_choice('core::general.date',1) }}</th>
+                                            <td>
+                                                {{$loan->expected_first_payment_date}}
+                                            </td>
+                                        </tr>
+                                        @endif
                                     @endif
                                     @if(!empty($loan->loan_provisioning))
                                         <tr>
@@ -1508,7 +1611,9 @@
                                             ?>
                                         @foreach($loan->repayment_schedules as $key)
                                                 <?php
-                                                $days = \Carbon\Carbon::parse($key->due_date)->diffInDays(\Illuminate\Support\Carbon::parse($key->from_date));
+                                                // Use from_date if available, otherwise use disbursed_on_date for first schedule
+                                                $fromDate = $key->from_date ?: $loan->disbursed_on_date;
+                                                $days = \Carbon\Carbon::parse($key->due_date)->diffInDays(\Illuminate\Support\Carbon::parse($fromDate));
                                                 $total_days = $total_days + $days;
                                                 $balance = $balance - $key->principal;
                                                 $principal = $key->principal - $key->principal_waived_derived - $key->principal_written_off_derived;
@@ -1582,6 +1687,117 @@
                                         </tr>
                                         </tfoot>
                                     </table>
+                                    
+                                    @if($loan->client_type == 'group' && $loan->memberAllocations()->exists())
+                                    <!-- Member Payment Schedules -->
+                                    <div class="mt-5">
+                                        <h4 class="mb-3"><i class="fas fa-users"></i> Individual Member Payment Schedules</h4>
+                                        
+                                        @foreach($loan->memberAllocations as $allocation)
+                                        <div class="card card-outline card-info mb-4">
+                                            <div class="card-header">
+                                                <h5 class="card-title mb-0">
+                                                    <i class="fas fa-user"></i> 
+                                                    {{$allocation->client->first_name}} {{$allocation->client->last_name}}
+                                                    <span class="badge badge-secondary ml-2">{{number_format($allocation->allocated_percentage, 2)}}%</span>
+                                                </h5>
+                                                <div class="card-tools">
+                                                    <span class="badge badge-info">Principal: {{number_format($allocation->allocated_amount, 2)}}</span>
+                                                    <span class="badge badge-warning">Interest: {{number_format($allocation->allocated_interest ?? 0, 2)}}</span>
+                                                    <span class="badge badge-success">Total: {{number_format(($allocation->allocated_amount ?? 0) + ($allocation->allocated_interest ?? 0), 2)}}</span>
+                                                </div>
+                                            </div>
+                                            <div class="card-body p-0">
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-bordered mb-0">
+                                                        <thead class="thead-light">
+                                                            <tr>
+                                                                <th>#</th>
+                                                                <th>Due Date</th>
+                                                                <th>Principal Due</th>
+                                                                <th>Interest Due</th>
+                                                                <th>Total Due</th>
+                                                                <th>Principal Paid</th>
+                                                                <th>Interest Paid</th>
+                                                                <th>Total Paid</th>
+                                                                <th>Outstanding</th>
+                                                                <th>Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @php
+                                                                $memberPrincipalPerInstall = ($allocation->allocated_amount ?? 0) / $loan->repayment_schedules->count();
+                                                                $memberInterestPerInstall = ($allocation->allocated_interest ?? 0) / $loan->repayment_schedules->count();
+                                                                $memberTotalPerInstall = $memberPrincipalPerInstall + $memberInterestPerInstall;
+                                                                
+                                                                $scheduleCount = 1;
+                                                                $totalMemberPrincipalDue = 0;
+                                                                $totalMemberInterestDue = 0;
+                                                                $totalMemberDue = 0;
+                                                            @endphp
+                                                            
+                                                            @foreach($loan->repayment_schedules as $schedule)
+                                                                @php
+                                                                    $totalMemberPrincipalDue += $memberPrincipalPerInstall;
+                                                                    $totalMemberInterestDue += $memberInterestPerInstall;
+                                                                    $totalMemberDue += $memberTotalPerInstall;
+                                                                    
+                                                                    // Calculate what portion of the schedule payment belongs to this member
+                                                                    $schedulePrincipalPaid = $schedule->principal_repaid_derived ?? 0;
+                                                                    $scheduleInterestPaid = $schedule->interest_repaid_derived ?? 0;
+                                                                    
+                                                                    $memberPrincipalPaid = $schedulePrincipalPaid * ($allocation->allocated_percentage / 100);
+                                                                    $memberInterestPaid = $scheduleInterestPaid * ($allocation->allocated_percentage / 100);
+                                                                    $memberTotalPaid = $memberPrincipalPaid + $memberInterestPaid;
+                                                                    
+                                                                    $memberOutstanding = $memberTotalPerInstall - $memberTotalPaid;
+                                                                    
+                                                                    $isPaid = $memberOutstanding <= 0.01;
+                                                                    $isOverdue = !$isPaid && \Carbon\Carbon::now()->greaterThan(\Carbon\Carbon::parse($schedule->due_date));
+                                                                @endphp
+                                                                <tr class="{{$isPaid ? 'table-success' : ($isOverdue ? 'table-danger' : '')}}">
+                                                                    <td>{{$scheduleCount}}</td>
+                                                                    <td>{{$schedule->due_date}}</td>
+                                                                    <td>{{number_format($memberPrincipalPerInstall, 2)}}</td>
+                                                                    <td>{{number_format($memberInterestPerInstall, 2)}}</td>
+                                                                    <td><strong>{{number_format($memberTotalPerInstall, 2)}}</strong></td>
+                                                                    <td>{{number_format($memberPrincipalPaid, 2)}}</td>
+                                                                    <td>{{number_format($memberInterestPaid, 2)}}</td>
+                                                                    <td>{{number_format($memberTotalPaid, 2)}}</td>
+                                                                    <td>{{number_format($memberOutstanding, 2)}}</td>
+                                                                    <td>
+                                                                        @if($isPaid)
+                                                                            <span class="badge badge-success"><i class="fas fa-check"></i> Paid</span>
+                                                                        @elseif($isOverdue)
+                                                                            <span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Overdue</span>
+                                                                        @else
+                                                                            <span class="badge badge-warning"><i class="fas fa-clock"></i> Pending</span>
+                                                                        @endif
+                                                                    </td>
+                                                                </tr>
+                                                                @php $scheduleCount++; @endphp
+                                                            @endforeach
+                                                        </tbody>
+                                                        <tfoot class="bg-light font-weight-bold">
+                                                            <tr>
+                                                                <th colspan="2">Total</th>
+                                                                <th>{{number_format($allocation->allocated_amount ?? 0, 2)}}</th>
+                                                                <th>{{number_format($allocation->allocated_interest ?? 0, 2)}}</th>
+                                                                <th>{{number_format(($allocation->allocated_amount ?? 0) + ($allocation->allocated_interest ?? 0), 2)}}</th>
+                                                                <th>{{number_format($allocation->principal_paid ?? 0, 2)}}</th>
+                                                                <th>{{number_format($allocation->interest_paid ?? 0, 2)}}</th>
+                                                                <th>{{number_format($allocation->total_paid ?? 0, 2)}}</th>
+                                                                <th>{{number_format(($allocation->outstanding_balance ?? 0) + ($allocation->interest_outstanding ?? 0), 2)}}</th>
+                                                                <th></th>
+                                                            </tr>
+                                                        </tfoot>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @endforeach
+                                    </div>
+                                    @endif
                                 </div>
                                 @can('loan.loans.transactions.index')
                                     <div class="tab-pane" id="loan_transactions">
@@ -2019,16 +2235,32 @@
         // Member allocation calculations for group loans
         function updateAllocationTotals() {
             let totalAmount = 0;
+            let totalInterest = 0;
+            let totalPrincipalInterest = 0;
             let totalExpectedPayment = 0;
             let approvedAmount = parseFloat($('#approved_amount').val()) || 0;
+            
+            // Calculate total loan interest
+            let loanInterest = calculateTotalLoanInterest(approvedAmount);
             
             $('.allocation-amount').each(function() {
                 let amount = parseFloat($(this).val()) || 0;
                 totalAmount += amount;
                 
                 let memberId = $(this).data('member-id');
-                let percentage = approvedAmount > 0 ? ((amount / approvedAmount) * 100).toFixed(2) : 0;
-                $(`[data-member-id="${memberId}"].allocation-percentage`).text(percentage + '%');
+                let percentage = approvedAmount > 0 ? ((amount / approvedAmount) * 100) : 0;
+                
+                // Calculate member's share of interest
+                let memberInterest = (loanInterest * percentage) / 100;
+                let memberTotal = amount + memberInterest;
+                
+                totalInterest += memberInterest;
+                totalPrincipalInterest += memberTotal;
+                
+                // Update display
+                $(`[data-member-id="${memberId}"].allocation-percentage`).text(percentage.toFixed(2) + '%');
+                $(`[data-member-id="${memberId}"].member-interest`).text(memberInterest.toFixed(2));
+                $(`[data-member-id="${memberId}"].member-total`).text(memberTotal.toFixed(2));
                 
                 // Calculate individual expected payment
                 let memberExpectedPayment = calculateMemberExpectedPayment(amount);
@@ -2036,7 +2268,10 @@
                 $(`[data-member-id="${memberId}"].member-expected-payment`).text(memberExpectedPayment.toFixed(2));
             });
             
+            // Update totals
             $('#total-allocation').text(totalAmount.toFixed(2));
+            $('#total-interest').text(totalInterest.toFixed(2));
+            $('#total-principal-interest').text(totalPrincipalInterest.toFixed(2));
             $('#total-expected-payment').text(totalExpectedPayment.toFixed(2));
             let totalPercentage = approvedAmount > 0 ? ((totalAmount / approvedAmount) * 100).toFixed(2) : 0;
             $('#total-percentage').text(totalPercentage + '%');
@@ -2044,66 +2279,119 @@
             // Validate allocation
             if (Math.abs(totalAmount - approvedAmount) > 0.01) {
                 $('#total-allocation').css('color', 'red');
-                $('#total-percentage').css('color', 'red');
-                $('#total-expected-payment').css('color', 'red');
             } else {
                 $('#total-allocation').css('color', 'green');
-                $('#total-percentage').css('color', 'green');
-                $('#total-expected-payment').css('color', 'green');
             }
+        }
+        
+        // Calculate total loan interest (Simple Interest based on term)
+        function calculateTotalLoanInterest(principal) {
+            console.log('Calculating interest for principal:', principal);
+            
+            if (principal <= 0) {
+                console.log('Principal is 0 or negative, returning 0');
+                return 0;
+            }
+            
+            let interestRate = {{$loan->interest_rate}} / 100;
+            let loanTerm = {{$loan->loan_term}};
+            let interestRateType = '{{$loan->loan_product->interest_rate_type}}';
+            let repaymentFrequencyType = '{{$loan->repayment_frequency_type}}';
+            
+            console.log('Interest rate:', interestRate, 'Type:', interestRateType);
+            console.log('Loan term:', loanTerm, 'Type:', repaymentFrequencyType);
+            
+            let totalInterest = 0;
+            
+            // Calculate loan term in years or months based on interest rate type
+            if (interestRateType === 'year') {
+                // Annual interest rate: Interest = Principal × Rate × Time (in years)
+                let termInYears = 0;
+                if (repaymentFrequencyType === 'days') {
+                    termInYears = loanTerm / 365;
+                } else if (repaymentFrequencyType === 'weeks') {
+                    termInYears = loanTerm / 52;
+                } else if (repaymentFrequencyType === 'months') {
+                    termInYears = loanTerm / 12;
+                } else if (repaymentFrequencyType === 'years') {
+                    termInYears = loanTerm;
+                }
+                totalInterest = principal * interestRate * termInYears;
+                console.log('Term in years:', termInYears, 'Total interest:', totalInterest);
+            } else if (interestRateType === 'month') {
+                // Monthly interest rate: Interest = Principal × Rate × Term (in months)
+                let termInMonths = 0;
+                if (repaymentFrequencyType === 'days') {
+                    termInMonths = loanTerm / 30;
+                } else if (repaymentFrequencyType === 'weeks') {
+                    termInMonths = loanTerm / 4.33;
+                } else if (repaymentFrequencyType === 'months') {
+                    termInMonths = loanTerm;
+                } else if (repaymentFrequencyType === 'years') {
+                    termInMonths = loanTerm * 12;
+                }
+                totalInterest = principal * interestRate * termInMonths;
+                console.log('Term in months:', termInMonths, 'Total interest:', totalInterest);
+            }
+            
+            return totalInterest;
         }
         
         // Calculate expected payment for individual member allocation
         function calculateMemberExpectedPayment(memberAmount) {
             if (memberAmount <= 0) return 0;
             
-            let interestRate = {{$loan->interest_rate}} / 100;
             let loanTerm = {{$loan->loan_term}};
             let repaymentFrequency = {{$loan->repayment_frequency}};
-            let interestRateType = '{{$loan->loan_product->interest_rate_type}}';
-            let repaymentFrequencyType = '{{$loan->repayment_frequency_type}}';
             
-            // Calculate number of payments per year
-            let paymentsPerYear = 1;
-            if (repaymentFrequencyType === 'days') {
-                paymentsPerYear = 365 / repaymentFrequency;
-            } else if (repaymentFrequencyType === 'weeks') {
-                paymentsPerYear = 52 / repaymentFrequency;
-            } else if (repaymentFrequencyType === 'months') {
-                paymentsPerYear = 12 / repaymentFrequency;
-            }
+            // Calculate member's share of interest
+            let memberInterest = calculateTotalLoanInterest(memberAmount);
             
-            // Convert interest rate to payment frequency
-            let periodInterestRate = 0;
-            if (interestRateType === 'year') {
-                periodInterestRate = interestRate / paymentsPerYear;
-            } else if (interestRateType === 'month') {
-                periodInterestRate = interestRate / (12 / repaymentFrequency);
-            }
+            // Calculate total amount to repay (principal + interest)
+            let totalRepayment = memberAmount + memberInterest;
             
+            // Calculate number of installments
             let totalPayments = loanTerm / repaymentFrequency;
             
-            // Calculate payment using amortization formula
-            let memberPayment = 0;
-            if (periodInterestRate > 0) {
-                memberPayment = memberAmount * (periodInterestRate * Math.pow(1 + periodInterestRate, totalPayments)) / (Math.pow(1 + periodInterestRate, totalPayments) - 1);
-            } else {
-                memberPayment = memberAmount / totalPayments;
-            }
+            // Calculate payment per installment (simple division)
+            let memberPayment = totalRepayment / totalPayments;
             
             return memberPayment;
         }
         
         // Update totals when allocation amounts change
-        $(document).on('input', '.allocation-amount', updateAllocationTotals);
+        $(document).on('input', '.allocation-amount', function() {
+            console.log('Allocation amount changed');
+            updateAllocationTotals();
+        });
         
         // Update totals when approved amount changes
         $(document).on('input', '#approved_amount', function() {
+            console.log('Approved amount changed:', $(this).val());
             updateAllocationTotals();
             calculateExpectedPayment();
         });
         
-        // Calculate expected payment per installment
+        // Initialize on modal show
+        $('#approve_loan_modal').on('shown.bs.modal', function() {
+            console.log('Modal shown, initializing...');
+            calculateExpectedPayment();
+            updateAllocationTotals();
+        });
+        
+        // Handle modal chaining for check allocations -> disburse
+        $(document).on('click', '[data-dismiss="modal"][data-toggle="modal"]', function(e) {
+            e.preventDefault();
+            var currentModal = $(this).closest('.modal');
+            var targetModal = $(this).data('target');
+            
+            currentModal.modal('hide');
+            setTimeout(function() {
+                $(targetModal).modal('show');
+            }, 500);
+        });
+        
+        // Calculate expected payment per installment and update summary
         function calculateExpectedPayment() {
             let approvedAmount = parseFloat($('#approved_amount').val()) || 0;
             let interestRate = {{$loan->interest_rate}} / 100;
@@ -2113,36 +2401,25 @@
             let repaymentFrequencyType = '{{$loan->repayment_frequency_type}}';
             
             if (approvedAmount > 0) {
-                // Calculate number of payments
-                let paymentsPerYear = 1;
-                if (repaymentFrequencyType === 'days') {
-                    paymentsPerYear = 365 / repaymentFrequency;
-                } else if (repaymentFrequencyType === 'weeks') {
-                    paymentsPerYear = 52 / repaymentFrequency;
-                } else if (repaymentFrequencyType === 'months') {
-                    paymentsPerYear = 12 / repaymentFrequency;
-                }
+                // Calculate total interest using simple interest
+                let totalInterest = calculateTotalLoanInterest(approvedAmount);
+                let totalRepayment = approvedAmount + totalInterest;
                 
-                // Convert interest rate to payment frequency
-                let periodInterestRate = 0;
-                if (interestRateType === 'year') {
-                    periodInterestRate = interestRate / paymentsPerYear;
-                } else if (interestRateType === 'month') {
-                    periodInterestRate = interestRate / (12 / repaymentFrequency);
-                }
-                
+                // Calculate number of installments
                 let totalPayments = loanTerm / repaymentFrequency;
                 
-                // Calculate payment using amortization formula
-                let monthlyPayment = 0;
-                if (periodInterestRate > 0) {
-                    monthlyPayment = approvedAmount * (periodInterestRate * Math.pow(1 + periodInterestRate, totalPayments)) / (Math.pow(1 + periodInterestRate, totalPayments) - 1);
-                } else {
-                    monthlyPayment = approvedAmount / totalPayments;
-                }
+                // Calculate payment per installment (simple division)
+                let paymentPerInstall = totalRepayment / totalPayments;
                 
-                $('#expected-payment-amount').text(monthlyPayment.toFixed(2));
+                // Update summary
+                $('#summary-principal').text(approvedAmount.toFixed(2));
+                $('#summary-interest').text(totalInterest.toFixed(2));
+                $('#summary-total').text(totalRepayment.toFixed(2));
+                $('#expected-payment-amount').text(paymentPerInstall.toFixed(2));
             } else {
+                $('#summary-principal').text('0.00');
+                $('#summary-interest').text('0.00');
+                $('#summary-total').text('0.00');
                 $('#expected-payment-amount').text('0.00');
             }
         }

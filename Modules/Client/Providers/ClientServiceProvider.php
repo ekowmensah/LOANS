@@ -25,10 +25,21 @@ class ClientServiceProvider extends ServiceProvider
         //$this->registerFactories();
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
         $this->registerEvents();
+        $this->registerObservers();
         $this->app->booted(function () {
             $schedule = $this->app->make(Schedule::class);
             $schedule->command('clients:deactivate-inactive-clients')->daily();
         });
+    }
+    
+    /**
+     * Register model observers.
+     *
+     * @return void
+     */
+    protected function registerObservers()
+    {
+        \Modules\Client\Entities\GroupMemberLoanAllocation::observe(\Modules\Client\Observers\GroupMemberLoanAllocationObserver::class);
     }
     
     /**

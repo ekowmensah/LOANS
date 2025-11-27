@@ -29,5 +29,6 @@
     "Share": true,
     "Nice": true,
     "Mpesa": true,
-    "Teller": true
+    "Teller": true,
+    "FieldAgent": true
 }

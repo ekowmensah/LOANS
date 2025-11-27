@@ -30,9 +30,9 @@
         <div class="row">
             <div class="col-md-8">
                 <!-- Allocation Details Card -->
-                <div class="card">
+                <div class="card card-primary card-outline">
                     <div class="card-header">
-                        <h3 class="card-title">Allocation Information</h3>
+                        <h3 class="card-title"><i class="fas fa-info-circle"></i> Allocation Information</h3>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -55,12 +55,20 @@
                                         </td>
                                     </tr>
                                     <tr>
-                                        <th>Allocated Amount:</th>
-                                        <td>{{number_format($allocation->allocated_amount, 2)}}</td>
+                                        <th>Principal Allocated:</th>
+                                        <td><strong>{{number_format($allocation->allocated_amount, 2)}}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Interest Allocated:</th>
+                                        <td class="text-info"><strong>{{number_format($allocation->allocated_interest ?? 0, 2)}}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Total (P+I):</th>
+                                        <td class="text-success"><strong>{{number_format(($allocation->allocated_amount ?? 0) + ($allocation->allocated_interest ?? 0), 2)}}</strong></td>
                                     </tr>
                                     <tr>
                                         <th>Allocated Percentage:</th>
-                                        <td>{{$allocation->allocated_percentage}}%</td>
+                                        <td><span class="badge badge-secondary">{{number_format($allocation->allocated_percentage, 2)}}%</span></td>
                                     </tr>
                                     <tr>
                                         <th>Status:</th>
@@ -83,6 +91,10 @@
                                         <td>{{number_format($allocation->interest_paid, 2)}}</td>
                                     </tr>
                                     <tr>
+                                        <th>Interest Outstanding:</th>
+                                        <td class="text-info"><strong>{{number_format($allocation->interest_outstanding ?? 0, 2)}}</strong></td>
+                                    </tr>
+                                    <tr>
                                         <th>Fees Paid:</th>
                                         <td>{{number_format($allocation->fees_paid, 2)}}</td>
                                     </tr>
@@ -95,8 +107,12 @@
                                         <td><strong>{{number_format($allocation->total_paid, 2)}}</strong></td>
                                     </tr>
                                     <tr>
-                                        <th>Outstanding Balance:</th>
-                                        <td><strong class="text-{{$allocation->outstanding_balance > 0 ? 'danger' : 'success'}}">{{number_format($allocation->outstanding_balance, 2)}}</strong></td>
+                                        <th>Principal Outstanding:</th>
+                                        <td><strong>{{number_format($allocation->outstanding_balance, 2)}}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Total Outstanding (P+I):</th>
+                                        <td><strong class="text-{{($allocation->outstanding_balance + ($allocation->interest_outstanding ?? 0)) > 0 ? 'danger' : 'success'}}">{{number_format($allocation->outstanding_balance + ($allocation->interest_outstanding ?? 0), 2)}}</strong></td>
                                     </tr>
                                 </table>
                             </div>
@@ -116,30 +132,46 @@
             
             <div class="col-md-4">
                 <!-- Payment Progress Card -->
-                <div class="card">
+                <div class="card card-success card-outline">
                     <div class="card-header">
-                        <h3 class="card-title">Payment Progress</h3>
+                        <h3 class="card-title"><i class="fas fa-chart-line"></i> Payment Progress</h3>
                     </div>
                     <div class="card-body">
-                        <div class="progress mb-3">
+                        <div class="progress mb-3" style="height: 25px;">
                             <div class="progress-bar bg-{{$allocation->payment_percentage >= 100 ? 'success' : ($allocation->payment_percentage >= 50 ? 'warning' : 'danger')}}" 
                                  role="progressbar" 
                                  style="width: {{min($allocation->payment_percentage, 100)}}%" 
                                  aria-valuenow="{{$allocation->payment_percentage}}" 
                                  aria-valuemin="0" 
                                  aria-valuemax="100">
-                                {{$allocation->payment_percentage}}%
+                                <strong>{{number_format($allocation->payment_percentage, 1)}}%</strong>
                             </div>
                         </div>
                         <p class="text-center">
-                            <strong>{{$allocation->payment_percentage}}% Complete</strong>
+                            <strong>{{number_format($allocation->payment_percentage, 1)}}% Complete</strong>
                         </p>
                         
-                        <div class="info-box mb-3">
-                            <span class="info-box-icon bg-info"><i class="fas fa-money-bill"></i></span>
+                        <div class="info-box mb-2">
+                            <span class="info-box-icon bg-primary"><i class="fas fa-money-bill-wave"></i></span>
                             <div class="info-box-content">
-                                <span class="info-box-text">Remaining</span>
+                                <span class="info-box-text">Principal Remaining</span>
                                 <span class="info-box-number">{{number_format($allocation->outstanding_balance, 2)}}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="info-box mb-2">
+                            <span class="info-box-icon bg-info"><i class="fas fa-percent"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Interest Remaining</span>
+                                <span class="info-box-number">{{number_format($allocation->interest_outstanding ?? 0, 2)}}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="info-box">
+                            <span class="info-box-icon bg-{{($allocation->outstanding_balance + ($allocation->interest_outstanding ?? 0)) > 0 ? 'danger' : 'success'}}"><i class="fas fa-calculator"></i></span>
+                            <div class="info-box-content">
+                                <span class="info-box-text">Total Remaining</span>
+                                <span class="info-box-number">{{number_format($allocation->outstanding_balance + ($allocation->interest_outstanding ?? 0), 2)}}</span>
                             </div>
                         </div>
                     </div>
