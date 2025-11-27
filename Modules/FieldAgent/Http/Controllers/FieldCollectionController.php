@@ -471,7 +471,6 @@ class FieldCollectionController extends Controller
                 $payment_detail->created_by_id = Auth::id();
                 $payment_detail->payment_type_id = $collection->payment_type_id ?? 1;
                 $payment_detail->transaction_type = 'loan_transaction';
-                $payment_detail->amount = $collection->amount;
                 $payment_detail->receipt = $collection->receipt_number;
                 $payment_detail->save();
                 
@@ -591,7 +590,6 @@ class FieldCollectionController extends Controller
                 $payment_detail->created_by_id = Auth::id();
                 $payment_detail->payment_type_id = $collection->payment_type_id ?? 1;
                 $payment_detail->transaction_type = 'savings_transaction';
-                $payment_detail->amount = $collection->amount;
                 $payment_detail->receipt = $collection->receipt_number;
                 $payment_detail->save();
                 
