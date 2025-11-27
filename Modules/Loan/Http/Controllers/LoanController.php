@@ -369,8 +369,11 @@ class LoanController extends Controller
         })->get();
         $custom_fields = CustomField::where('category', 'add_loan')->where('active', 1)->get();
         
-        // Add groups for group loans
-        $groups = \Modules\Client\Entities\Group::active()->with(['branch', 'loan_officer'])->get();
+        // Add groups for group loans with member count
+        $groups = \Modules\Client\Entities\Group::active()
+            ->with(['branch', 'loan_officer'])
+            ->withCount('members')
+            ->get();
         
         // Add clients for individual loans
         $clients = Client::where('status', 'active')->with(['branch', 'loan_officer'])->get();
@@ -386,6 +389,59 @@ class LoanController extends Controller
 
         ]);
         return theme_view('loan::loan.create', compact('loan_products', 'funds', 'loan_purposes', 'users', 'custom_fields', 'groups', 'clients'));
+    }
+
+    /**
+     * Search clients via AJAX (like teller search)
+     * Searches by savings account number
+     */
+    public function search_client(Request $request)
+    {
+        $search = $request->search;
+        
+        if (empty($search)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please enter a savings account number'
+            ], 400);
+        }
+        
+        // Find savings account by account number
+        $savings = \Modules\Savings\Entities\Savings::where('account_number', $search)
+            ->where('status', 'active')
+            ->with('client')
+            ->first();
+        
+        if (!$savings) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Savings account "' . $search . '" not found'
+            ], 404);
+        }
+        
+        $client = $savings->client;
+        
+        if (!$client || $client->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Client not active for this savings account'
+            ], 404);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $client->id,
+                'first_name' => $client->first_name,
+                'last_name' => $client->last_name,
+                'mobile' => $client->mobile,
+                'account_number' => $client->account_number,
+                'savings_account_number' => $savings->account_number,
+                'loan_officer_id' => $client->loan_officer_id,
+                'email' => $client->email,
+                'photo' => $client->photo,
+            ]
+        ]);
     }
 
     /**
@@ -1381,7 +1437,9 @@ class LoanController extends Controller
             //flat  method
             if ($loan->interest_methodology == 'flat') {
                 $principal = round($loan->principal / $period, $loan->decimals);
-                $interest = round($interest_rate * $loan->principal, $loan->decimals) / $period;
+                // Calculate total interest for the entire loan term, then divide by number of periods
+                $total_loan_interest = round($interest_rate * $loan->principal * $period, $loan->decimals);
+                $interest = $total_loan_interest / $period;
                 if ($loan->deduct_interest_from_principal) {
                     if ($i == 1) {
                         $loan_repayment_schedule->interest = $interest;

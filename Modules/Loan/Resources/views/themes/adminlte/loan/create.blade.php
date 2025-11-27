@@ -32,21 +32,50 @@
         </div><!-- /.container-fluid -->
     </section>
     <section class="content" id="app">
+        <!-- Step Indicator -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="step-indicator" :class="{active: stage >= 1, complete: stage > 1}">
+                                <div class="step-number">1</div>
+                                <div class="step-label">Client Selection</div>
+                            </div>
+                            <div class="step-line" :class="{active: stage > 1}"></div>
+                            <div class="step-indicator" :class="{active: stage >= 2, complete: stage > 2}">
+                                <div class="step-number">2</div>
+                                <div class="step-label">Loan Product</div>
+                            </div>
+                            <div class="step-line" :class="{active: stage > 2}"></div>
+                            <div class="step-indicator" :class="{active: stage >= 3}">
+                                <div class="step-number">3</div>
+                                <div class="step-label">Loan Terms</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <form method="post" action="{{ url('loan/store') }}">
             {{csrf_field()}}
-            <div class="card card-bordered card-preview">
+            
+            <!-- Step 1: Client Selection -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-circle"></i> Step 1: Client Selection</h5>
+                </div>
                 <div class="card-body">
-                    <div class="row gy-4">
-                        <div class="col-md-6">
+                    <div class="row">
+                        <div class="col-md-3">
                             <div class="form-group">
-                                <label for="client_type"
-                                       class="control-label">{{trans_choice('client::general.client',1)}} {{trans_choice('core::general.type',1)}}</label>
-                                <select class="form-control @error('client_type') is-invalid @enderror"
-                                        name="client_type" id="client_type" v-model="client_type"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="client">{{trans_choice('client::general.client',1)}}</option>
-                                    <option value="group">Group</option>
+                                <label for="client_type" class="control-label font-weight-bold">Loan Type <span class="text-danger">*</span></label>
+                                <select class="form-control form-control-lg @error('client_type') is-invalid @enderror"
+                                        name="client_type" id="client_type" v-model="client_type" required>
+                                    <option value="">-- Select Loan Type --</option>
+                                    <option value="client"><i class="fas fa-user"></i> Individual Loan</option>
+                                    <option value="group"><i class="fas fa-users"></i> Group Loan</option>
                                 </select>
                                 @error('client_type')
                                 <span class="invalid-feedback" role="alert">
@@ -55,41 +84,42 @@
                                 @enderror
                             </div>
                         </div>
-                        <div class="col-md-12" v-if="client_type === 'client'">
+                        
+                        <!-- Individual Client Search - Inline -->
+                        <div class="col-md-5" v-if="client_type === 'client'">
                             <div class="form-group">
-                                <label for="client_id"
-                                       class="control-label">{{trans_choice('client::general.client',1)}}</label>
-                                <v-select label="name_id" :options="clients"
-                                          :reduce="client => client.id"
-                                          v-model="client_id"
-                                          v-on:input="change_client">
-                                    <template #search="{attributes, events}">
-                                        <input
-                                                autocomplete="off"
-                                                class="vs__search @error('client_id') is-invalid @enderror"
-                                                v-bind="attributes"
-                                                v-bind:required="client_type === 'client' && !client_id"
-                                                v-on="events"
-                                        />
-                                    </template>
-                                </v-select>
-                                <input type="hidden" name="client_id"
-                                       v-model="client_id">
+                                <label for="client_search_input" class="control-label font-weight-bold">Search Client <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-lg">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    </div>
+                                    <input type="text" class="form-control" id="client_search_input" v-model="client_search" 
+                                           placeholder="Enter savings account number (e.g., S0000001)" @keyup.enter="searchClient">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary px-4" type="button" @click="searchClient" :disabled="searching_client">
+                                            <span v-if="!searching_client"><i class="fas fa-search"></i> Search Client</span>
+                                            <span v-else><i class="fas fa-spinner fa-spin"></i> Searching...</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="client_id" v-model="client_id" :required="client_type === 'client'">
                                 @error('client_id')
-                                <span class="invalid-feedback" role="alert">
+                                <span class="invalid-feedback d-block" role="alert">
                                         <strong>{{ $message }}</strong>
                                     </span>
                                 @enderror
+                                <small class="form-text text-muted"><i class="fas fa-info-circle"></i> Enter savings account number</small>
                             </div>
                         </div>
-                        <div class="col-md-12" v-if="client_type === 'group'">
+                        
+                        <!-- Group Selection - Inline -->
+                        <div class="col-md-4" v-if="client_type === 'group'">
                             <div class="form-group">
-                                <label for="group_id"
-                                       class="control-label">Group</label>
-                                <select class="form-control @error('group_id') is-invalid @enderror" 
+                                <label for="group_id" class="control-label font-weight-bold">Select Group <span class="text-danger">*</span></label>
+                                <select class="form-control form-control-lg @error('group_id') is-invalid @enderror" 
                                         name="group_id" v-model="group_id"
                                         id="group_id" :required="client_type === 'group'">
-                                    <option value="">{{trans_choice('core::general.select',1)}}</option>
+                                    <option value="">-- Select a Group --</option>
                                     @foreach($groups as $group)
                                         <option value="{{$group->id}}">{{$group->name}}</option>
                                     @endforeach
@@ -99,11 +129,12 @@
                                         <strong>{{ $message }}</strong>
                                     </span>
                                 @enderror
+                                <small class="form-text text-muted"><i class="fas fa-info-circle"></i> Select group</small>
                             </div>
                         </div>
-                    </div>
-                    <div class="row gy-4">
-                        <div class="col-md-12">
+                        
+                        <!-- Loan Product - Inline -->
+                        <div class="col-md-4" v-if="(client_type === 'client' && client) || (client_type === 'group' && group_id)">
                             <div class="form-group">
                                 <label for="loan_product_id"
                                        class="control-label">{{trans_choice('loan::general.loan',1)}} {{trans_choice('loan::general.product',1)}}</label>
@@ -131,9 +162,44 @@
                             </div>
                         </div>
                     </div>
-                    <div v-show="loan_product">
-                        <h3>{{trans_choice('loan::general.term',2)}}</h3>
-                        <div class="row gy-4">
+                    
+                    <!-- Client Details Card - Full Width Below -->
+                    <div class="row mt-3" v-if="client">
+                        <div class="col-md-12">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle"></i> Client Found</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-10">
+                                            <h5 class="mb-2"><i class="fas fa-user"></i> @{{ client.first_name }} @{{ client.last_name }}</h5>
+                                            <p class="mb-1"><strong>Account Number:</strong> @{{ client.account_number }} | <strong>Savings Account:</strong> <span class="badge badge-primary">@{{ client.savings_account_number }}</span> | <strong>Mobile:</strong> <i class="fas fa-phone"></i> @{{ client.mobile || 'N/A' }}</p>
+                                        </div>
+                                        <div class="col-md-2 text-center">
+                                            <img v-if="client.photo" :src="client.photo" class="img-thumbnail rounded-circle" style="width: 60px; height: 60px; object-fit: cover;" alt="Client Photo">
+                                            <div v-else class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                                <i class="fas fa-user fa-2x text-white"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 2 & 3: Loan Product and Terms -->
+            <div v-show="loan_product" class="row">
+                <div class="col-md-8">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-file-invoice-dollar"></i> Step 2 & 3: Loan Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-coins"></i> Loan Terms</h5>
+                            <div class="row gy-4">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="applied_amount"
@@ -440,12 +506,107 @@
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="card-footer border-top ">
-                    <button type="submit"
-                            class="btn btn-primary  float-right">{{trans_choice('core::general.save',1)}}</button>
+                    <div class="card-footer border-top">
+                        <button type="submit" class="btn btn-primary btn-lg px-5">
+                            <i class="fas fa-check-circle"></i> {{trans_choice('core::general.save',1)}} Loan Application
+                        </button>
+                    </div>
                 </div>
             </div>
+            
+            <!-- Calculation Summary Sidebar -->
+            <div class="col-md-4">
+                <div class="calc-summary-card">
+                    <h5 class="mb-3">
+                        <i class="fas fa-calculator"></i> 
+                        <span v-if="!isGroupLoan">Loan Summary</span>
+                        <span v-else>Group Loan Summary</span>
+                    </h5>
+                    
+                    <!-- Group Info -->
+                    <div v-if="isGroupLoan && selectedGroup" class="mb-3 p-2" style="background: rgba(255,255,255,0.15); border-radius: 6px;">
+                        <small>
+                            <i class="fas fa-users"></i> <strong>@{{ selectedGroup.name }}</strong><br>
+                            <i class="fas fa-user-friends"></i> @{{ groupMemberCount }} Members
+                        </small>
+                    </div>
+                    
+                    <div class="calc-row">
+                        <span class="calc-label">
+                            <span v-if="!isGroupLoan">Principal Amount:</span>
+                            <span v-else>Total Principal:</span>
+                        </span>
+                        <span class="calc-value">@{{ applied_amount ? parseFloat(applied_amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00' }}</span>
+                    </div>
+                    
+                    <!-- Per Member Principal (Group Only) -->
+                    <div v-if="isGroupLoan && groupMemberCount > 0" class="calc-row" style="font-size: 0.9em; opacity: 0.9;">
+                        <span class="calc-label">└─ Per Member:</span>
+                        <span class="calc-value">@{{ perMemberAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                    </div>
+                    
+                    <div class="calc-row">
+                        <span class="calc-label">Interest Rate:</span>
+                        <span class="calc-value">@{{ interest_rate || 0 }}%</span>
+                    </div>
+                    
+                    <div class="calc-row">
+                        <span class="calc-label">Loan Term:</span>
+                        <span class="calc-value">@{{ loan_term || 0 }} @{{ repayment_frequency_type || 'months' }}</span>
+                    </div>
+                    
+                    <div class="calc-row">
+                        <span class="calc-label">Total Interest:</span>
+                        <span class="calc-value">@{{ totalInterest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                    </div>
+                    
+                    <!-- Per Member Interest (Group Only) -->
+                    <div v-if="isGroupLoan && groupMemberCount > 0" class="calc-row" style="font-size: 0.9em; opacity: 0.9;">
+                        <span class="calc-label">└─ Per Member:</span>
+                        <span class="calc-value">@{{ perMemberInterest.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                    </div>
+                    
+                    <div class="calc-row">
+                        <span class="calc-label">Total Repayable:</span>
+                        <span class="calc-value">@{{ totalRepayable.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                    </div>
+                    
+                    <!-- Per Member Repayable (Group Only) -->
+                    <div v-if="isGroupLoan && groupMemberCount > 0" class="calc-row" style="font-size: 0.9em; opacity: 0.9;">
+                        <span class="calc-label">└─ Per Member:</span>
+                        <span class="calc-value">@{{ perMemberRepayable.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                    </div>
+                    
+                    <div class="calc-row">
+                        <span class="calc-label">Number of Installments:</span>
+                        <span class="calc-value">@{{ numberOfInstallments }}</span>
+                    </div>
+                    
+                    <div class="calc-row">
+                        <span class="calc-label">
+                            <span v-if="!isGroupLoan">Installment Amount:</span>
+                            <span v-else>Total Installment:</span>
+                        </span>
+                        <span class="calc-value">@{{ installmentAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                    </div>
+                    
+                    <!-- Per Member Installment (Group Only) -->
+                    <div v-if="isGroupLoan && groupMemberCount > 0" class="calc-row" style="font-size: 0.9em; opacity: 0.9;">
+                        <span class="calc-label">└─ Per Member:</span>
+                        <span class="calc-value">@{{ perMemberInstallment.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                    </div>
+                    
+                    <div class="mt-4 p-3" style="background: rgba(255,255,255,0.1); border-radius: 8px;">
+                        <small>
+                            <i class="fas fa-info-circle"></i> 
+                            <span v-if="!isGroupLoan">Calculations are estimates based on simple interest.</span>
+                            <span v-else>Group loan amounts are divided equally among @{{ groupMemberCount }} members. Each member is responsible for their allocated portion.</span>
+                            Actual amounts may vary based on loan product settings and charges.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
         </form>
     </section>
 @endsection
@@ -455,6 +616,9 @@
             el: '#app',
             data: {
                 stage: 1,
+                client_search: '',
+                searching_client: false,
+                client: null,
                 client_type: "{{old('client_type')}}",
                 loan_product: "{{old('loan_product')}}",
                 loan_product_id: parseInt("{{old('loan_product_id')}}"),
@@ -482,25 +646,113 @@
                 selected_charges: []
 
             },
+            computed: {
+                isGroupLoan() {
+                    return this.client_type === 'group';
+                },
+                totalInterest() {
+                    if (!this.applied_amount || !this.interest_rate || !this.loan_term) return 0;
+                    let principal = parseFloat(this.applied_amount);
+                    let rate = parseFloat(this.interest_rate) / 100;
+                    let term = parseFloat(this.loan_term);
+                    
+                    // Simple interest calculation
+                    if (this.loan_product && this.loan_product.interest_rate_type === 'year') {
+                        return principal * rate * (term / 12);
+                    } else {
+                        return principal * rate * term;
+                    }
+                },
+                totalRepayable() {
+                    return parseFloat(this.applied_amount || 0) + this.totalInterest;
+                },
+                numberOfInstallments() {
+                    if (!this.loan_term || !this.repayment_frequency) return 0;
+                    return Math.ceil(parseFloat(this.loan_term) / parseFloat(this.repayment_frequency));
+                },
+                installmentAmount() {
+                    if (this.numberOfInstallments === 0) return 0;
+                    return this.totalRepayable / this.numberOfInstallments;
+                },
+                // Group loan calculations
+                selectedGroup() {
+                    if (!this.isGroupLoan || !this.group_id) return null;
+                    return this.groups.find(g => g.id == this.group_id);
+                },
+                groupMemberCount() {
+                    if (!this.selectedGroup) return 0;
+                    // Assuming groups have a members_count or members array
+                    return this.selectedGroup.members_count || this.selectedGroup.members?.length || 0;
+                },
+                perMemberAmount() {
+                    if (!this.isGroupLoan || this.groupMemberCount === 0) return 0;
+                    return parseFloat(this.applied_amount || 0) / this.groupMemberCount;
+                },
+                perMemberInterest() {
+                    if (!this.isGroupLoan || this.groupMemberCount === 0) return 0;
+                    return this.totalInterest / this.groupMemberCount;
+                },
+                perMemberRepayable() {
+                    if (!this.isGroupLoan || this.groupMemberCount === 0) return 0;
+                    return this.totalRepayable / this.groupMemberCount;
+                },
+                perMemberInstallment() {
+                    if (!this.isGroupLoan || this.groupMemberCount === 0) return 0;
+                    return this.installmentAmount / this.groupMemberCount;
+                }
+            },
+            watch: {
+                client_type(newVal) {
+                    this.stage = newVal ? 1 : 1;
+                },
+                client(newVal) {
+                    if (newVal) this.stage = 2;
+                },
+                group_id(newVal) {
+                    if (newVal) this.stage = 2;
+                },
+                loan_product_id(newVal) {
+                    if (newVal) this.stage = 3;
+                }
+            },
             created: function () {
 
 
             },
             methods: {
-                onSearch(search, loading) {
-                    if (search.length) {
-                        loading(true);
-                        this.search(loading, search, this);
+                searchClient() {
+                    if (!this.client_search) {
+                        alert('Please enter savings account number');
+                        return;
                     }
-                },
-                search: _.debounce((loading, search, vm) => {
-                    axios.get('{{url('client/search')}}?s=' + search).then(function (response) {
-                        vm.clients = response.data
-                        loading(false);
-                    }).catch(function (error) {
 
+                    this.searching_client = true;
+                    this.client = null;
+                    this.client_id = '';
+
+                    axios.post('{{url("loan/search-client")}}', {
+                        search: this.client_search
+                    })
+                    .then(response => {
+                        this.searching_client = false;
+                        if (response.data.success) {
+                            this.client = response.data.data;
+                            this.client_id = this.client.id;
+                            this.loan_officer_id = this.client.loan_officer_id || '';
+                        } else {
+                            alert(response.data.message || 'Client not found');
+                        }
+                    })
+                    .catch(error => {
+                        this.searching_client = false;
+                        console.error(error);
+                        if (error.response && error.response.data && error.response.data.message) {
+                            alert(error.response.data.message);
+                        } else {
+                            alert('Error searching for client. Please try again.');
+                        }
                     });
-                }, 350),
+                },
                 add_charge(event) {
 
                     this.selected_charges.push(this.loan_product_charges[this.selected_charge]);
@@ -542,4 +794,137 @@
             }
         });
     </script>
+    <style>
+        /* Scope all styles to loan creation page only */
+        #app .step-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            flex: 1;
+        }
+        
+        #app .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        #app .step-indicator.active .step-number {
+            background: #007bff;
+            color: white;
+            box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.2);
+        }
+        
+        #app .step-indicator.complete .step-number {
+            background: #28a745;
+            color: white;
+        }
+        
+        #app .step-indicator.complete .step-number::after {
+            content: '✓';
+            position: absolute;
+        }
+        
+        #app .step-label {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        #app .step-indicator.active .step-label {
+            color: #007bff;
+            font-weight: 600;
+        }
+        
+        #app .step-line {
+            height: 2px;
+            background: #e9ecef;
+            flex: 1;
+            margin: 0 10px;
+            margin-top: -30px;
+            transition: all 0.3s ease;
+        }
+        
+        #app .step-line.active {
+            background: #28a745;
+        }
+        
+        /* Card Enhancements - scoped */
+        #app .card.shadow-sm {
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075) !important;
+            border: none;
+            margin-bottom: 1.5rem;
+        }
+        
+        #app .card-header.bg-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+        
+        #app .card-header.bg-success {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+        }
+        
+        /* Form Enhancements - scoped */
+        #app .form-control-lg {
+            font-size: 1.1rem;
+            padding: 0.75rem 1rem;
+        }
+        
+        #app .input-group-lg .input-group-text {
+            font-size: 1.1rem;
+        }
+        
+        /* Calculation Summary Styles */
+        #app .calc-summary-card {
+            position: sticky;
+            top: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        #app .calc-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        #app .calc-row:last-child {
+            border-bottom: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding-top: 15px;
+        }
+        
+        #app .calc-label {
+            font-weight: 500;
+        }
+        
+        #app .calc-value {
+            font-weight: 600;
+        }
+        
+        /* Animation - scoped */
+        @keyframes loanCardFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        #app .card {
+            animation: loanCardFadeIn 0.3s ease;
+        }
+    </style>
 @endsection

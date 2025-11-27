@@ -22,6 +22,7 @@ Route::prefix('loan')->group(function () {
     Route::get('get_loans', 'LoanController@get_loans');
     Route::get('create', 'LoanController@create');
     Route::get('create_client_loan', 'LoanController@create_client_loan');
+    Route::post('search-client', 'LoanController@search_client');
     Route::post('store', 'LoanController@store');
     Route::get('calculator', 'LoanController@create_loan_calculator');
     Route::post('calculator', 'LoanController@process_loan_calculator');

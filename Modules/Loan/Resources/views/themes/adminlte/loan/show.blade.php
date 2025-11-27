@@ -2424,8 +2424,10 @@
             }
         }
         
-        // Calculate on page load
-        calculateExpectedPayment();
+        // Calculate on page load - wait for DOM to be ready
+        $(document).ready(function() {
+            calculateExpectedPayment();
+        });
         
         // Distribute evenly button functionality
         $(document).on('click', '#distribute-evenly', function() {
