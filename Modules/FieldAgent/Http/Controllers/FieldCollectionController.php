@@ -263,6 +263,7 @@ class FieldCollectionController extends Controller
     
     /**
      * Search clients via AJAX (like teller search)
+     * Searches by savings account number
      */
     public function search_clients(Request $request)
     {
@@ -271,23 +272,29 @@ class FieldCollectionController extends Controller
         if (empty($search)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Please enter a search term'
+                'message' => 'Please enter a savings account number'
             ], 400);
         }
         
-        $client = Client::where('status', 'active')
-            ->where(function($query) use ($search) {
-                $query->where('first_name', 'like', "%{$search}%")
-                      ->orWhere('last_name', 'like', "%{$search}%")
-                      ->orWhere('mobile', 'like', "%{$search}%")
-                      ->orWhere('account_number', 'like', "%{$search}%");
-            })
+        // Find savings account by account number
+        $savings = \Modules\Savings\Entities\Savings::where('account_number', $search)
+            ->where('status', 'active')
+            ->with('client')
             ->first();
         
-        if (!$client) {
+        if (!$savings) {
             return response()->json([
                 'success' => false,
-                'message' => 'Client not found'
+                'message' => 'Savings account "' . $search . '" not found'
+            ], 404);
+        }
+        
+        $client = $savings->client;
+        
+        if (!$client || $client->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Client not active for this savings account'
             ], 404);
         }
         
@@ -299,6 +306,7 @@ class FieldCollectionController extends Controller
                 'last_name' => $client->last_name,
                 'mobile' => $client->mobile,
                 'account_number' => $client->account_number,
+                'savings_account_number' => $savings->account_number,
                 'email' => $client->email,
                 'photo' => $client->photo,
             ]
