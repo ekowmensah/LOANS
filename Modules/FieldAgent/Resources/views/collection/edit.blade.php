@@ -67,18 +67,12 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="client_id" class="control-label">{{ trans_choice('client::general.client', 1) }} <span class="text-danger">*</span></label>
-                                <select class="form-control select2" name="client_id" id="client_id" required>
-                                    <option value="">{{ trans_choice('core::general.select', 1) }}</option>
-                                    @foreach($clients as $client)
-                                        <option value="{{ $client->id }}" {{ old('client_id', $collection->client_id) == $client->id ? 'selected' : '' }}>
-                                            {{ $client->first_name }} {{ $client->last_name }} ({{ $client->mobile ?? $client->account_number }})
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <input type="text" class="form-control" value="{{ $collection->client->first_name }} {{ $collection->client->last_name }} ({{ $collection->client->account_number }})" readonly>
+                                <input type="hidden" name="client_id" value="{{ $collection->client_id }}">
                                 @error('client_id')
                                     <span class="text-danger">{{ $message }}</span>
                                 @enderror
-                                <small class="form-text text-muted">Type to search by name or phone</small>
+                                <small class="form-text text-muted">Client cannot be changed when editing</small>
                             </div>
                         </div>
                     </div>

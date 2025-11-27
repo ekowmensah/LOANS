@@ -65,7 +65,7 @@
                                 <label for="client_search_input" class="control-label">{{ trans_choice('client::general.client', 1) }} <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="client_search_input" v-model="client_search" 
-                                           placeholder="Enter client name, phone, or account number" @keyup.enter="searchClient">
+                                           placeholder="Enter savings account number" @keyup.enter="searchClient">
                                     <div class="input-group-append">
                                         <button class="btn btn-primary" type="button" @click="searchClient" :disabled="searching_client">
                                             <i class="fas fa-search"></i> Search
@@ -76,13 +76,13 @@
                                 @error('client_id')
                                     <span class="text-danger">{{ $message }}</span>
                                 @enderror
-                                <small class="form-text text-muted">Type name, phone, or account number and click Search</small>
+                                <small class="form-text text-muted">Enter savings account number and click Search</small>
                             </div>
                             
                             <!-- Client Details (shown after search) -->
                             <div v-if="client" class="alert alert-success">
                                 <strong>Selected Client:</strong> @{{ client.first_name }} @{{ client.last_name }}<br>
-                                <small>Phone: @{{ client.mobile || 'N/A' }} | Account: @{{ client.account_number }}</small>
+                                <small>Phone: @{{ client.mobile || 'N/A' }} | Savings A/C: @{{ client.savings_account_number }}</small>
                             </div>
                         </div>
                     </div>
@@ -252,7 +252,7 @@
             methods: {
                 searchClient() {
                     if (!this.client_search) {
-                        alert('Please enter client name, phone, or account number');
+                        alert('Please enter savings account number');
                         return;
                     }
 
