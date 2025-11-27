@@ -107,18 +107,22 @@ try {
         // Agent Management
         ['name' => 'field_agent.agents.index', 'display_name' => 'View Field Agents', 'description' => 'View list of field agents'],
         ['name' => 'field_agent.agents.create', 'display_name' => 'Create Field Agent', 'description' => 'Create new field agent'],
-        ['name' => 'field_agent.agents.update', 'display_name' => 'Update Field Agent', 'description' => 'Update field agent details'],
-        ['name' => 'field_agent.agents.delete', 'display_name' => 'Delete Field Agent', 'description' => 'Delete field agent'],
+        ['name' => 'field_agent.agents.edit', 'display_name' => 'Edit Field Agent', 'description' => 'Edit field agent details'],
+        ['name' => 'field_agent.agents.view', 'display_name' => 'View Field Agent Details', 'description' => 'View single field agent'],
+        ['name' => 'field_agent.agents.destroy', 'display_name' => 'Delete Field Agent', 'description' => 'Delete field agent'],
         
         // Collections
         ['name' => 'field_agent.collections.index', 'display_name' => 'View Collections', 'description' => 'View field collections'],
         ['name' => 'field_agent.collections.create', 'display_name' => 'Record Collection', 'description' => 'Record new collection'],
-        ['name' => 'field_agent.collections.update', 'display_name' => 'Update Collection', 'description' => 'Update collection details'],
+        ['name' => 'field_agent.collections.view', 'display_name' => 'View Collection Details', 'description' => 'View single collection'],
         ['name' => 'field_agent.collections.verify', 'display_name' => 'Verify Collections', 'description' => 'Verify field collections'],
+        ['name' => 'field_agent.collections.post', 'display_name' => 'Post Collections', 'description' => 'Post collections to accounting'],
         
         // Reports
         ['name' => 'field_agent.reports.index', 'display_name' => 'View Daily Reports', 'description' => 'View field agent daily reports'],
         ['name' => 'field_agent.reports.create', 'display_name' => 'Submit Daily Report', 'description' => 'Submit daily report'],
+        ['name' => 'field_agent.reports.view', 'display_name' => 'View Report Details', 'description' => 'View single daily report'],
+        ['name' => 'field_agent.reports.approve', 'display_name' => 'Approve Reports', 'description' => 'Approve daily reports'],
         
         // Analytics
         ['name' => 'field_agent.analytics.view', 'display_name' => 'View Analytics', 'description' => 'View field agent performance analytics'],
@@ -150,7 +154,42 @@ try {
     }
     
     echo "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-    echo "Assigning permissions to admin role...\n\n";
+    echo "Assigning permissions to roles...\n\n";
+    
+    // Find or create field agent role
+    $fieldAgentRole = Role::where('name', 'field_agent')->first();
+    if (!$fieldAgentRole) {
+        $fieldAgentRole = Role::create([
+            'name' => 'field_agent',
+            'display_name' => 'Field Agent',
+            'description' => 'Field agent role with collection and reporting permissions',
+            'guard_name' => 'web',
+        ]);
+        echo "✅ Created 'field_agent' role\n";
+    } else {
+        echo "⏭️  'field_agent' role already exists\n";
+    }
+    
+    // Field agent specific permissions (not all permissions)
+    $fieldAgentPermissions = [
+        'field_agent.agents.index',
+        'field_agent.collections.index',
+        'field_agent.collections.create',
+        'field_agent.collections.view',
+        'field_agent.reports.index',
+        'field_agent.reports.create',
+        'field_agent.reports.view',
+    ];
+    
+    foreach ($permissions as $perm) {
+        if (in_array($perm['name'], $fieldAgentPermissions)) {
+            $permission = Permission::where('name', $perm['name'])->first();
+            if ($permission && !$fieldAgentRole->hasPermissionTo($permission)) {
+                $fieldAgentRole->givePermissionTo($permission);
+            }
+        }
+    }
+    echo "✅ Assigned field agent permissions to 'field_agent' role\n\n";
     
     // Find admin role
     $adminRole = Role::where('name', 'admin')->orWhere('name', 'super_admin')->first();
