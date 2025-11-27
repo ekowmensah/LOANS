@@ -175,92 +175,262 @@
         <!-- /.box -->
         @if(!empty($start_date))
             <div class="card">
-                <div class="card-body table-responsive p-0">
-                    <table class="table table-bordered table-condensed table-hover">
-                        <thead>
-                        <tr>
-                            <th colspan="2">
-                                @if(!empty($data->first()) && !empty($branch_id))
-                                    {{trans_choice('core::general.branch',1)}}:
+                <div class="card-header p-2">
+                    <ul class="nav nav-pills">
+                        <li class="nav-item"><a class="nav-link active" href="#individual_loans" data-toggle="tab">Individual Loans ({{$individual_loans->count()}})</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#group_loans" data-toggle="tab">Group Loans ({{$group_loans->count()}})</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#summary" data-toggle="tab">Summary</a></li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <!-- Individual Loans Tab -->
+                        <div class="active tab-pane" id="individual_loans">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-condensed table-hover">
+                                    <thead>
+                                    <tr style="background-color: #D1F9FF">
+                                        <th>{{trans_choice('loan::general.loan',1)}} {{trans_choice('loan::general.officer',1)}}</th>
+                                        <th>{{trans_choice('core::general.branch',1)}}</th>
+                                        <th>{{trans_choice('client::general.client',1)}}</th>
+                                        <th>{{trans_choice('core::general.mobile',1)}}</th>
+                                        <th>{{trans_choice('loan::general.loan',1)}}#</th>
+                                        <th>{{trans_choice('loan::general.product',1)}}</th>
+                                        @if(!empty($individual_loans->first()->custom_fields))
+                                            @foreach($individual_loans->first()->custom_fields as $k=>$v)
+                                                <th>{{$k}}</th>
+                                            @endforeach
+                                        @endif
+                                        <th>{{ trans_choice('loan::general.expected',1) }} {{ trans_choice('loan::general.maturity',1) }}</th>
+                                        <th>Next {{trans_choice('loan::general.repayment',1)}} {{ trans_choice('core::general.date',1) }}</th>
+                                        <th>{{ trans_choice('loan::general.expected',1) }} {{trans_choice('loan::general.amount',1)}}</th>
+                                        <th>{{ trans_choice('loan::general.total',1) }} {{trans_choice('loan::general.due',1)}}</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $individual_total_due = 0;
+                                        $individual_total_expected = 0;
+                                        ?>
+                                    @forelse($individual_loans as $loan)
+                                            <?php
+                                            $individual_total_due += $loan->total_due;
+                                            $individual_total_expected += $loan->expected_amount;
+                                            ?>
+                                        <tr>
+                                            <td>{{ $loan->loan_officer }}</td>
+                                            <td>{{ $loan->branch }}</td>
+                                            <td>{{ $loan->client }}</td>
+                                            <td>{{ $loan->mobile }}</td>
+                                            <td>{{ $loan->loan_id }}</td>
+                                            <td>{{ $loan->loan_product }}</td>
+                                            @if(!empty($loan->custom_fields))
+                                                @foreach($loan->custom_fields as $v)
+                                                    <td>{{$v}}</td>
+                                                @endforeach
+                                            @endif
+                                            <td>{{ $loan->expected_maturity_date }}</td>
+                                            <td>
+                                                {{ $loan->due_date }}
+                                                @if($loan->total_due > 0 && \Carbon\Carbon::parse($loan->due_date)->isPast())
+                                                    <span class="badge badge-danger">Overdue</span>
+                                                @endif
+                                            </td>
+                                            <td>{{ number_format($loan->expected_amount, 2) }}</td>
+                                            <td>{{ number_format($loan->total_due, 2) }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="10" class="text-center">No individual loans found</td>
+                                        </tr>
+                                    @endforelse
+                                    </tbody>
+                                    @if($individual_loans->isNotEmpty())
+                                    <tfoot>
+                                    <tr>
+                                        <td colspan="8"><b>{{trans_choice('core::general.total',1)}}</b></td>
+                                        <td><b>{{number_format($individual_total_expected, 2)}}</b></td>
+                                        <td><b>{{number_format($individual_total_due, 2)}}</b></td>
+                                    </tr>
+                                    </tfoot>
+                                    @endif
+                                </table>
+                            </div>
+                        </div>
 
-                                    {{$data->first()->branch}}
-                                @endif
-                            </th>
-                            <th colspan="2">
-                                @if(!empty($data->first()) && !empty($loan_product_id))
-                                    {{trans_choice('loan::general.product',1)}}:
+                        <!-- Group Loans Tab -->
+                        <div class="tab-pane" id="group_loans">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-condensed table-hover">
+                                    <thead>
+                                    <tr style="background-color: #D1F9FF">
+                                        <th>{{trans_choice('loan::general.loan',1)}} {{trans_choice('loan::general.officer',1)}}</th>
+                                        <th>{{trans_choice('core::general.branch',1)}}</th>
+                                        <th>{{trans_choice('client::general.group',1)}}/Member</th>
+                                        <th>{{trans_choice('core::general.mobile',1)}}</th>
+                                        <th>{{trans_choice('loan::general.loan',1)}}#</th>
+                                        <th>{{trans_choice('loan::general.product',1)}}</th>
+                                        @if(!empty($group_loans->first()->custom_fields))
+                                            @foreach($group_loans->first()->custom_fields as $k=>$v)
+                                                <th>{{$k}}</th>
+                                            @endforeach
+                                        @endif
+                                        <th>{{ trans_choice('loan::general.expected',1) }} {{ trans_choice('loan::general.maturity',1) }}</th>
+                                        <th>Next {{trans_choice('loan::general.repayment',1)}} {{ trans_choice('core::general.date',1) }}</th>
+                                        <th>{{ trans_choice('loan::general.expected',1) }} {{trans_choice('loan::general.amount',1)}}</th>
+                                        <th>{{ trans_choice('loan::general.total',1) }} {{trans_choice('loan::general.due',1)}}</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $group_total_due = 0;
+                                        $group_total_expected = 0;
+                                        ?>
+                                    @forelse($group_loans as $loan)
+                                            <?php
+                                            $group_total_due += $loan->total_due;
+                                            $group_total_expected += $loan->expected_amount;
+                                            ?>
+                                        <!-- Group Loan Row -->
+                                        <tr style="background-color: #f8f9fa; font-weight: bold;">
+                                            <td>{{ $loan->loan_officer }}</td>
+                                            <td>{{ $loan->branch }}</td>
+                                            <td><i class="fas fa-users"></i> {{ $loan->group_name }}</td>
+                                            <td>-</td>
+                                            <td>{{ $loan->loan_id }}</td>
+                                            <td>{{ $loan->loan_product }}</td>
+                                            @if(!empty($loan->custom_fields))
+                                                @foreach($loan->custom_fields as $v)
+                                                    <td>{{$v}}</td>
+                                                @endforeach
+                                            @endif
+                                            <td>{{ $loan->expected_maturity_date }}</td>
+                                            <td>
+                                                {{ $loan->due_date }}
+                                                @if($loan->total_due > 0 && \Carbon\Carbon::parse($loan->due_date)->isPast())
+                                                    <span class="badge badge-danger">Overdue</span>
+                                                @endif
+                                            </td>
+                                            <td>{{ number_format($loan->expected_amount, 2) }}</td>
+                                            <td>{{ number_format($loan->total_due, 2) }}</td>
+                                        </tr>
+                                        <!-- Group Members -->
+                                        @if(!empty($loan->members) && $loan->members->isNotEmpty())
+                                            @foreach($loan->members as $member)
+                                        <tr style="background-color: #fcfcfc;">
+                                            <td colspan="2" style="padding-left: 30px;"><i class="fas fa-user"></i> Member</td>
+                                            <td>{{ $member->member_name }}</td>
+                                            <td>{{ $member->member_mobile }}</td>
+                                            <td colspan="4"></td>
+                                            <td>{{ number_format($member->member_expected_amount, 2) }}</td>
+                                            <td>{{ number_format($member->member_total_due, 2) }}</td>
+                                        </tr>
+                                            @endforeach
+                                        @endif
+                                    @empty
+                                        <tr>
+                                            <td colspan="10" class="text-center">No group loans found</td>
+                                        </tr>
+                                    @endforelse
+                                    </tbody>
+                                    @if($group_loans->isNotEmpty())
+                                    <tfoot>
+                                    <tr>
+                                        <td colspan="8"><b>{{trans_choice('core::general.total',1)}}</b></td>
+                                        <td><b>{{number_format($group_total_expected, 2)}}</b></td>
+                                        <td><b>{{number_format($group_total_due, 2)}}</b></td>
+                                    </tr>
+                                    </tfoot>
+                                    @endif
+                                </table>
+                            </div>
+                        </div>
 
-                                    {{$data->first()->loan_product}}
-                                @endif
-                            </th>
-                            <th colspan="2">
-                                @if(!empty($data->first()) && !empty($loan_officer_id))
-                                    {{trans_choice('loan::general.officer',1)}}:
-
-                                    {{$data->first()->loan_officer}}
-                                @endif
-                            </th>
-                            <th colspan="2">{{trans_choice('core::general.start_date',1)}}: {{$start_date}}</th>
-                            <th colspan="2">{{trans_choice('core::general.end_date',1)}}: {{$end_date}}</th>
-                        </tr>
-                        <tr style="background-color: #D1F9FF">
-                            <th>{{trans_choice('loan::general.loan',1)}} {{trans_choice('loan::general.officer',1)}}</th>
-                            <th>{{trans_choice('core::general.branch',1)}}</th>
-                            <th>{{trans_choice('client::general.client',1)}}</th>
-                            <th>{{trans_choice('core::general.mobile',1)}}</th>
-                            <th>{{trans_choice('loan::general.loan',1)}}#</th>
-                            <th>{{trans_choice('loan::general.product',1)}}</th>
-                            @if(!empty($data->first()->custom_fields))
-                                @foreach($data->first()->custom_fields as $k=>$v)
-                                    <th>{{$k}}</th>
-                                @endforeach
-                            @endif
-                            <th>{{ trans_choice('loan::general.expected',1) }} {{ trans_choice('loan::general.maturity',1) }} {{ trans_choice('core::general.date',1) }}</th>
-                            <th>{{trans_choice('loan::general.repayment',1)}} {{ trans_choice('core::general.date',1) }}</th>
-                            <th>{{ trans_choice('loan::general.expected',1) }} {{trans_choice('loan::general.amount',1)}}</th>
-                            <th>{{ trans_choice('loan::general.total',1) }} {{trans_choice('loan::general.due',1)}}</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $total_due = 0;
-                            $total_expected_amount = 0;
-                            ?>
-                        @foreach($data as $key)
-                                <?php
-                                $total_due = $total_due + $key->total_due;
-                                $total_expected_amount = $total_expected_amount + $key->expected_amount;
-                                ?>
-                            <tr>
-                                <td>{{ $key->loan_officer }}</td>
-                                <td>{{ $key->branch }}</td>
-                                <td>
-                                    {{$key->client}}
-                                </td>
-                                <td>{{ $key->mobile }}</td>
-                                <td>{{ $key->loan_id }}</td>
-
-                                <td>{{ $key->loan_product }}</td>
-                                @if(!empty($key->custom_fields))
-                                    @foreach($key->custom_fields as $v)
-                                        <td>{{$v}}</td>
-                                    @endforeach
-                                @endif
-                                <td>{{ $key->expected_maturity_date }}</td>
-                                <td>{{ $key->due_date }}</td>
-                                <td>{{ number_format( $key->expected_amount,2) }}</td>
-                                <td>{{ number_format( $key->total_due,2) }}</td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                        <tfoot>
-                        <tr>
-                            <td colspan="8"><b>{{trans_choice('core::general.total',1)}}</b></td>
-                            <td>{{number_format($total_expected_amount,2)}}</td>
-                            <td>{{number_format($total_due,2)}}</td>
-                        </tr>
-                        </tfoot>
-                    </table>
+                        <!-- Summary Tab -->
+                        <div class="tab-pane" id="summary">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h3 class="card-title">Individual Loans Summary</h3>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <td>Total Repayment Schedules:</td>
+                                                    <td><b>{{$individual_loans->count()}}</b></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Unique Loans:</td>
+                                                    <td><b>{{$individual_loans->pluck('loan_id')->unique()->count()}}</b></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Total Expected Amount:</td>
+                                                    <td><b>{{number_format($individual_loans->sum('expected_amount'), 2)}}</b></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Total Due:</td>
+                                                    <td><b>{{number_format($individual_loans->sum('total_due'), 2)}}</b></td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h3 class="card-title">Group Loans Summary</h3>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <td>Total Repayment Schedules:</td>
+                                                    <td><b>{{$group_loans->count()}}</b></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Unique Loans:</td>
+                                                    <td><b>{{$group_loans->pluck('loan_id')->unique()->count()}}</b></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Total Expected Amount:</td>
+                                                    <td><b>{{number_format($group_loans->sum('expected_amount'), 2)}}</b></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Total Due:</td>
+                                                    <td><b>{{number_format($group_loans->sum('total_due'), 2)}}</b></td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header bg-primary">
+                                    <h3 class="card-title">Grand Total</h3>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td>Total Repayment Schedules:</td>
+                                            <td><b>{{$individual_loans->count() + $group_loans->count()}}</b></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Total Unique Loans:</td>
+                                            <td><b>{{$individual_loans->pluck('loan_id')->unique()->count() + $group_loans->pluck('loan_id')->unique()->count()}}</b></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Total Expected Amount:</td>
+                                            <td><b>{{number_format($individual_loans->sum('expected_amount') + $group_loans->sum('expected_amount'), 2)}}</b></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Total Due:</td>
+                                            <td><b>{{number_format($individual_loans->sum('total_due') + $group_loans->sum('total_due'), 2)}}</b></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         @endif

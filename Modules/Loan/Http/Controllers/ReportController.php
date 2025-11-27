@@ -55,11 +55,13 @@ class ReportController extends Controller
         $users = User::whereHas('roles', function ($query) {
             return $query->where('name', '!=', 'client');
         })->get();
-        $data = [];
+        $individual_loans = [];
+        $group_loans = [];
         $branches = Branch::all();
         $loan_products = LoanProduct::all();
         if (!empty($start_date)) {
-            $data = DB::table("loan_repayment_schedules")
+            // Query for individual loans
+            $individual_loans = DB::table("loan_repayment_schedules")
                 ->join("loans", "loan_repayment_schedules.loan_id", "loans.id")
                 ->join("loan_products", "loans.loan_product_id", "loan_products.id")
                 ->join("branches", "loans.branch_id", "branches.id")
@@ -87,12 +89,72 @@ class ReportController extends Controller
                     $query->whereRaw('TIMESTAMPDIFF(YEAR, clients.dob, CURDATE()) BETWEEN ? and ?', [$age_from, $age_to]);
                 })
                 ->where('loans.status', 'active')
+                ->where('loans.client_type', 'client')
                 ->selectRaw("concat(clients.first_name,' ',clients.last_name) client,concat(users.first_name,' ',users.last_name) loan_officer,branches.name branch,clients.mobile,loans.client_id,loan_products.name loan_product,loan_repayment_schedules.loan_id,loans.expected_maturity_date,loan_repayment_schedules.total_due,(loan_repayment_schedules.principal+loan_repayment_schedules.interest+loan_repayment_schedules.fees+loan_repayment_schedules.penalties-loan_repayment_schedules.principal_written_off_derived-loan_repayment_schedules.interest_written_off_derived-loan_repayment_schedules.fees_written_off_derived-loan_repayment_schedules.penalties_written_off_derived-loan_repayment_schedules.interest_waived_derived-loan_repayment_schedules.fees_waived_derived-loan_repayment_schedules.penalties_waived_derived) expected_amount,loan_repayment_schedules.due_date")
                 ->get();
-            //check for custom fields to include in reports
+
+            // Query for group loans
+            $group_loans = DB::table("loan_repayment_schedules")
+                ->join("loans", "loan_repayment_schedules.loan_id", "loans.id")
+                ->join("loan_products", "loans.loan_product_id", "loan_products.id")
+                ->join("branches", "loans.branch_id", "branches.id")
+                ->join("groups", "loans.group_id", "groups.id")
+                ->leftJoin("users", "loans.loan_officer_id", "users.id")
+                ->when($start_date, function ($query) use ($start_date, $end_date) {
+                    $query->whereBetween('loan_repayment_schedules.due_date', [$start_date, $end_date]);
+                })
+                ->when($branch_id, function ($query) use ($branch_id) {
+                    $query->where('loans.branch_id', $branch_id);
+                })
+                ->when($loan_officer_id, function ($query) use ($loan_officer_id) {
+                    $query->where('loans.loan_officer_id', $loan_officer_id);
+                })
+                ->when($loan_product_id, function ($query) use ($loan_product_id) {
+                    $query->where('loans.loan_product_id', $loan_product_id);
+                })
+                ->where('loans.status', 'active')
+                ->where('loans.client_type', 'group')
+                ->selectRaw("groups.name as group_name,concat(users.first_name,' ',users.last_name) loan_officer,branches.name branch,loans.group_id,loan_products.name loan_product,loan_repayment_schedules.loan_id,loans.expected_maturity_date,loan_repayment_schedules.total_due,(loan_repayment_schedules.principal+loan_repayment_schedules.interest+loan_repayment_schedules.fees+loan_repayment_schedules.penalties-loan_repayment_schedules.principal_written_off_derived-loan_repayment_schedules.interest_written_off_derived-loan_repayment_schedules.fees_written_off_derived-loan_repayment_schedules.penalties_written_off_derived-loan_repayment_schedules.interest_waived_derived-loan_repayment_schedules.fees_waived_derived-loan_repayment_schedules.penalties_waived_derived) expected_amount,loan_repayment_schedules.due_date")
+                ->get();
+
+            // Fetch member allocations for group loans
+            if ($group_loans->isNotEmpty()) {
+                $group_loan_ids = $group_loans->pluck('loan_id')->unique()->toArray();
+                $member_allocations = DB::table('group_member_loan_allocations')
+                    ->join('clients', 'group_member_loan_allocations.client_id', 'clients.id')
+                    ->whereIn('group_member_loan_allocations.loan_id', $group_loan_ids)
+                    ->selectRaw("group_member_loan_allocations.loan_id,group_member_loan_allocations.client_id,concat(clients.first_name,' ',clients.last_name) as member_name,clients.mobile as member_mobile,group_member_loan_allocations.allocated_amount,group_member_loan_allocations.allocated_percentage,group_member_loan_allocations.outstanding_balance")
+                    ->get()
+                    ->groupBy('loan_id');
+
+                // Attach members to each group loan and calculate their expected payment
+                $group_loans->transform(function ($item) use ($member_allocations) {
+                    $members = $member_allocations->get($item->loan_id, collect([]));
+                    
+                    // Calculate each member's expected payment based on their allocation percentage
+                    $members->transform(function ($member) use ($item) {
+                        $member->member_expected_amount = ($item->expected_amount * $member->allocated_percentage) / 100;
+                        $member->member_total_due = ($item->total_due * $member->allocated_percentage) / 100;
+                        return $member;
+                    });
+                    
+                    $item->members = $members;
+                    return $item;
+                });
+            }
+            //check for custom fields to include in reports for individual loans
             $custom_fields = CustomField::where('category', 'add_loan')->where('include_in_report', 1)->get();
-            if ($custom_fields->isNotEmpty()) {
-                $data->transform(function ($item, $key) use ($custom_fields) {
+            if ($custom_fields->isNotEmpty() && $individual_loans->isNotEmpty()) {
+                $individual_loans->transform(function ($item, $key) use ($custom_fields) {
+                    $item->custom_fields = [];
+                    foreach ($custom_fields as $custom_field) {
+                        $item->custom_fields[$custom_field['name']] = CustomFieldMeta::where('parent_id', $item->loan_id)->where('custom_field_id', $custom_field->id)->first()->value ?? '';
+                    }
+                    return $item;
+                });
+            }
+            if ($custom_fields->isNotEmpty() && $group_loans->isNotEmpty()) {
+                $group_loans->transform(function ($item, $key) use ($custom_fields) {
                     $item->custom_fields = [];
                     foreach ($custom_fields as $custom_field) {
                         $item->custom_fields[$custom_field['name']] = CustomFieldMeta::where('parent_id', $item->loan_id)->where('custom_field_id', $custom_field->id)->first()->value ?? '';
@@ -104,12 +166,12 @@ class ReportController extends Controller
             if ($request->download) {
                 if ($request->type == 'pdf') {
                     $pdf = PDF::loadView(theme_view_file('loan::report.collection_sheet_pdf'), compact('start_date',
-                        'end_date', 'branch_id', 'data', 'branches', 'users', 'loan_officer_id', 'loan_product_id', 'loan_products','gender','age_from','age_to'));
+                        'end_date', 'branch_id', 'individual_loans', 'group_loans', 'branches', 'users', 'loan_officer_id', 'loan_product_id', 'loan_products','gender','age_from','age_to'));
                     return $pdf->download(trans_choice('loan::general.collection_sheet', 1) . '(' . $start_date . ' to ' . $end_date . ').pdf');
                 }
                 $view = theme_view('loan::report.collection_sheet_pdf',
                     compact('start_date',
-                        'end_date', 'branch_id', 'data', 'branches', 'users', 'loan_officer_id', 'loan_product_id', 'loan_products','gender','age_from','age_to'));
+                        'end_date', 'branch_id', 'individual_loans', 'group_loans', 'branches', 'users', 'loan_officer_id', 'loan_product_id', 'loan_products','gender','age_from','age_to'));
                 if ($request->type == 'excel_2007') {
                     return Excel::download(new LoanExport($view), trans_choice('loan::general.collection_sheet', 1) . '(' . $start_date . ' to ' . $end_date . ').xlsx');
                 }
@@ -123,7 +185,7 @@ class ReportController extends Controller
         }
         return theme_view('loan::report.collection_sheet',
             compact('start_date',
-                'end_date', 'branch_id', 'data', 'branches', 'users', 'loan_officer_id', 'loan_product_id', 'loan_products','gender','age_from','age_to'));
+                'end_date', 'branch_id', 'individual_loans', 'group_loans', 'branches', 'users', 'loan_officer_id', 'loan_product_id', 'loan_products','gender','age_from','age_to'));
     }
 
     /**
