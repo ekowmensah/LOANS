@@ -27,11 +27,14 @@ class UpdateTransactions
     {
         $savings = $event->savings;
         $balance = 0;
-        foreach ($savings->transactions as $savings_transaction) {
+        
+        // Only process non-reversed transactions
+        foreach ($savings->transactions()->where('reversed', 0)->orderBy('submitted_on')->orderBy('id')->get() as $savings_transaction) {
             $balance = $balance - $savings_transaction->debit + $savings_transaction->credit;
             $savings_transaction->balance = $balance;
             $savings_transaction->save();
         }
+        
         $savings->balance_derived = $balance;
         $savings->save();
     }

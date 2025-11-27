@@ -95,11 +95,6 @@ class ReverseSavingsDeposit
         $savingsTransaction->reversed = 1;
         $savingsTransaction->save();
 
-        // Update the savings account balance by subtracting the reversed amount
-        $savings->balance_derived = $savings->balance_derived - $savingsTransaction->amount;
-        $savings->total_deposits_derived = $savings->total_deposits_derived - $savingsTransaction->amount;
-        $savings->save();
-
         // Mark the journal entries as reversed
         JournalEntry::where('transaction_number', 'LD-S' . $savingsTransaction->id)
             ->update(['reversed' => 1]);
@@ -113,8 +108,16 @@ class ReverseSavingsDeposit
             ])
             ->log('Reversed Savings Deposit from Loan Disbursement');
 
-        // Fire savings transaction updated event
+        // Fire savings transaction updated event - this will recalculate the balance
         event(new TransactionUpdated($savings));
+        
+        // Refresh and log the new balance
+        $savings->refresh();
+        Log::info("Savings balance after reversal", [
+            'savings_id' => $savings->id,
+            'balance_derived' => $savings->balance_derived,
+            'total_deposits_derived' => $savings->total_deposits_derived
+        ]);
 
         Log::info("Reversed savings deposit for loan undisbursement", [
             'loan_id' => $loan->id,
