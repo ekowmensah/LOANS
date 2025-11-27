@@ -467,7 +467,7 @@ class FieldCollectionController extends Controller
                 $loan = \Modules\Loan\Entities\Loan::findOrFail($collection->reference_id);
                 
                 // Create payment detail
-                $payment_detail = new \Modules\Accounting\Entities\PaymentDetail();
+                $payment_detail = new \Modules\Core\Entities\PaymentDetail();
                 $payment_detail->created_by_id = Auth::id();
                 $payment_detail->payment_type_id = $collection->payment_type_id ?? 1;
                 $payment_detail->transaction_type = 'loan_transaction';
@@ -587,7 +587,7 @@ class FieldCollectionController extends Controller
                 // Record savings deposit
                 $savings = \Modules\Savings\Entities\Savings::findOrFail($collection->reference_id);
                 
-                $payment_detail = new \Modules\Accounting\Entities\PaymentDetail();
+                $payment_detail = new \Modules\Core\Entities\PaymentDetail();
                 $payment_detail->created_by_id = Auth::id();
                 $payment_detail->payment_type_id = $collection->payment_type_id ?? 1;
                 $payment_detail->transaction_type = 'savings_transaction';
