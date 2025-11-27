@@ -219,7 +219,11 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="6" class="text-center">No reports yet</td>
+                                                <td colspan="6" class="text-center text-muted py-4">
+                                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                                    <p>No daily reports submitted yet</p>
+                                                    <small>Daily reports will appear here once the field agent submits them</small>
+                                                </td>
                                             </tr>
                                         @endforelse
                                     </tbody>
