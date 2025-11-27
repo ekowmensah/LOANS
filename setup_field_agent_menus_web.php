@@ -137,6 +137,14 @@ try {
     
     $childMenus = [
         [
+            'name' => 'Dashboard',
+            'title' => 'Dashboard',
+            'url' => '/field-agent/dashboard',
+            'icon' => 'far fa-circle',
+            'permissions' => 'field_agent.agents.index',
+            'order' => 0,
+        ],
+        [
             'name' => 'All Field Agents',
             'title' => 'All Field Agents',
             'url' => '/field-agent/agent',

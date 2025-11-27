@@ -23,6 +23,108 @@ class FieldAgentController extends Controller
     }
 
     /**
+     * Display field agent dashboard
+     */
+    public function dashboard()
+    {
+        $user = Auth::user();
+        
+        // Get field agent record for current user
+        $fieldAgent = FieldAgent::where('user_id', $user->id)->first();
+        
+        if (!$fieldAgent) {
+            flash('You are not registered as a field agent.')->error();
+            return redirect('/');
+        }
+        
+        // Get today's collections
+        $todayCollections = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
+            ->whereDate('collection_date', today())
+            ->get();
+        
+        $todayAmount = $todayCollections->sum('amount');
+        $todayCount = $todayCollections->count();
+        
+        // Get this week's collections
+        $weekCollections = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
+            ->whereBetween('collection_date', [now()->startOfWeek(), now()->endOfWeek()])
+            ->get();
+        
+        $weekAmount = $weekCollections->sum('amount');
+        $weekCount = $weekCollections->count();
+        
+        // Get this month's collections
+        $monthCollections = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
+            ->whereMonth('collection_date', now()->month)
+            ->whereYear('collection_date', now()->year)
+            ->get();
+        
+        $monthAmount = $monthCollections->sum('amount');
+        $monthCount = $monthCollections->count();
+        
+        // Get pending verifications
+        $pendingVerifications = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
+            ->where('status', 'pending')
+            ->count();
+        
+        // Get assigned clients count
+        $assignedClients = \Modules\Client\Entities\Client::where('field_agent_id', $fieldAgent->id)
+            ->where('status', 'active')
+            ->count();
+        
+        // Get active loans for assigned clients
+        $activeLoans = \Modules\Loan\Entities\Loan::whereHas('client', function($q) use ($fieldAgent) {
+            $q->where('field_agent_id', $fieldAgent->id);
+        })->where('status', 'active')->count();
+        
+        // Get recent collections (last 10)
+        $recentCollections = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
+            ->with(['client', 'loan'])
+            ->orderBy('collection_date', 'desc')
+            ->limit(10)
+            ->get();
+        
+        // Get today's report status
+        $todayReport = \Modules\FieldAgent\Entities\FieldAgentDailyReport::where('field_agent_id', $fieldAgent->id)
+            ->whereDate('report_date', today())
+            ->first();
+        
+        // Get clients with loans due today or overdue
+        $dueLoans = \Modules\Loan\Entities\Loan::whereHas('client', function($q) use ($fieldAgent) {
+            $q->where('field_agent_id', $fieldAgent->id);
+        })
+        ->where('status', 'active')
+        ->whereHas('repayment_schedules', function($q) {
+            $q->where('due_date', '<=', today())
+              ->whereRaw('principal_repaid_derived < principal')
+              ->orWhereRaw('interest_repaid_derived < interest');
+        })
+        ->with(['client', 'repayment_schedules' => function($q) {
+            $q->where('due_date', '<=', today())
+              ->whereRaw('principal_repaid_derived < principal')
+              ->orWhereRaw('interest_repaid_derived < interest');
+        }])
+        ->limit(10)
+        ->get();
+        
+        return theme_view('fieldagent::dashboard', compact(
+            'fieldAgent',
+            'todayAmount',
+            'todayCount',
+            'weekAmount',
+            'weekCount',
+            'monthAmount',
+            'monthCount',
+            'pendingVerifications',
+            'assignedClients',
+            'activeLoans',
+            'recentCollections',
+            'todayReport',
+            'dueLoans'
+        ));
+    }
+
+    /**
      * Display a listing of field agents
      */
     public function index()

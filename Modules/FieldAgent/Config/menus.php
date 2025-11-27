@@ -12,6 +12,16 @@ return [
         'menu_order' => 50,
         'module' => 'FieldAgent',
         'children' => [
+            // Dashboard
+            [
+                'name' => 'Dashboard',
+                'title' => 'Dashboard',
+                'url' => '/field-agent/dashboard',
+                'icon' => 'far fa-circle',
+                'permissions' => 'field_agent.agents.index',
+                'menu_order' => 0,
+            ],
+            
             // Field Agents Management
             [
                 'name' => 'All Field Agents',

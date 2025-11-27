@@ -407,13 +407,21 @@ class FieldCollectionController extends Controller
     {
         $collection = FieldCollection::findOrFail($id);
 
+        // If GET request, redirect to show page
+        if ($request->isMethod('get')) {
+            return redirect(url('field-agent/collection/' . $id . '/show'));
+        }
+
+        // POST request - process verification
         if (!$collection->canBeVerified()) {
-            return redirect()->back()->with('error', 'This collection cannot be verified');
+            flash('This collection cannot be verified')->error();
+            return redirect()->back();
         }
 
         $collection->verify(Auth::id());
 
-        return redirect()->back()->with('success', 'Collection verified successfully');
+        flash('Collection verified successfully')->success();
+        return redirect()->back();
     }
 
     /**
@@ -444,7 +452,8 @@ class FieldCollectionController extends Controller
         $collection = FieldCollection::findOrFail($id);
 
         if (!$collection->canBePosted()) {
-            return redirect()->back()->with('error', 'This collection cannot be posted');
+            flash('This collection cannot be posted')->error();
+            return redirect()->back();
         }
 
         DB::beginTransaction();
@@ -452,14 +461,165 @@ class FieldCollectionController extends Controller
             // Post the collection
             $collection->post(Auth::id());
 
-            // TODO: Create actual transaction in savings/loan module
-            // This would be implemented based on your existing transaction logic
+            // Create actual transaction based on collection type
+            if ($collection->collection_type === 'loan_repayment' && $collection->reference_id) {
+                // Record loan repayment
+                $loan = \Modules\Loan\Entities\Loan::findOrFail($collection->reference_id);
+                
+                // Create payment detail
+                $payment_detail = new \Modules\Accounting\Entities\PaymentDetail();
+                $payment_detail->created_by_id = Auth::id();
+                $payment_detail->payment_type_id = $collection->payment_type_id ?? 1;
+                $payment_detail->transaction_type = 'loan_transaction';
+                $payment_detail->amount = $collection->amount;
+                $payment_detail->receipt = $collection->receipt_number;
+                $payment_detail->save();
+                
+                // Create loan transaction
+                $loan_transaction = new \Modules\Loan\Entities\LoanTransaction();
+                $loan_transaction->created_by_id = Auth::id();
+                $loan_transaction->loan_id = $loan->id;
+                $loan_transaction->payment_detail_id = $payment_detail->id;
+                $loan_transaction->name = 'Repayment';
+                $loan_transaction->loan_transaction_type_id = 1; // Repayment
+                $loan_transaction->submitted_on = $collection->collection_date;
+                $loan_transaction->created_on = date("Y-m-d");
+                $loan_transaction->amount = $collection->amount;
+                $loan_transaction->credit = $collection->amount;
+                $loan_transaction->save();
+                
+                // Update loan repayment schedules
+                $balance = $collection->amount;
+                $schedules = $loan->repayment_schedules()
+                    ->orderBy('due_date', 'asc')
+                    ->get();
+                
+                foreach ($schedules as $schedule) {
+                    if ($balance <= 0) break;
+                    
+                    // Calculate outstanding amounts
+                    $principal_outstanding = $schedule->principal - $schedule->principal_repaid_derived;
+                    $interest_outstanding = $schedule->interest - $schedule->interest_repaid_derived;
+                    $fees_outstanding = $schedule->fees - $schedule->fees_repaid_derived;
+                    $penalties_outstanding = $schedule->penalties - $schedule->penalties_repaid_derived;
+                    
+                    $total_outstanding = $principal_outstanding + $interest_outstanding + $fees_outstanding + $penalties_outstanding;
+                    
+                    if ($total_outstanding > 0) {
+                        // Pay penalties first, then fees, then interest, then principal
+                        if ($penalties_outstanding > 0 && $balance > 0) {
+                            $penalty_payment = min($penalties_outstanding, $balance);
+                            $schedule->penalties_repaid_derived += $penalty_payment;
+                            $balance -= $penalty_payment;
+                        }
+                        
+                        if ($fees_outstanding > 0 && $balance > 0) {
+                            $fee_payment = min($fees_outstanding, $balance);
+                            $schedule->fees_repaid_derived += $fee_payment;
+                            $balance -= $fee_payment;
+                        }
+                        
+                        if ($interest_outstanding > 0 && $balance > 0) {
+                            $interest_payment = min($interest_outstanding, $balance);
+                            $schedule->interest_repaid_derived += $interest_payment;
+                            $balance -= $interest_payment;
+                        }
+                        
+                        if ($principal_outstanding > 0 && $balance > 0) {
+                            $principal_payment = min($principal_outstanding, $balance);
+                            $schedule->principal_repaid_derived += $principal_payment;
+                            $balance -= $principal_payment;
+                        }
+                        
+                        $schedule->save();
+                    }
+                }
+                
+                // Update loan totals
+                $loan->principal_repaid_derived = $loan->repayment_schedules()->sum('principal_repaid_derived');
+                $loan->interest_repaid_derived = $loan->repayment_schedules()->sum('interest_repaid_derived');
+                $loan->fees_repaid_derived = $loan->repayment_schedules()->sum('fees_repaid_derived');
+                $loan->penalties_repaid_derived = $loan->repayment_schedules()->sum('penalties_repaid_derived');
+                
+                // Check if loan is fully paid
+                $total_due = $loan->principal + $loan->interest_disbursed_derived + $loan->fees_disbursed_derived + $loan->penalties_disbursed_derived;
+                $total_paid = $loan->principal_repaid_derived + $loan->interest_repaid_derived + $loan->fees_repaid_derived + $loan->penalties_repaid_derived;
+                
+                if ($total_paid >= $total_due) {
+                    $loan->status = 'closed';
+                    $loan->closed_on_date = date("Y-m-d");
+                }
+                
+                $loan->save();
+                
+                // Update group member allocation if it's a group loan
+                if ($loan->client_type === 'group' && $collection->client_id) {
+                    $allocation = \Modules\Client\Entities\GroupMemberLoanAllocation::where('loan_id', $loan->id)
+                        ->where('client_id', $collection->client_id)
+                        ->first();
+                    
+                    if ($allocation) {
+                        // Update member's paid amounts
+                        $member_balance = $collection->amount;
+                        
+                        // Calculate member's outstanding
+                        $member_principal_outstanding = $allocation->allocated_amount - $allocation->principal_paid;
+                        $member_interest_outstanding = $allocation->allocated_interest - $allocation->interest_paid;
+                        
+                        // Pay interest first, then principal
+                        if ($member_interest_outstanding > 0 && $member_balance > 0) {
+                            $interest_payment = min($member_interest_outstanding, $member_balance);
+                            $allocation->interest_paid += $interest_payment;
+                            $member_balance -= $interest_payment;
+                        }
+                        
+                        if ($member_principal_outstanding > 0 && $member_balance > 0) {
+                            $principal_payment = min($member_principal_outstanding, $member_balance);
+                            $allocation->principal_paid += $principal_payment;
+                            $member_balance -= $principal_payment;
+                        }
+                        
+                        $allocation->save();
+                    }
+                }
+                
+            } elseif ($collection->collection_type === 'savings_deposit' && $collection->reference_id) {
+                // Record savings deposit
+                $savings = \Modules\Savings\Entities\Savings::findOrFail($collection->reference_id);
+                
+                $payment_detail = new \Modules\Accounting\Entities\PaymentDetail();
+                $payment_detail->created_by_id = Auth::id();
+                $payment_detail->payment_type_id = $collection->payment_type_id ?? 1;
+                $payment_detail->transaction_type = 'savings_transaction';
+                $payment_detail->amount = $collection->amount;
+                $payment_detail->receipt = $collection->receipt_number;
+                $payment_detail->save();
+                
+                $savings_transaction = new \Modules\Savings\Entities\SavingsTransaction();
+                $savings_transaction->created_by_id = Auth::id();
+                $savings_transaction->savings_id = $savings->id;
+                $savings_transaction->payment_detail_id = $payment_detail->id;
+                $savings_transaction->name = 'Deposit';
+                $savings_transaction->savings_transaction_type_id = 1; // Deposit
+                $savings_transaction->submitted_on = $collection->collection_date;
+                $savings_transaction->created_on = date("Y-m-d");
+                $savings_transaction->amount = $collection->amount;
+                $savings_transaction->credit = $collection->amount;
+                $savings_transaction->save();
+                
+                // Update savings balance
+                $savings->balance_derived = $savings->transactions()->sum('credit') - $savings->transactions()->sum('debit');
+                $savings->save();
+            }
 
             DB::commit();
-            return redirect()->back()->with('success', 'Collection posted to accounting successfully');
+            flash('Collection posted to accounting successfully')->success();
+            return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Error posting collection: ' . $e->getMessage());
+            \Log::error('Error posting collection: ' . $e->getMessage());
+            flash('Error posting collection: ' . $e->getMessage())->error();
+            return redirect()->back();
         }
     }
 }
