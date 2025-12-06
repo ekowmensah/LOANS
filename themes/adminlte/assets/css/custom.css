@@ -149,3 +149,109 @@ caption, th {
 .comments-list .media{
     border-bottom: 1px dotted #ccc;
 }
+
+/* Sidebar Navigation Improvements */
+/* Proper indentation for submenu items */
+.nav-sidebar .nav-treeview > .nav-item > .nav-link {
+    padding-left: 3rem !important;
+    margin-left: 0.5rem;
+}
+
+.nav-sidebar .nav-treeview > .nav-item > .nav-link .nav-icon {
+    font-size: 0.875rem;
+    margin-right: 0.5rem;
+}
+
+/* Colorful sidebar styling */
+.main-sidebar {
+    background: linear-gradient(180deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%) !important;
+}
+
+.sidebar-dark-primary .brand-link {
+    background-color: #1a2f5a !important;
+    border-bottom: 2px solid #4a90e2;
+}
+
+.sidebar-dark-primary .user-panel {
+    border-bottom: 1px solid rgba(74, 144, 226, 0.3);
+}
+
+/* Parent menu items */
+.nav-sidebar > .nav-item > .nav-link {
+    border-left: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.nav-sidebar > .nav-item > .nav-link:hover {
+    background-color: rgba(74, 144, 226, 0.2) !important;
+    border-left-color: #4a90e2;
+}
+
+.nav-sidebar > .nav-item > .nav-link.active {
+    background-color: rgba(74, 144, 226, 0.3) !important;
+    border-left-color: #4a90e2;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Submenu items with colors */
+.nav-treeview > .nav-item > .nav-link {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-left: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.nav-treeview > .nav-item:nth-child(odd) > .nav-link {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-treeview > .nav-item > .nav-link:hover {
+    background-color: rgba(255, 193, 7, 0.2) !important;
+    border-left-color: #ffc107;
+    transform: translateX(3px);
+}
+
+.nav-treeview > .nav-item > .nav-link.active {
+    background-color: rgba(76, 175, 80, 0.3) !important;
+    border-left-color: #4caf50;
+    color: #fff !important;
+    font-weight: 500;
+}
+
+/* Icon colors for visual hierarchy */
+.nav-sidebar > .nav-item > .nav-link > .nav-icon {
+    color: #4a90e2;
+}
+
+.nav-treeview > .nav-item > .nav-link > .nav-icon {
+    color: #ffc107;
+}
+
+.nav-treeview > .nav-item > .nav-link.active > .nav-icon {
+    color: #4caf50;
+}
+
+/* Menu open state */
+.nav-item.menu-open > .nav-link {
+    background-color: rgba(74, 144, 226, 0.25) !important;
+}
+
+/* Treeview arrow styling */
+.nav-sidebar .nav-link > .right {
+    color: #4a90e2;
+    transition: transform 0.3s ease;
+}
+
+.nav-item.menu-open > .nav-link > .right {
+    transform: rotate(-90deg);
+    color: #ffc107;
+}
+
+/* User panel styling */
+.user-panel .info a {
+    color: #4a90e2 !important;
+    font-weight: 500;
+}
+
+.user-panel .info a:hover {
+    color: #ffc107 !important;
+}
