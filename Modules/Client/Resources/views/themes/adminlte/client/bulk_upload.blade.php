@@ -69,7 +69,7 @@
             </div>
         </div>
 
-        <form method="post" action="{{ url('client/process-bulk-upload') }}" enctype="multipart/form-data">
+        <form method="post" action="{{ url('client/validate-bulk-upload') }}" enctype="multipart/form-data">
             {{csrf_field()}}
             <div class="card">
                 <div class="card-header">
@@ -93,7 +93,7 @@
                 </div>
                 <div class="card-footer">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-upload"></i> Upload and Process
+                        <i class="fas fa-check-circle"></i> Validate and Preview
                     </button>
                     <a href="{{url('client')}}" class="btn btn-default">Cancel</a>
                 </div>

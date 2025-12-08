@@ -32,7 +32,7 @@ class ClientController extends Controller
     {
         $this->middleware(['auth', '2fa']);
         $this->middleware(['permission:client.clients.index'])->only(['index', 'show', 'get_clients']);
-        $this->middleware(['permission:client.clients.create'])->only(['create', 'store', 'bulk_upload', 'process_bulk_upload', 'download_template', 'generate_savings_account']);
+        $this->middleware(['permission:client.clients.create'])->only(['create', 'store', 'bulk_upload', 'validate_bulk_upload', 'bulk_upload_preview', 'process_bulk_upload', 'download_template', 'generate_savings_account']);
         $this->middleware(['permission:client.clients.edit'])->only(['edit', 'update']);
         $this->middleware(['permission:client.clients.destroy'])->only(['destroy']);
         $this->middleware(['permission:client.clients.user.create'])->only(['store_user', 'create_user']);
@@ -524,9 +524,9 @@ class ClientController extends Controller
     }
 
     /**
-     * Process bulk upload
+     * Validate and preview bulk upload
      */
-    public function process_bulk_upload(Request $request)
+    public function validate_bulk_upload(Request $request)
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'], // 5MB max
@@ -549,30 +549,173 @@ class ClientController extends Controller
                 return redirect()->back();
             }
             
+            // Validate each row and collect results
+            $validRows = [];
+            $invalidRows = [];
+            $rowNumber = 2; // Start from 2 (1 is header)
+            
+            // Track duplicates within CSV
+            $csvExternalIds = [];
+            $csvMobiles = [];
+            $csvGhanaCards = [];
+            
+            foreach ($data as $index => $row) {
+                // Skip empty rows
+                if (empty(array_filter($row))) {
+                    continue;
+                }
+                
+                // Map row to associative array
+                $clientData = array_combine($header, $row);
+                $errors = [];
+                
+                // Validate required fields
+                if (empty($clientData['first_name'])) {
+                    $errors[] = 'First name is required';
+                }
+                if (empty($clientData['last_name'])) {
+                    $errors[] = 'Last name is required';
+                }
+                if (empty($clientData['gender'])) {
+                    $errors[] = 'Gender is required';
+                } elseif (!in_array(strtolower($clientData['gender']), ['male', 'female'])) {
+                    $errors[] = 'Gender must be male or female';
+                }
+                if (empty($clientData['dob'])) {
+                    $errors[] = 'Date of birth is required';
+                } elseif (!strtotime($clientData['dob'])) {
+                    $errors[] = 'Invalid date format for DOB';
+                }
+                if (empty($clientData['branch_id'])) {
+                    $errors[] = 'Branch ID is required';
+                } elseif (!Branch::find($clientData['branch_id'])) {
+                    $errors[] = 'Invalid branch ID';
+                }
+                if (empty($clientData['mobile'])) {
+                    $errors[] = 'Mobile is required';
+                }
+                
+                // Validate email if provided
+                if (!empty($clientData['email']) && !filter_var($clientData['email'], FILTER_VALIDATE_EMAIL)) {
+                    $errors[] = 'Invalid email format';
+                }
+                
+                // Check for duplicates in database
+                if (!empty($clientData['external_id'])) {
+                    $existingClient = Client::where('external_id', $clientData['external_id'])->first();
+                    if ($existingClient) {
+                        $errors[] = 'External ID already exists in database (Client: ' . $existingClient->name . ')';
+                    }
+                    
+                    // Check for duplicates within CSV
+                    if (isset($csvExternalIds[$clientData['external_id']])) {
+                        $errors[] = 'External ID duplicated in CSV (also in row ' . $csvExternalIds[$clientData['external_id']] . ')';
+                    } else {
+                        $csvExternalIds[$clientData['external_id']] = $rowNumber;
+                    }
+                }
+                
+                if (!empty($clientData['mobile'])) {
+                    $existingClient = Client::where('mobile', $clientData['mobile'])->first();
+                    if ($existingClient) {
+                        $errors[] = 'Mobile number already exists in database (Client: ' . $existingClient->name . ')';
+                    }
+                    
+                    // Check for duplicates within CSV
+                    if (isset($csvMobiles[$clientData['mobile']])) {
+                        $errors[] = 'Mobile number duplicated in CSV (also in row ' . $csvMobiles[$clientData['mobile']] . ')';
+                    } else {
+                        $csvMobiles[$clientData['mobile']] = $rowNumber;
+                    }
+                }
+                
+                if (!empty($clientData['ghana_card'])) {
+                    $existingClient = Client::where('ghana_card', $clientData['ghana_card'])->first();
+                    if ($existingClient) {
+                        $errors[] = 'Ghana Card already exists in database (Client: ' . $existingClient->name . ')';
+                    }
+                    
+                    // Check for duplicates within CSV
+                    if (isset($csvGhanaCards[$clientData['ghana_card']])) {
+                        $errors[] = 'Ghana Card duplicated in CSV (also in row ' . $csvGhanaCards[$clientData['ghana_card']] . ')';
+                    } else {
+                        $csvGhanaCards[$clientData['ghana_card']] = $rowNumber;
+                    }
+                }
+                
+                $rowData = [
+                    'row_number' => $rowNumber,
+                    'data' => $clientData,
+                    'errors' => $errors
+                ];
+                
+                if (empty($errors)) {
+                    $validRows[] = $rowData;
+                } else {
+                    $invalidRows[] = $rowData;
+                }
+                
+                $rowNumber++;
+            }
+            
+            // Store data in session for later processing
+            $uploadData = [
+                'header' => $header,
+                'valid_rows' => $validRows,
+                'invalid_rows' => $invalidRows,
+                'total_rows' => count($data),
+                'valid_count' => count($validRows),
+                'invalid_count' => count($invalidRows)
+            ];
+            
+            session(['bulk_upload_data' => $uploadData]);
+            
+            return redirect('client/bulk-upload-preview');
+            
+        } catch (\Exception $e) {
+            Flash::error('Error processing file: ' . $e->getMessage());
+            return redirect()->back();
+        }
+    }
+    
+    /**
+     * Show preview of bulk upload validation
+     */
+    public function bulk_upload_preview()
+    {
+        $uploadData = session('bulk_upload_data');
+        
+        if (!$uploadData) {
+            Flash::warning('No upload data found. Please upload a file first.');
+            return redirect('client/bulk-upload');
+        }
+        
+        return theme_view('client::client.bulk_upload_preview', compact('uploadData'));
+    }
+
+    /**
+     * Process bulk upload after validation
+     */
+    public function process_bulk_upload(Request $request)
+    {
+        $uploadData = session('bulk_upload_data');
+        
+        if (!$uploadData) {
+            Flash::error('No upload data found. Please upload a file first.');
+            return redirect('client/bulk-upload');
+        }
+        
+        try {
             $successCount = 0;
             $errorCount = 0;
             $errors = [];
             
             DB::beginTransaction();
             
-            foreach ($data as $index => $row) {
+            // Process only valid rows
+            foreach ($uploadData['valid_rows'] as $rowData) {
                 try {
-                    // Skip empty rows
-                    if (empty(array_filter($row))) {
-                        continue;
-                    }
-                    
-                    // Map row to associative array
-                    $clientData = array_combine($header, $row);
-                    
-                    // Validate required fields
-                    if (empty($clientData['first_name']) || empty($clientData['last_name']) || 
-                        empty($clientData['gender']) || empty($clientData['dob']) || 
-                        empty($clientData['branch_id']) || empty($clientData['mobile'])) {
-                        $errors[] = "Row " . ($index + 2) . ": Missing required fields";
-                        $errorCount++;
-                        continue;
-                    }
+                    $clientData = $rowData['data'];
                     
                     // Set default client_type_id to Individual if not provided
                     $client_type_id = $clientData['client_type_id'] ?? null;
@@ -623,12 +766,15 @@ class ClientController extends Controller
                     $successCount++;
                     
                 } catch (\Exception $e) {
-                    $errors[] = "Row " . ($index + 2) . ": " . $e->getMessage();
+                    $errors[] = "Row " . $rowData['row_number'] . ": " . $e->getMessage();
                     $errorCount++;
                 }
             }
             
             DB::commit();
+            
+            // Clear session data
+            session()->forget('bulk_upload_data');
             
             $message = "Successfully imported $successCount client(s).";
             if ($errorCount > 0) {
