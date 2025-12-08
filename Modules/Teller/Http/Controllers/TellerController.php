@@ -30,7 +30,32 @@ class TellerController extends Controller
     public function index()
     {
         $payment_types = PaymentType::where('active', 1)->get();
-        return theme_view('teller::teller.index', compact('payment_types'));
+        
+        // Get today's transactions summary for current teller
+        $today = date('Y-m-d');
+        $user_id = Auth::id();
+        
+        $today_deposits = SavingsTransaction::where('created_by_id', $user_id)
+            ->where('savings_transaction_type_id', 1) // Deposit
+            ->whereDate('created_at', $today)
+            ->where('reversed', 0)
+            ->sum('credit');
+            
+        $today_withdrawals = SavingsTransaction::where('created_by_id', $user_id)
+            ->where('savings_transaction_type_id', 2) // Withdrawal
+            ->whereDate('created_at', $today)
+            ->where('reversed', 0)
+            ->sum('debit');
+            
+        $today_count = SavingsTransaction::where('created_by_id', $user_id)
+            ->whereDate('created_at', $today)
+            ->where('reversed', 0)
+            ->count();
+            
+        // Calculate expected cash on hand (deposits - withdrawals)
+        $expected_cash = $today_deposits - $today_withdrawals;
+        
+        return theme_view('teller::teller.index', compact('payment_types', 'today_deposits', 'today_withdrawals', 'today_count', 'expected_cash'));
     }
 
     /**
@@ -198,7 +223,7 @@ class TellerController extends Controller
         event(new TransactionUpdated($savings));
 
         Flash::success(trans_choice("core::general.successfully_saved", 1) . ' - Deposit processed successfully');
-        return redirect('teller');
+        return redirect('teller/receipt/' . $savings_transaction->id);
     }
 
     /**
@@ -291,6 +316,48 @@ class TellerController extends Controller
         event(new TransactionUpdated($savings));
 
         Flash::success(trans_choice("core::general.successfully_saved", 1) . ' - Withdrawal processed successfully');
-        return redirect('teller');
+        return redirect('teller/receipt/' . $savings_transaction->id);
+    }
+
+    /**
+     * Display transaction receipt
+     */
+    public function receipt($transaction_id)
+    {
+        $transaction = SavingsTransaction::with(['savings', 'savings.client', 'savings.savings_product', 'savings.branch', 'savings.currency', 'created_by', 'payment_detail', 'payment_detail.payment_type'])->findOrFail($transaction_id);
+        
+        $savings = $transaction->savings;
+        
+        // Calculate new balance after this transaction
+        $new_balance = $savings->transactions()
+            ->where('reversed', 0)
+            ->where('id', '<=', $transaction_id)
+            ->sum('credit') - $savings->transactions()
+            ->where('reversed', 0)
+            ->where('id', '<=', $transaction_id)
+            ->sum('debit');
+        
+        return theme_view('teller::teller.receipt', compact('transaction', 'savings', 'new_balance'));
+    }
+
+    /**
+     * Print transaction receipt
+     */
+    public function print_receipt($transaction_id)
+    {
+        $transaction = SavingsTransaction::with(['savings', 'savings.client', 'savings.savings_product', 'savings.branch', 'savings.currency', 'created_by', 'payment_detail', 'payment_detail.payment_type'])->findOrFail($transaction_id);
+        
+        $savings = $transaction->savings;
+        
+        // Calculate new balance after this transaction
+        $new_balance = $savings->transactions()
+            ->where('reversed', 0)
+            ->where('id', '<=', $transaction_id)
+            ->sum('credit') - $savings->transactions()
+            ->where('reversed', 0)
+            ->where('id', '<=', $transaction_id)
+            ->sum('debit');
+        
+        return view('teller::themes.adminlte.teller.print_receipt', compact('transaction', 'savings', 'new_balance'));
     }
 }
