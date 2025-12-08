@@ -21,6 +21,7 @@ Route::prefix('client')->group(function () {
     Route::get('bulk-upload', 'ClientController@bulk_upload');
     Route::post('process-bulk-upload', 'ClientController@process_bulk_upload');
     Route::get('download-template', 'ClientController@download_template');
+    Route::post('{id}/generate-savings-account', 'ClientController@generate_savings_account');
     Route::get('{id}/show', 'ClientController@show');
     Route::get('{id}/edit', 'ClientController@edit');
     Route::post('{id}/update', 'ClientController@update');

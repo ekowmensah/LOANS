@@ -152,7 +152,12 @@
                                     <br>
                                     <small class="text-muted">Balance: <strong>{{number_format($key->savings_balance ?? 0, 2)}}</strong></small>
                                 @else
-                                    <span class="text-muted">-</span>
+                                    <button type="button" class="btn btn-sm btn-success generate-savings-btn" 
+                                            data-client-id="{{$key->id}}" 
+                                            data-client-name="{{$key->name}}"
+                                            title="Generate Default Savings Account">
+                                        <i class="fas fa-plus-circle"></i> Generate Account
+                                    </button>
                                 @endif
                             </td>
                             <td>
@@ -267,5 +272,48 @@
                 },
             },
         })
+
+        // Handle Generate Savings Account button
+        $(document).on('click', '.generate-savings-btn', function() {
+            var btn = $(this);
+            var clientId = btn.data('client-id');
+            var clientName = btn.data('client-name');
+            
+            if (!confirm('Generate default savings account for ' + clientName + '?')) {
+                return;
+            }
+            
+            btn.prop('disabled', true);
+            btn.html('<i class="fas fa-spinner fa-spin"></i> Generating...');
+            
+            $.ajax({
+                url: '{{url("client")}}/' + clientId + '/generate-savings-account',
+                type: 'POST',
+                data: {
+                    _token: '{{csrf_token()}}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success(response.message);
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        toastr.error(response.message || 'Failed to generate savings account');
+                        btn.prop('disabled', false);
+                        btn.html('<i class="fas fa-plus-circle"></i> Generate Account');
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = 'Error generating savings account';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    toastr.error(errorMsg);
+                    btn.prop('disabled', false);
+                    btn.html('<i class="fas fa-plus-circle"></i> Generate Account');
+                }
+            });
+        });
     </script>
 @endsection

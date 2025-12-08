@@ -9,6 +9,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Laracasts\Flash\Flash;
 use Modules\Branch\Entities\Branch;
@@ -20,6 +21,7 @@ use Modules\Client\Entities\Title;
 use Modules\Client\Events\ClientCreated;
 use Modules\Core\Entities\Country;
 use Modules\CustomField\Entities\CustomField;
+use Modules\Savings\Entities\Savings;
 use Modules\User\Entities\User;
 use Spatie\Permission\Models\Role;
 use Yajra\DataTables\Facades\DataTables;
@@ -30,7 +32,7 @@ class ClientController extends Controller
     {
         $this->middleware(['auth', '2fa']);
         $this->middleware(['permission:client.clients.index'])->only(['index', 'show', 'get_clients']);
-        $this->middleware(['permission:client.clients.create'])->only(['create', 'store', 'bulk_upload', 'process_bulk_upload', 'download_template']);
+        $this->middleware(['permission:client.clients.create'])->only(['create', 'store', 'bulk_upload', 'process_bulk_upload', 'download_template', 'generate_savings_account']);
         $this->middleware(['permission:client.clients.edit'])->only(['edit', 'update']);
         $this->middleware(['permission:client.clients.destroy'])->only(['destroy']);
         $this->middleware(['permission:client.clients.user.create'])->only(['store_user', 'create_user']);
@@ -711,6 +713,62 @@ class ClientController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Generate default savings account for a client
+     */
+    public function generate_savings_account($id)
+    {
+        try {
+            $client = Client::find($id);
+            
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client not found'
+                ], 404);
+            }
+            
+            // Check if client already has a savings account
+            $existingSavings = Savings::where('client_id', $client->id)->first();
+            if ($existingSavings) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client already has a savings account: ' . $existingSavings->account_number
+                ], 400);
+            }
+            
+            // Fire the event to create savings account
+            event(new ClientCreated($client));
+            
+            // Check if account was created
+            $newSavings = Savings::where('client_id', $client->id)->first();
+            
+            if ($newSavings) {
+                activity()->on($client)
+                    ->withProperties(['savings_id' => $newSavings->id, 'account_number' => $newSavings->account_number])
+                    ->log('Manually Generated Savings Account');
+                    
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Savings account generated successfully: ' . $newSavings->account_number,
+                    'account_number' => $newSavings->account_number
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to generate savings account. Please check settings and logs.'
+                ], 500);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error generating savings account for client ' . $id . ': ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
 }
