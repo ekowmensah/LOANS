@@ -30,7 +30,7 @@ class ClientController extends Controller
     {
         $this->middleware(['auth', '2fa']);
         $this->middleware(['permission:client.clients.index'])->only(['index', 'show', 'get_clients']);
-        $this->middleware(['permission:client.clients.create'])->only(['create', 'store']);
+        $this->middleware(['permission:client.clients.create'])->only(['create', 'store', 'bulk_upload', 'process_bulk_upload', 'download_template']);
         $this->middleware(['permission:client.clients.edit'])->only(['edit', 'update']);
         $this->middleware(['permission:client.clients.destroy'])->only(['destroy']);
         $this->middleware(['permission:client.clients.user.create'])->only(['store_user', 'create_user']);
@@ -180,6 +180,7 @@ class ClientController extends Controller
         $client->first_name = $request->first_name;
         $client->last_name = $request->last_name;
         $client->external_id = $request->external_id;
+        $client->ghana_card = $request->ghana_card;
         $client->created_by_id = Auth::id();
         $client->gender = $request->gender;
         $client->country_id = $request->country_id;
@@ -264,6 +265,7 @@ class ClientController extends Controller
         $client->first_name = $request->first_name;
         $client->last_name = $request->last_name;
         $client->external_id = $request->external_id;
+        $client->ghana_card = $request->ghana_card;
         $client->gender = $request->gender;
         $client->country_id = $request->country_id;
         $client->loan_officer_id = $request->loan_officer_id;
@@ -493,6 +495,192 @@ class ClientController extends Controller
                     'savings_account' => $client->savings_account
                 ];
             });
+    }
+
+    /**
+     * Show bulk upload form
+     */
+    public function bulk_upload()
+    {
+        return theme_view('client::client.bulk_upload');
+    }
+
+    /**
+     * Process bulk upload
+     */
+    public function process_bulk_upload(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'], // 5MB max
+        ]);
+
+        try {
+            $file = $request->file('file');
+            $path = $file->getRealPath();
+            $data = array_map('str_getcsv', file($path));
+            
+            // Get header row
+            $header = array_shift($data);
+            
+            // Validate header
+            $requiredColumns = ['first_name', 'last_name', 'gender', 'dob', 'branch_id'];
+            $missingColumns = array_diff($requiredColumns, $header);
+            
+            if (!empty($missingColumns)) {
+                Flash::error('Missing required columns: ' . implode(', ', $missingColumns));
+                return redirect()->back();
+            }
+            
+            $successCount = 0;
+            $errorCount = 0;
+            $errors = [];
+            
+            DB::beginTransaction();
+            
+            foreach ($data as $index => $row) {
+                try {
+                    // Skip empty rows
+                    if (empty(array_filter($row))) {
+                        continue;
+                    }
+                    
+                    // Map row to associative array
+                    $clientData = array_combine($header, $row);
+                    
+                    // Validate required fields
+                    if (empty($clientData['first_name']) || empty($clientData['last_name']) || 
+                        empty($clientData['gender']) || empty($clientData['dob']) || 
+                        empty($clientData['branch_id'])) {
+                        $errors[] = "Row " . ($index + 2) . ": Missing required fields";
+                        $errorCount++;
+                        continue;
+                    }
+                    
+                    // Create client
+                    $client = new Client();
+                    $client->first_name = $clientData['first_name'];
+                    $client->last_name = $clientData['last_name'];
+                    $client->middle_name = $clientData['middle_name'] ?? null;
+                    $client->external_id = $clientData['external_id'] ?? null;
+                    $client->ghana_card = $clientData['ghana_card'] ?? null;
+                    $client->created_by_id = Auth::id();
+                    $client->gender = strtolower($clientData['gender']);
+                    $client->branch_id = $clientData['branch_id'];
+                    $client->dob = $clientData['dob'];
+                    $client->mobile = $clientData['mobile'] ?? null;
+                    $client->email = $clientData['email'] ?? null;
+                    $client->address = $clientData['address'] ?? null;
+                    $client->marital_status = $clientData['marital_status'] ?? null;
+                    $client->loan_officer_id = $clientData['loan_officer_id'] ?? null;
+                    $client->title_id = $clientData['title_id'] ?? null;
+                    $client->profession_id = $clientData['profession_id'] ?? null;
+                    $client->client_type_id = $clientData['client_type_id'] ?? null;
+                    $client->country_id = $clientData['country_id'] ?? null;
+                    $client->notes = $clientData['notes'] ?? null;
+                    $client->created_date = $clientData['created_date'] ?? date('Y-m-d');
+                    
+                    $client->save();
+                    
+                    activity()->on($client)
+                        ->withProperties(['id' => $client->id])
+                        ->log('Bulk Upload Client');
+                    
+                    // Fire event to auto-create savings account
+                    event(new ClientCreated($client));
+                    
+                    $successCount++;
+                    
+                } catch (\Exception $e) {
+                    $errors[] = "Row " . ($index + 2) . ": " . $e->getMessage();
+                    $errorCount++;
+                }
+            }
+            
+            DB::commit();
+            
+            $message = "Successfully imported $successCount client(s).";
+            if ($errorCount > 0) {
+                $message .= " $errorCount row(s) failed.";
+            }
+            
+            Flash::success($message);
+            
+            if (!empty($errors)) {
+                session()->flash('upload_errors', $errors);
+            }
+            
+            return redirect('client');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Flash::error('Error processing file: ' . $e->getMessage());
+            return redirect()->back();
+        }
+    }
+
+    /**
+     * Download sample CSV template
+     */
+    public function download_template()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="client_upload_template.csv"',
+        ];
+
+        $columns = [
+            'first_name',
+            'last_name',
+            'middle_name',
+            'gender',
+            'dob',
+            'branch_id',
+            'external_id',
+            'ghana_card',
+            'mobile',
+            'email',
+            'address',
+            'marital_status',
+            'loan_officer_id',
+            'title_id',
+            'profession_id',
+            'client_type_id',
+            'country_id',
+            'notes',
+            'created_date'
+        ];
+
+        $callback = function() use ($columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+            
+            // Add sample row
+            fputcsv($file, [
+                'John',
+                'Doe',
+                'K',
+                'male',
+                '1990-01-15',
+                '1',
+                'EXT001',
+                'GHA-123456789-1',
+                '0244123456',
+                'john.doe@example.com',
+                '123 Main Street, Accra',
+                'single',
+                '1',
+                '1',
+                '1',
+                '1',
+                '1',
+                'Sample client',
+                date('Y-m-d')
+            ]);
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
 }

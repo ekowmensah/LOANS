@@ -140,6 +140,10 @@ if (!function_exists('generate_savings_reference')) {
             return $prefix . date("Y") . '/' . date("m") . '/' . $sequence_number;
         } elseif ($reference_format == 'Branch Product Sequence Number') {
             return $prefix . $savings->branch_id . $savings->savings_product_id . $sequence_number;
+        } elseif ($reference_format == 'Prefix 6 Random Digits Year (AFA123456YEAR)') {
+            // Generate 6 random digits
+            $six_random_digits = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+            return $prefix . $six_random_digits . date("y");
         } else {
             return $savings->id;
         }

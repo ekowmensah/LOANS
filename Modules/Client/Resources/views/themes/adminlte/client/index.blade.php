@@ -31,6 +31,9 @@
                     <a href="{{ url('client/create') }}" class="btn btn-info btn-sm">
                         <i class="fas fa-plus"></i> {{ trans_choice('core::general.add',1) }} {{ trans_choice('client::general.client',1) }}
                     </a>
+                    <a href="{{ url('client/bulk-upload') }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-upload"></i> Bulk Upload
+                    </a>
                 @endcan
                 <div class="btn-group">
                     <div class="dropdown">

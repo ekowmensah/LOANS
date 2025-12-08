@@ -71,6 +71,21 @@
                         </div>
                         <div class="col-md-12">
                             <div class="form-group">
+                                <label for="ghana_card"
+                                       class="control-label">Ghana Card (National ID)</label>
+                                <input type="text" name="ghana_card" v-model="ghana_card"
+                                       id="ghana_card"
+                                       class="form-control @error('ghana_card') is-invalid @enderror"
+                                       placeholder="GHA-XXXXXXXXX-X">
+                                @error('ghana_card')
+                                <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
                                 <label for="title_id"
                                        class="control-label">{{trans_choice('client::general.title',1)}}</label>
                                 <select class="form-control @error('title_id') is-invalid @enderror" name="title_id"
@@ -366,6 +381,7 @@
             data: {
                 branch_id: parseInt("{{old('branch_id',$client->branch_id)}}"),
                 external_id: "{{old('external_id',$client->external_id)}}",
+                ghana_card: "{{old('ghana_card',$client->ghana_card)}}",
                 title_id: "{{old('title_id',$client->title_id)}}",
                 first_name: "{{old('first_name',$client->first_name)}}",
                 last_name: "{{old('last_name',$client->last_name)}}",

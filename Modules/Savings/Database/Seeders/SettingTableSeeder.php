@@ -38,7 +38,7 @@ class SettingTableSeeder extends Seeder
                 'setting_value' => 'YEAR/Sequence Number (SL/2014/001)',
                 'category' => 'system',
                 'type' => 'select',
-                'options' => 'YEAR/Sequence Number (SL/2014/001),YEAR/MONTH/Sequence Number (SL/2014/08/001),Sequence Number,Random Number,Branch Product Sequence Number',
+                'options' => 'YEAR/Sequence Number (SL/2014/001),YEAR/MONTH/Sequence Number (SL/2014/08/001),Sequence Number,Random Number,Branch Product Sequence Number,Prefix 6 Random Digits Year (AFA123456YEAR)',
                 'class' => '',
                 'required' => '1',
                 'db_columns' => '',
