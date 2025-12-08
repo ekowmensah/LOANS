@@ -219,7 +219,7 @@
     </section>
 
     <section class="content" id="app">
-        <form method="post" action="{{ url('savings/store') }}" @submit="validateForm">
+        <form method="post" action="{{ url('savings/store') }}">
             {{csrf_field()}}
             
             <div class="account-wizard">
@@ -227,15 +227,15 @@
                 <div class="wizard-steps">
                     <div class="wizard-step" :class="{active: step === 1, completed: step > 1}">
                         <div class="step-number">1</div>
-                        <div class="step-title">Find Client</div>
+                        <div class="step-title">Client & Product</div>
                     </div>
                     <div class="wizard-step" :class="{active: step === 2, completed: step > 2}">
                         <div class="step-number">2</div>
-                        <div class="step-title">Select Product</div>
+                        <div class="step-title">Account Details</div>
                     </div>
                     <div class="wizard-step" :class="{active: step === 3, completed: step > 3}">
                         <div class="step-number">3</div>
-                        <div class="step-title">Account Setup</div>
+                        <div class="step-title">Terms & Charges</div>
                     </div>
                     <div class="wizard-step" :class="{active: step === 4}">
                         <div class="step-number">4</div>
@@ -244,119 +244,80 @@
                 </div>
 
                 <div class="card-body">
-                    <!-- Step 1: Client Search ONLY -->
+                    <!-- Step 1: Client & Product Selection -->
                     <div v-show="step === 1">
                         <div class="form-section">
-                            <h4 class="section-title text-center mb-4">
-                                <i class="fas fa-search"></i> Find Client
+                            <h4 class="section-title">
+                                <i class="fas fa-user-circle"></i> Select Client
                             </h4>
                             
-                            <div class="row justify-content-center">
+                            <div class="row">
                                 <div class="col-md-8">
-                                    <div class="alert alert-info text-center">
-                                        <i class="fas fa-info-circle"></i> 
-                                        <strong>Enter the complete identifier to find the client</strong>
-                                    </div>
-                                    
                                     <div class="form-group">
-                                        <label class="control-label font-weight-bold">Client Identifier</label>
-                                        <div class="input-group input-group-lg">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text"><i class="fas fa-fingerprint"></i></span>
-                                            </div>
-                                            <input type="text" 
-                                                   v-model="search_term" 
-                                                   @keyup.enter="searchClient"
-                                                   class="form-control" 
-                                                   placeholder="Enter Mobile, Ghana Card, External ID, or Savings Account..."
-                                                   autofocus>
-                                            <div class="input-group-append">
-                                                <button type="button" 
-                                                        class="btn btn-primary" 
-                                                        @click="searchClient"
-                                                        :disabled="searching || !search_term">
-                                                    <i class="fas fa-search" v-if="!searching"></i>
-                                                    <i class="fas fa-spinner fa-spin" v-if="searching"></i>
-                                                    Search
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <small class="form-text text-muted">
-                                            <strong>Examples:</strong> 0244123456 | GHA-123456789-1 | EXT001 | AFA12345624
-                                        </small>
-                                    </div>
-
-                                    <!-- Search Error -->
-                                    <div v-if="search_error" class="alert alert-danger">
-                                        <i class="fas fa-exclamation-triangle"></i> @{{ search_error }}
-                                    </div>
-
-                                    <!-- Client Found Display -->
-                                    <div v-if="selected_client" class="client-info-box selected mt-4">
-                                        <div class="text-center mb-3">
-                                            <i class="fas fa-check-circle text-success" style="font-size: 48px;"></i>
-                                            <h5 class="mt-2 text-success">Client Found!</h5>
-                                        </div>
-                                        
-                                        <div class="client-name text-center mb-3">
-                                            @{{ selected_client.name }}
-                                        </div>
-                                        
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="client-detail">
-                                                    <span class="client-detail-label"><i class="fas fa-id-card"></i> Client ID:</span>
-                                                    <span class="client-detail-value">@{{ selected_client.id }}</span>
+                                        <label class="control-label font-weight-bold">Search Client</label>
+                                        <v-select label="name_id" :options="clients" @search="onSearch"
+                                                  :reduce="client => client.id"
+                                                  v-on:input="change_client"
+                                                  v-model="client_id"
+                                                  placeholder="Type client name or ID to search...">
+                                            <template slot="no-options">
+                                                Type to search for clients...
+                                            </template>
+                                            <template #search="{attributes, events}">
+                                                <input autocomplete="off"
+                                                       class="vs__search @error('client_id') is-invalid @enderror"
+                                                       v-bind="attributes"
+                                                       v-bind:required="!client_id"
+                                                       v-on="events" />
+                                            </template>
+                                            <template slot="option" slot-scope="option">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-user-circle fa-2x text-primary mr-3"></i>
+                                                    <div>
+                                                        <div class="font-weight-bold">@{{ option.name }}</div>
+                                                        <small class="text-muted">ID: @{{ option.id }} | Mobile: @{{ option.mobile }}</small>
+                                                    </div>
                                                 </div>
-                                                <div class="client-detail">
-                                                    <span class="client-detail-label"><i class="fas fa-phone"></i> Mobile:</span>
-                                                    <span class="client-detail-value">@{{ selected_client.mobile }}</span>
+                                            </template>
+                                            <template slot="selected-option" slot-scope="option">
+                                                <div class="selected d-center">
+                                                    @{{ option.name_id }}
                                                 </div>
-                                                <div class="client-detail" v-if="selected_client.ghana_card">
-                                                    <span class="client-detail-label"><i class="fas fa-id-badge"></i> Ghana Card:</span>
-                                                    <span class="client-detail-value">@{{ selected_client.ghana_card }}</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="client-detail" v-if="selected_client.external_id">
-                                                    <span class="client-detail-label"><i class="fas fa-link"></i> External ID:</span>
-                                                    <span class="client-detail-value">@{{ selected_client.external_id }}</span>
-                                                </div>
-                                                <div class="client-detail">
-                                                    <span class="client-detail-label"><i class="fas fa-building"></i> Branch:</span>
-                                                    <span class="client-detail-value">@{{ selected_client.branch }}</span>
-                                                </div>
-                                                <div class="client-detail" v-if="selected_client.savings_account">
-                                                    <span class="client-detail-label"><i class="fas fa-piggy-bank"></i> Savings Account:</span>
-                                                    <span class="client-detail-value text-info">@{{ selected_client.savings_account }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
+                                            </template>
+                                        </v-select>
                                         <input type="hidden" name="client_id" v-model="client_id">
+                                        @error('client_id')
+                                        <span class="invalid-feedback d-block">
+                                            <strong>{{ $message }}</strong>
+                                        </span>
+                                        @enderror
+                                    </div>
+
+                                    <!-- Client Info Display -->
+                                    <div v-if="selected_client" class="client-info-box selected">
+                                        <div class="client-name">
+                                            <i class="fas fa-check-circle text-success"></i> @{{ selected_client.name }}
+                                        </div>
+                                        <div class="client-detail">
+                                            <span class="client-detail-label">Client ID:</span>
+                                            <span class="client-detail-value">@{{ selected_client.id }}</span>
+                                        </div>
+                                        <div class="client-detail">
+                                            <span class="client-detail-label">Mobile:</span>
+                                            <span class="client-detail-value">@{{ selected_client.mobile }}</span>
+                                        </div>
+                                        <div class="client-detail">
+                                            <span class="client-detail-label">Branch:</span>
+                                            <span class="client-detail-value">@{{ selected_client.branch }}</span>
+                                        </div>
+                                        <div class="client-detail" v-if="selected_client.existing_savings_count > 0">
+                                            <span class="client-detail-label">Existing Accounts:</span>
+                                            <span class="client-detail-value text-info">@{{ selected_client.existing_savings_count }} account(s)</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="text-center mt-4" v-if="!selected_client">
-                            <p class="text-muted">
-                                <i class="fas fa-arrow-up"></i> Enter client identifier above and click Search
-                            </p>
-                        </div>
-
-                        <div class="text-right" v-if="selected_client">
-                            <button type="button" class="btn btn-secondary btn-action" @click="resetSearch">
-                                <i class="fas fa-redo mr-2"></i> Search Different Client
-                            </button>
-                            <button type="button" class="btn btn-primary btn-action ml-2" @click="nextStep">
-                                Continue to Product Selection <i class="fas fa-arrow-right ml-2"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Step 2: Product Selection -->
-                    <div v-show="step === 2">
 
                         <div class="form-section">
                             <h4 class="section-title">
@@ -376,6 +337,7 @@
                                                 <input autocomplete="off"
                                                        class="vs__search @error('savings_product_id') is-invalid @enderror"
                                                        v-bind="attributes"
+                                                       v-bind:required="!savings_product_id"
                                                        v-on="events" />
                                             </template>
                                             <template slot="option" slot-scope="option">
@@ -477,6 +439,7 @@
                                                 <input autocomplete="off"
                                                        class="vs__search @error('savings_officer_id') is-invalid @enderror"
                                                        v-bind="attributes"
+                                                       v-bind:required="!savings_officer_id"
                                                        v-on="events" />
                                             </template>
                                         </v-select>
@@ -507,7 +470,7 @@
                                             </div>
                                             <input type="text" name="automatic_opening_balance"
                                                    class="form-control @error('automatic_opening_balance') is-invalid @enderror numeric"
-                                                   v-model="automatic_opening_balance"
+                                                   v-model="automatic_opening_balance" required
                                                    placeholder="0.00">
                                         </div>
                                         <div class="quick-info" v-if="savings_product && savings_product.minimum_balance > 0">
@@ -528,7 +491,7 @@
                                             </div>
                                             <flat-pickr v-model="submitted_on_date"
                                                     class="form-control @error('submitted_on_date') is-invalid @enderror"
-                                                    name="submitted_on_date">
+                                                    name="submitted_on_date" required>
                                             </flat-pickr>
                                         </div>
                                         @error('submitted_on_date')
@@ -563,7 +526,7 @@
                                         <div class="input-group">
                                             <input type="text" name="interest_rate" v-model="interest_rate"
                                                    class="form-control @error('interest_rate') is-invalid @enderror numeric"
-                                                   placeholder="0.00">
+                                                   required placeholder="0.00">
                                             <div class="input-group-append">
                                                 <span class="input-group-text">%</span>
                                             </div>
@@ -578,7 +541,7 @@
                                         <label class="control-label font-weight-bold">Lock-in Period</label>
                                         <input type="text" name="lockin_period" v-model="lockin_period"
                                                class="form-control @error('lockin_period') is-invalid @enderror numeric"
-                                               placeholder="0">
+                                               required placeholder="0">
                                         @error('lockin_period')
                                         <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                         @enderror
@@ -588,7 +551,7 @@
                                     <div class="form-group">
                                         <label class="control-label font-weight-bold">Period Type</label>
                                         <select class="form-control @error('lockin_type') is-invalid @enderror"
-                                                name="lockin_type" v-model="lockin_type">
+                                                name="lockin_type" v-model="lockin_type" required>
                                             <option value="">Select...</option>
                                             <option value="days">Days</option>
                                             <option value="weeks">Weeks</option>
@@ -631,9 +594,7 @@
                                         <label class="control-label font-weight-bold">Add Charge</label>
                                         <select class="form-control" v-model="selected_charge">
                                             <option value="">Select a charge to add...</option>
-                                            <option v-for="(charge, index) in savings_product_charges" 
-                                                    :value="index"
-                                                    v-if="charge && charge.charge">
+                                            <option v-for="(charge, index) in savings_product_charges" :value="index">
                                                 @{{ charge.charge.name }} - @{{ charge.charge.amount }}
                                             </option>
                                         </select>
@@ -726,80 +687,32 @@
 
 @section('scripts')
     <script>
-        // Wait for DOM and variables to be ready
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if required variables exist
-            if (typeof savings_products === 'undefined') {
-                console.error('savings_products not defined');
-                return;
-            }
-            if (typeof savings_charges === 'undefined') {
-                console.error('savings_charges not defined');
-                return;
-            }
-            if (typeof users === 'undefined') {
-                console.error('users not defined');
-                return;
-            }
-            
-            var app = new Vue({
-                el: '#app',
-                data: {
-                    step: 1,
-                    search_term: '',
-                    searching: false,
-                    search_error: null,
-                    client_id: "{{old('client_id')}}" ? parseInt("{{old('client_id')}}") : null,
-                    savings_officer_id: "{{old('savings_officer_id')}}" ? parseInt("{{old('savings_officer_id')}}") : null,
-                    savings_product_id: "{{old('savings_product_id')}}" ? parseInt("{{old('savings_product_id')}}") : null,
-                    account_number: "{{old('account_number')}}",
-                    external_id: "{{old('external_id')}}",
-                    interest_rate: "{{old('interest_rate')}}",
-                    lockin_period: "{{old('lockin_period')}}",
-                    lockin_type: "{{old('lockin_type')}}",
-                    automatic_opening_balance: "{{old('automatic_opening_balance')}}",
-                    submitted_on_date: "{{old('submitted_on_date',date("Y-m-d"))}}",
-                    savings_products: savings_products,
-                    savings_product_charges: [],
-                    savings_charges: savings_charges,
-                    users: users,
-                    selected_charge: '',
-                    savings_product: null,
-                    selected_client: null,
-                    selected_charges: []
-                },
+        var app = new Vue({
+            el: '#app',
+            data: {
+                step: 1,
+                client_id: parseInt("{{old('client_id')}}"),
+                savings_officer_id: parseInt("{{old('savings_officer_id')}}"),
+                savings_product_id: parseInt("{{old('savings_product_id')}}"),
+                account_number: "{{old('account_number')}}",
+                external_id: "{{old('external_id')}}",
+                interest_rate: "{{old('interest_rate')}}",
+                lockin_period: "{{old('lockin_period')}}",
+                lockin_type: "{{old('lockin_type')}}",
+                automatic_opening_balance: "{{old('automatic_opening_balance')}}",
+                submitted_on_date: "{{old('submitted_on_date',date("Y-m-d"))}}",
+                savings_products: savings_products,
+                savings_product_charges: [],
+                savings_charges: savings_charges,
+                clients: [],
+                users: users,
+                selected_charge: '',
+                savings_product: null,
+                selected_client: null,
+                selected_charges: []
+            },
             methods: {
                 nextStep() {
-                    // Validate current step before proceeding
-                    if (this.step === 1 && !this.client_id) {
-                        alert('Please search and select a client first');
-                        return;
-                    }
-                    
-                    if (this.step === 2 && !this.savings_product_id) {
-                        alert('Please select a savings product');
-                        return;
-                    }
-                    
-                    if (this.step === 3) {
-                        if (!this.automatic_opening_balance) {
-                            alert('Please enter opening balance');
-                            return;
-                        }
-                        if (!this.interest_rate) {
-                            alert('Please enter interest rate');
-                            return;
-                        }
-                        if (!this.lockin_period) {
-                            alert('Please enter lock-in period');
-                            return;
-                        }
-                        if (!this.lockin_type) {
-                            alert('Please select lock-in period type');
-                            return;
-                        }
-                    }
-                    
                     if (this.step < 4) {
                         this.step++;
                         window.scrollTo(0, 0);
@@ -811,122 +724,56 @@
                         window.scrollTo(0, 0);
                     }
                 },
-                searchClient() {
-                    if (!this.search_term || this.search_term.trim() === '') {
-                        this.search_error = 'Please enter a client identifier';
-                        return;
+                onSearch(search, loading) {
+                    if (search.length) {
+                        loading(true);
+                        this.search(loading, search, this);
                     }
-                    
-                    this.searching = true;
-                    this.search_error = '';
+                },
+                search: _.debounce((loading, search, vm) => {
+                    axios.get('{{url('client/search')}}?s=' + search).then(function (response) {
+                        vm.clients = response.data
+                        loading(false);
+                    }).catch(function (error) {
+                        loading(false);
+                    });
+                }, 350),
+                change_client() {
+                    this.savings_officer_id = "";
                     this.selected_client = null;
-                    
-                    axios.get('{{url('client/search')}}?s=' + this.search_term.trim())
-                        .then((response) => {
-                            this.searching = false;
-                            
-                            if (response.data && response.data.length > 0) {
-                                // Found exact match
-                                this.selected_client = response.data[0];
-                                this.client_id = this.selected_client.id;
-                                this.savings_officer_id = this.selected_client.loan_officer_id;
-                                this.search_error = '';
-                            } else {
-                                // No match found
-                                this.search_error = 'No client found with identifier: ' + this.search_term;
-                                this.selected_client = null;
-                                this.client_id = null;
+                    if (this.client_id != "") {
+                        this.clients.forEach(item => {
+                            if (item.id == this.client_id) {
+                                this.savings_officer_id = item.loan_officer_id;
+                                this.selected_client = item;
                             }
                         })
-                        .catch((error) => {
-                            this.searching = false;
-                            console.error('Search error:', error);
-                            this.search_error = 'Error searching for client. Please try again.';
-                            this.selected_client = null;
-                        });
-                },
-                resetSearch() {
-                    this.search_term = '';
-                    this.selected_client = null;
-                    this.client_id = null;
-                    this.search_error = '';
-                    this.savings_officer_id = null;
-                },
-                validateForm(event) {
-                    // Only allow submission from step 4
-                    if (this.step !== 4) {
-                        event.preventDefault();
-                        alert('Please complete all steps before submitting');
-                        return false;
                     }
-                    
-                    // Final validation check
-                    if (!this.client_id) {
-                        event.preventDefault();
-                        alert('Client is required');
-                        return false;
-                    }
-                    if (!this.savings_product_id) {
-                        event.preventDefault();
-                        alert('Savings product is required');
-                        return false;
-                    }
-                    if (!this.automatic_opening_balance) {
-                        event.preventDefault();
-                        alert('Opening balance is required');
-                        return false;
-                    }
-                    if (!this.interest_rate) {
-                        event.preventDefault();
-                        alert('Interest rate is required');
-                        return false;
-                    }
-                    if (!this.lockin_period) {
-                        event.preventDefault();
-                        alert('Lock-in period is required');
-                        return false;
-                    }
-                    if (!this.lockin_type) {
-                        event.preventDefault();
-                        alert('Lock-in type is required');
-                        return false;
-                    }
-                    
-                    // All validations passed, allow form submission
-                    return true;
                 },
                 change_product() {
-                    console.log('Product changed:', this.savings_product_id);
                     this.savings_product = null;
-                    this.savings_product_charges = [];
-                    this.selected_charges = [];
-                    
-                    if (this.savings_product_id) {
-                        const product = this.savings_products.find(item => item.id == this.savings_product_id);
-                        if (product) {
-                            console.log('Product found:', product);
-                            this.savings_product = product;
-                            this.interest_rate = product.default_interest_rate || '';
-                            this.automatic_opening_balance = product.automatic_opening_balance || '';
-                            this.lockin_period = product.lockin_period || '';
-                            this.lockin_type = product.lockin_type || '';
-                            this.savings_product_charges = product.charges || [];
-                        } else {
-                            console.error('Product not found for ID:', this.savings_product_id);
-                        }
+                    if (this.savings_product_id != "") {
+                        this.savings_products.forEach(item => {
+                            if (item.id == this.savings_product_id) {
+                                this.savings_product = item;
+                                this.interest_rate = item.default_interest_rate;
+                                this.automatic_opening_balance = item.automatic_opening_balance;
+                                this.lockin_period = item.lockin_period;
+                                this.lockin_type = item.lockin_type;
+                                this.savings_product_charges = item.charges;
+                                this.selected_charges = [];
+                            }
+                        })
                     }
                 },
                 add_charge() {
-                    if (this.selected_charge !== '' && this.savings_product_charges[this.selected_charge]) {
-                        const chargeData = this.savings_product_charges[this.selected_charge];
-                        if (chargeData && chargeData.charge) {
-                            const charge = chargeData.charge;
-                            // Check if already added
-                            if (!this.selected_charges.find(c => c.id === charge.id)) {
-                                this.selected_charges.push(charge);
-                            }
-                            this.selected_charge = '';
+                    if (this.selected_charge !== '') {
+                        const charge = this.savings_product_charges[this.selected_charge].charge;
+                        // Check if already added
+                        if (!this.selected_charges.find(c => c.id === charge.id)) {
+                            this.selected_charges.push(charge);
                         }
+                        this.selected_charge = '';
                     }
                 },
                 remove_charge(index) {
@@ -937,7 +784,6 @@
                     return officer ? officer.full_name : '-';
                 }
             }
-            });
-        });
+        })
     </script>
 @endsection

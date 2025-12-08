@@ -431,62 +431,64 @@ class ClientController extends Controller
     public function search(Request $request)
     {
         $s = $request->s ?? $request->q; // Support both 's' and 'q' parameters
-        $includeSavings = $request->include_savings;
         
-        $query = Client::where('status', 'active');
-        
-        // Include savings account if requested
-        if ($includeSavings) {
-            $query->leftJoin('savings', function($join) {
-                $join->on('clients.id', '=', 'savings.client_id')
-                     ->where('savings.status', '=', 'active');
-            });
+        // Return empty array if no search term
+        if (!$s) {
+            return response()->json([]);
         }
         
-        $query->when($s, function (Builder $query) use ($s, $includeSavings) {
-            $query->where(function($q) use ($s, $includeSavings) {
-                $q->where('clients.id', 'like', "%$s%")
-                    ->orWhere('clients.first_name', 'like', "%$s%")
-                    ->orWhere('clients.middle_name', 'like', "%$s%")
-                    ->orWhere('clients.last_name', 'like', "%$s%")
-                    ->orWhere('clients.external_id', 'like', "%$s%")
-                    ->orWhere('clients.account_number', 'like', "%$s%")
-                    ->orWhere('clients.reference', 'like', "%$s%");
-                
-                // Also search by savings account number if requested
-                if ($includeSavings) {
-                    $q->orWhere('savings.account_number', 'like', "%$s%");
-                }
-            });
-        });
+        // First, try to find client by their identifiers
+        $client = Client::where('status', 'active')
+            ->where(function($q) use ($s) {
+                $q->where('mobile', '=', $s)
+                    ->orWhere('ghana_card', '=', $s)
+                    ->orWhere('external_id', '=', $s);
+            })
+            ->first();
         
-        if ($includeSavings) {
-            $query->select('clients.id', 'clients.first_name', 'clients.middle_name', 'clients.last_name', 
-                          'clients.external_id', 'clients.account_number', 'savings.account_number as savings_account');
-        } else {
-            $query->select('clients.id', 'clients.first_name', 'clients.middle_name', 'clients.last_name', 
-                          'clients.external_id', 'clients.account_number');
+        // If not found by client fields, try to find by savings account number
+        if (!$client) {
+            $savings = DB::table('savings')
+                ->where('account_number', '=', $s)
+                ->where('status', '=', 'active')
+                ->first();
+            
+            if ($savings) {
+                $client = Client::where('status', 'active')
+                    ->where('id', $savings->client_id)
+                    ->first();
+            }
         }
         
-        return $query->limit(50)
-            ->get()
-            ->map(function ($client) use ($includeSavings) {
-                $text = $client->first_name . ' ' . $client->last_name . ' (' . $client->account_number . ')';
-                
-                $result = [
-                    'id' => $client->id,
-                    'text' => $text,
-                    'first_name' => $client->first_name,
-                    'last_name' => $client->last_name,
-                    'account_number' => $client->account_number
-                ];
-                
-                if ($includeSavings && $client->savings_account) {
-                    $result['savings_account'] = $client->savings_account;
-                }
-                
-                return $result;
-            });
+        // If no client found, return empty array
+        if (!$client) {
+            return response()->json([]);
+        }
+        
+        // Get client's savings account if exists
+        $savingsAccount = DB::table('savings')
+            ->where('client_id', $client->id)
+            ->where('status', 'active')
+            ->value('account_number');
+        
+        // Return client data
+        return response()->json([[
+            'id' => $client->id,
+            'text' => $client->first_name . ' ' . $client->last_name . ' (' . $client->mobile . ')',
+            'name' => $client->first_name . ' ' . $client->last_name,
+            'name_id' => $client->first_name . ' ' . $client->last_name . ' (#' . $client->id . ')',
+            'first_name' => $client->first_name,
+            'last_name' => $client->last_name,
+            'account_number' => $client->account_number,
+            'external_id' => $client->external_id,
+            'mobile' => $client->mobile,
+            'ghana_card' => $client->ghana_card,
+            'branch_id' => $client->branch_id,
+            'loan_officer_id' => $client->loan_officer_id,
+            'savings_account' => $savingsAccount,
+            'branch' => $client->branch_id ? 'Branch ' . $client->branch_id : '',
+            'existing_savings_count' => $savingsAccount ? 1 : 0
+        ]]);
     }
 
     public function searchBySavings(Request $request)

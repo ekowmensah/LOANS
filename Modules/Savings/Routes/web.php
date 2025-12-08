@@ -18,6 +18,9 @@ Route::prefix('savings')->group(function () {
     Route::get('create', 'SavingsController@create');
     Route::post('store', 'SavingsController@store');
     Route::get('{id}/show', 'SavingsController@show');
+    Route::get('{id}/statement', 'SavingsController@statement');
+    Route::get('{id}/statement/print', 'SavingsController@print_statement');
+    Route::get('{id}/statement/pdf', 'SavingsController@pdf_statement');
     Route::get('{id}/edit', 'SavingsController@edit');
     Route::post('{id}/update', 'SavingsController@update');
     Route::get('{id}/destroy', 'SavingsController@destroy');

@@ -31,7 +31,7 @@ class SavingsController extends Controller
     public function __construct()
     {
         $this->middleware(['auth', '2fa']);
-        $this->middleware(['permission:savings.savings.index'])->only(['index', 'show']);
+        $this->middleware(['permission:savings.savings.index'])->only(['index', 'show', 'statement', 'print_statement', 'pdf_statement']);
         $this->middleware(['permission:savings.savings.create'])->only(['create', 'store']);
         $this->middleware(['permission:savings.savings.edit'])->only(['edit', 'update', 'change_savings_officer']);
         $this->middleware(['permission:savings.savings.destroy'])->only(['destroy']);
@@ -1415,6 +1415,76 @@ class SavingsController extends Controller
         event(new TransactionUpdated($savings));
         \flash(trans_choice("core::general.successfully_saved", 1))->success()->important();
         return redirect('savings/' . $savings->id . '/show');
+    }
+
+    public function statement($id, Request $request)
+    {
+        $savings = Savings::with('transactions', 'client', 'savings_product', 'currency', 'savings_officer', 'branch')->find($id);
+        
+        // Get date range from request or default to last 3 months
+        $start_date = $request->start_date ?? Carbon::now()->subMonths(3)->format('Y-m-d');
+        $end_date = $request->end_date ?? Carbon::now()->format('Y-m-d');
+        
+        // Get transactions within date range
+        $transactions = $savings->transactions()
+            ->where('reversed', 0)
+            ->whereBetween('submitted_on', [$start_date, $end_date])
+            ->orderBy('submitted_on', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+        
+        // Calculate opening balance (transactions before start date)
+        $opening_balance = $savings->transactions()
+            ->where('reversed', 0)
+            ->where('submitted_on', '<', $start_date)
+            ->sum(DB::raw('credit - debit'));
+        
+        return theme_view('savings::savings.statement', compact('savings', 'transactions', 'start_date', 'end_date', 'opening_balance'));
+    }
+    
+    public function print_statement($id, Request $request)
+    {
+        $savings = Savings::with('transactions', 'client', 'savings_product', 'currency', 'savings_officer', 'branch')->find($id);
+        
+        $start_date = $request->start_date ?? Carbon::now()->subMonths(3)->format('Y-m-d');
+        $end_date = $request->end_date ?? Carbon::now()->format('Y-m-d');
+        
+        $transactions = $savings->transactions()
+            ->where('reversed', 0)
+            ->whereBetween('submitted_on', [$start_date, $end_date])
+            ->orderBy('submitted_on', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+        
+        $opening_balance = $savings->transactions()
+            ->where('reversed', 0)
+            ->where('submitted_on', '<', $start_date)
+            ->sum(DB::raw('credit - debit'));
+        
+        return view('savings::themes.adminlte.savings.print_statement', compact('savings', 'transactions', 'start_date', 'end_date', 'opening_balance'));
+    }
+    
+    public function pdf_statement($id, Request $request)
+    {
+        $savings = Savings::with('transactions', 'client', 'savings_product', 'currency', 'savings_officer', 'branch')->find($id);
+        
+        $start_date = $request->start_date ?? Carbon::now()->subMonths(3)->format('Y-m-d');
+        $end_date = $request->end_date ?? Carbon::now()->format('Y-m-d');
+        
+        $transactions = $savings->transactions()
+            ->where('reversed', 0)
+            ->whereBetween('submitted_on', [$start_date, $end_date])
+            ->orderBy('submitted_on', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+        
+        $opening_balance = $savings->transactions()
+            ->where('reversed', 0)
+            ->where('submitted_on', '<', $start_date)
+            ->sum(DB::raw('credit - debit'));
+        
+        $pdf = PDF::loadView('savings::themes.adminlte.savings.pdf_statement', compact('savings', 'transactions', 'start_date', 'end_date', 'opening_balance'));
+        return $pdf->download('statement_' . $savings->account_number . '_' . date('Y-m-d') . '.pdf');
     }
 
     public function test()
