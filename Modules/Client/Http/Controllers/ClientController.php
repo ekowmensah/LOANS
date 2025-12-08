@@ -71,8 +71,8 @@ class ClientController extends Controller
             ->when($status, function ($query) use ($status) {
                 $query->where('clients.status', $status);
             })
-            ->selectRaw("branches.name branch,concat(users.first_name,' ',users.last_name) staff,clients.id,clients.loan_officer_id,clients.first_name,clients.last_name,clients.gender,clients.mobile,clients.email,clients.external_id,clients.status,savings.account_number as savings_account,savings.balance_derived as savings_balance,group_members.group_id,COUNT(DISTINCT loans.id) as loan_count")
-            ->groupBy('clients.id', 'branches.name', 'users.first_name', 'users.last_name', 'clients.loan_officer_id', 'clients.first_name', 'clients.last_name', 'clients.gender', 'clients.mobile', 'clients.email', 'clients.external_id', 'clients.status', 'savings.account_number', 'savings.balance_derived', 'group_members.group_id')
+            ->selectRaw("branches.name branch,concat(users.first_name,' ',users.last_name) staff,clients.id,clients.loan_officer_id,clients.first_name,clients.last_name,clients.gender,clients.mobile,clients.email,clients.external_id,clients.status,clients.photo,savings.account_number as savings_account,savings.balance_derived as savings_balance,group_members.group_id,COUNT(DISTINCT loans.id) as loan_count")
+            ->groupBy('clients.id', 'branches.name', 'users.first_name', 'users.last_name', 'clients.loan_officer_id', 'clients.first_name', 'clients.last_name', 'clients.gender', 'clients.mobile', 'clients.email', 'clients.external_id', 'clients.status', 'clients.photo', 'savings.account_number', 'savings.balance_derived', 'group_members.group_id')
             ->paginate($perPage)
             ->appends($request->input());
         return theme_view('client::client.index', compact('data'));
@@ -85,11 +85,17 @@ class ClientController extends Controller
         $query = DB::table("clients")
             ->leftJoin("branches", "branches.id", "clients.branch_id")
             ->leftJoin("users", "users.id", "clients.loan_officer_id")
-            ->selectRaw("branches.name branch,concat(users.first_name,' ',users.last_name) staff,clients.id,clients.loan_officer_id,concat(clients.first_name,' ',clients.last_name) name,clients.gender,clients.mobile,clients.email,clients.external_id,clients.status")
+            ->selectRaw("branches.name branch,concat(users.first_name,' ',users.last_name) staff,clients.id,clients.loan_officer_id,concat(clients.first_name,' ',clients.last_name) name,clients.gender,clients.mobile,clients.email,clients.external_id,clients.status,clients.photo")
             ->when($status, function ($query) use ($status) {
                 $query->where('status', $status);
             });
-        return DataTables::of($query)->editColumn('staff', function ($data) {
+        return DataTables::of($query)->addColumn('photo_display', function ($data) {
+            if ($data->photo) {
+                return '<img src="' . asset('storage/' . $data->photo) . '" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #667eea;">';
+            } else {
+                return '<div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 16px;">' . strtoupper(substr($data->name, 0, 1)) . '</div>';
+            }
+        })->editColumn('staff', function ($data) {
             return $data->staff;
         })->editColumn('action', function ($data) {
             $action = '<div class="btn-group"><button type="button" class="btn btn-info btn-xs dropdown-toggle" data-toggle="dropdown" aria-expanded="true"><i class="fa fa-navicon"></i></button> <ul class="dropdown-menu dropdown-menu-right" role="menu">';
@@ -215,7 +221,7 @@ class ClientController extends Controller
         $request->dob ? $client->dob = $request->dob : '';
         if ($request->hasFile('photo')) {
             $file_name = $request->file('photo')->store('public/uploads/clients');
-            $client->photo = basename($file_name);
+            $client->photo = str_replace('public/', '', $file_name);
         }
         $client->save();
         custom_fields_save_form('add_client', $request, $client->id);
@@ -306,9 +312,9 @@ class ClientController extends Controller
             $file_name = $request->file('photo')->store('public/uploads/clients');
             //check if we had a file before
             if ($client->photo) {
-                Storage::delete('public/uploads/clients/' . $client->photo);
+                Storage::delete('public/' . $client->photo);
             }
-            $client->photo = basename($file_name);
+            $client->photo = str_replace('public/', '', $file_name);
         }
         $client->save();
         custom_fields_save_form('add_client', $request, $client->id);
@@ -1050,4 +1056,31 @@ class ClientController extends Controller
         }
     }
 
+    /**
+     * Check for duplicate field values (AJAX)
+     */
+    public function check_duplicate(Request $request)
+    {
+        $field = $request->field;
+        $value = $request->value;
+        $client_id = $request->client_id; // For edit mode
+        
+        if (empty($field) || empty($value)) {
+            return response()->json(['available' => true]);
+        }
+        
+        $query = Client::where($field, $value);
+        
+        // Exclude current client when editing
+        if ($client_id) {
+            $query->where('id', '!=', $client_id);
+        }
+        
+        $exists = $query->exists();
+        
+        return response()->json([
+            'available' => !$exists,
+            'message' => $exists ? ucfirst(str_replace('_', ' ', $field)) . ' already exists' : ''
+        ]);
+    }
 }

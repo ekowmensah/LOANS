@@ -16,6 +16,7 @@ Route::prefix('client')->group(function () {
     Route::get('/search', 'ClientController@search');
     Route::get('/search-by-savings', 'ClientController@searchBySavings');
     Route::get('get_clients', 'ClientController@get_clients');
+    Route::post('/check-duplicate', 'ClientController@check_duplicate');
     Route::get('create', 'ClientController@create');
     Route::post('store', 'ClientController@store');
     Route::get('bulk-upload', 'ClientController@bulk_upload');

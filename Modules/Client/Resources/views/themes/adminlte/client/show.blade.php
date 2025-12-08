@@ -510,11 +510,16 @@ body {
     <div class="client-hero-modern">
         <div class="hero-content">
             <div class="profile-section">
-                <div>
+                <div style="position: relative; display: inline-block;">
                     @if(!empty($client->photo))
-                        <img class="profile-photo-ultra" src="{{asset('storage/uploads/clients/'.$client->photo)}}" alt="{{ $client->name }}">
+                        <img class="profile-photo-ultra" src="{{asset('storage/'.$client->photo)}}" alt="{{ $client->name }}">
                     @else
                         <img class="profile-photo-ultra" src="{{asset('themes/adminlte/img/user.png')}}" alt="{{ $client->name }}">
+                        @can('client.clients.edit')
+                        <a href="{{url('client/' . $client->id . '/edit')}}" title="Add Photo" style="position: absolute; bottom: 5px; right: 5px; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; border: 3px solid white; text-decoration: none; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
+                            <i class="fas fa-camera" style="font-size: 18px; color: white;"></i>
+                        </a>
+                        @endcan
                     @endif
                 </div>
                 <div class="profile-info flex-grow-1">

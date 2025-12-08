@@ -90,6 +90,7 @@
                 <table class="table  table-striped table-hover table-condensed" id="data-table">
                     <thead>
                     <tr>
+                        <th style="width: 60px;">Photo</th>
                         <th>
                             <a href="{{table_order_link('name')}}">
                                 {{ trans_choice('core::general.name',1) }}
@@ -128,6 +129,20 @@
                     <tbody>
                     @foreach($data as $key)
                         <tr>
+                            <td>
+                                <div style="position: relative; width: 40px; height: 40px; display: inline-block;">
+                                    @if($key->photo)
+                                        <img src="{{asset('storage/'.$key->photo)}}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #667eea;">
+                                    @else
+                                        <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 16px;">
+                                            {{strtoupper(substr($key->name, 0, 1))}}
+                                        </div>
+                                        <a href="{{url('client/' . $key->id . '/edit')}}" title="Add Photo" style="position: absolute; bottom: -2px; right: -2px; width: 18px; height: 18px; border-radius: 50%; background: #667eea; display: flex; align-items: center; justify-content: center; border: 2px solid white; text-decoration: none;">
+                                            <i class="fas fa-camera" style="font-size: 8px; color: white;"></i>
+                                        </a>
+                                    @endif
+                                </div>
+                            </td>
                             <td>
                                 <a href="{{url('client/' . $key->id . '/show')}}">
                                     <span>{{$key->name}}</span>
