@@ -169,9 +169,9 @@
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label for="mobile"
-                                       class="control-label">{{trans_choice('core::general.mobile',1)}}</label>
+                                       class="control-label">{{trans_choice('core::general.mobile',1)}} <span class="text-danger">*</span></label>
                                 <input type="text" name="mobile" id="mobile" v-model="mobile"
-                                       class="form-control @error('mobile') is-invalid @enderror">
+                                       class="form-control @error('mobile') is-invalid @enderror" required>
                                 @error('mobile')
                                 <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>
@@ -184,10 +184,10 @@
                                 <label for="country_id"
                                        class="control-label">{{trans_choice('core::general.country',1)}}</label>
                                 <select class="form-control @error('country_id') is-invalid @enderror" name="country_id"
-                                        id="country_id" v-model="country_id">
-                                    <option value=""></option>
+                                        id="country_id" v-model="country_id" required>
+                                    <option value="" disabled>{{trans_choice('core::general.select',1)}}</option>
                                     @foreach($countries as $key)
-                                        <option value="{{$key->id}}">{{$key->name}}</option>
+                                        <option value="{{$key->id}}" {{ strtolower($key->name) == 'ghana' ? 'selected' : '' }}>{{$key->name}}</option>
                                     @endforeach
                                 </select>
                                 @error('country_id')
@@ -266,16 +266,15 @@
                                 @enderror
                             </div>
                         </div>
-                        <div class="col-md-12">
+                        <div class="col-md-12" style="display:none;">
                             <div class="form-group">
                                 <label for="client_type_id"
                                        class="control-label">{{trans_choice('client::general.type',1)}}</label>
                                 <select class="form-control @error('client_type_id') is-invalid @enderror"
                                         name="client_type_id"
                                         id="client_type_id" v-model="client_type_id">
-                                    <option value=""></option>
                                     @foreach($client_types as $key)
-                                        <option value="{{$key->id}}">{{$key->name}}</option>
+                                        <option value="{{$key->id}}" {{ strtolower($key->name) == 'individual' ? 'selected' : '' }}>{{$key->name}}</option>
                                     @endforeach
                                 </select>
                                 @error('client_type_id')
@@ -387,13 +386,13 @@
                 last_name: "{{old('last_name')}}",
                 gender: "{{old('gender')}}",
                 marital_status: "{{old('marital_status')}}",
-                country_id: parseInt("{{old('country_id')}}"),
+                country_id: parseInt("{{old('country_id', $countries->where('name', 'Ghana')->first()->id ?? '')}}"),
                 mobile: "{{old('mobile')}}",
                 dob: "{{old('dob')}}",
                 loan_officer_id: parseInt("{{old('loan_officer_id')}}"),
                 email: "{{old('email')}}",
                 profession_id: parseInt("{{old('profession_id')}}"),
-                client_type_id: parseInt("{{old('client_type_id')}}"),
+                client_type_id: parseInt("{{old('client_type_id', $client_types->where('name', 'Individual')->first()->id ?? '')}}"),
                 active: "{{old('active',1)}}",
                 address: `{{old('address')}}`,
                 notes: `{{old('notes')}}`,

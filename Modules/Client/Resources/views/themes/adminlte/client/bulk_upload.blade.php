@@ -40,10 +40,11 @@
                     <h5><i class="icon fas fa-info"></i> Important Information</h5>
                     <ul>
                         <li>Download the CSV template below and fill in your client data</li>
-                        <li>Required columns: first_name, last_name, gender, dob, branch_id</li>
+                        <li><strong>Required columns:</strong> first_name, last_name, gender, dob, branch_id, mobile</li>
                         <li>Date format should be: YYYY-MM-DD (e.g., 1990-01-15)</li>
                         <li>Gender values: male, female</li>
                         <li>Ghana Card format: GHA-XXXXXXXXX-X</li>
+                        <li><strong>Default values:</strong> Client Type = Individual, Country = Ghana (leave empty in CSV)</li>
                         <li>Maximum file size: 5MB</li>
                         <li>The system will automatically create savings accounts for uploaded clients</li>
                     </ul>
@@ -165,7 +166,7 @@
                             </tr>
                             <tr>
                                 <td>mobile</td>
-                                <td><span class="badge badge-secondary">No</span></td>
+                                <td><span class="badge badge-danger">Yes</span></td>
                                 <td>Mobile phone number</td>
                                 <td>0244123456</td>
                             </tr>
@@ -208,14 +209,14 @@
                             <tr>
                                 <td>client_type_id</td>
                                 <td><span class="badge badge-secondary">No</span></td>
-                                <td>Client type ID</td>
-                                <td>1</td>
+                                <td>Client type ID (defaults to Individual if empty)</td>
+                                <td>Leave empty</td>
                             </tr>
                             <tr>
                                 <td>country_id</td>
                                 <td><span class="badge badge-secondary">No</span></td>
-                                <td>Country ID</td>
-                                <td>1</td>
+                                <td>Country ID (defaults to Ghana if empty)</td>
+                                <td>Leave empty</td>
                             </tr>
                             <tr>
                                 <td>notes</td>

@@ -171,11 +171,27 @@ class ClientController extends Controller
             'last_name' => ['required'],
             'gender' => ['required'],
             'branch_id' => ['required'],
+            'mobile' => ['required'],
+            'country_id' => ['required'],
             'email' => ['nullable', 'email', 'max:255'],
             'dob' => ['required', 'date'],
             'created_date' => ['required', 'date'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png'],
         ]);
+        // Set default client_type_id to Individual if not provided
+        $client_type_id = $request->client_type_id;
+        if (!$client_type_id) {
+            $individualType = ClientType::where('name', 'Individual')->first();
+            $client_type_id = $individualType ? $individualType->id : null;
+        }
+        
+        // Set default country_id to Ghana if not provided
+        $country_id = $request->country_id;
+        if (!$country_id) {
+            $ghana = Country::where('name', 'Ghana')->first();
+            $country_id = $ghana ? $ghana->id : $request->country_id;
+        }
+        
         $client = new Client();
         $client->first_name = $request->first_name;
         $client->last_name = $request->last_name;
@@ -183,11 +199,11 @@ class ClientController extends Controller
         $client->ghana_card = $request->ghana_card;
         $client->created_by_id = Auth::id();
         $client->gender = $request->gender;
-        $client->country_id = $request->country_id;
+        $client->country_id = $country_id;
         $client->loan_officer_id = $request->loan_officer_id;
         $client->title_id = $request->title_id;
         $client->branch_id = $request->branch_id;
-        $client->client_type_id = $request->client_type_id;
+        $client->client_type_id = $client_type_id;
         $client->profession_id = $request->profession_id;
         $client->mobile = $request->mobile;
         $client->notes = $request->notes;
@@ -523,7 +539,7 @@ class ClientController extends Controller
             $header = array_shift($data);
             
             // Validate header
-            $requiredColumns = ['first_name', 'last_name', 'gender', 'dob', 'branch_id'];
+            $requiredColumns = ['first_name', 'last_name', 'gender', 'dob', 'branch_id', 'mobile'];
             $missingColumns = array_diff($requiredColumns, $header);
             
             if (!empty($missingColumns)) {
@@ -550,10 +566,24 @@ class ClientController extends Controller
                     // Validate required fields
                     if (empty($clientData['first_name']) || empty($clientData['last_name']) || 
                         empty($clientData['gender']) || empty($clientData['dob']) || 
-                        empty($clientData['branch_id'])) {
+                        empty($clientData['branch_id']) || empty($clientData['mobile'])) {
                         $errors[] = "Row " . ($index + 2) . ": Missing required fields";
                         $errorCount++;
                         continue;
+                    }
+                    
+                    // Set default client_type_id to Individual if not provided
+                    $client_type_id = $clientData['client_type_id'] ?? null;
+                    if (!$client_type_id) {
+                        $individualType = ClientType::where('name', 'Individual')->first();
+                        $client_type_id = $individualType ? $individualType->id : null;
+                    }
+                    
+                    // Set default country_id to Ghana if not provided
+                    $country_id = $clientData['country_id'] ?? null;
+                    if (!$country_id) {
+                        $ghana = Country::where('name', 'Ghana')->first();
+                        $country_id = $ghana ? $ghana->id : null;
                     }
                     
                     // Create client
@@ -567,15 +597,15 @@ class ClientController extends Controller
                     $client->gender = strtolower($clientData['gender']);
                     $client->branch_id = $clientData['branch_id'];
                     $client->dob = $clientData['dob'];
-                    $client->mobile = $clientData['mobile'] ?? null;
+                    $client->mobile = $clientData['mobile'];
                     $client->email = $clientData['email'] ?? null;
                     $client->address = $clientData['address'] ?? null;
                     $client->marital_status = $clientData['marital_status'] ?? null;
                     $client->loan_officer_id = $clientData['loan_officer_id'] ?? null;
                     $client->title_id = $clientData['title_id'] ?? null;
                     $client->profession_id = $clientData['profession_id'] ?? null;
-                    $client->client_type_id = $clientData['client_type_id'] ?? null;
-                    $client->country_id = $clientData['country_id'] ?? null;
+                    $client->client_type_id = $client_type_id;
+                    $client->country_id = $country_id;
                     $client->notes = $clientData['notes'] ?? null;
                     $client->created_date = $clientData['created_date'] ?? date('Y-m-d');
                     
@@ -654,7 +684,7 @@ class ClientController extends Controller
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
             
-            // Add sample row
+            // Add sample row with notes
             fputcsv($file, [
                 'John',
                 'Doe',
@@ -671,9 +701,9 @@ class ClientController extends Controller
                 '1',
                 '1',
                 '1',
-                '1',
-                '1',
-                'Sample client',
+                '',  // client_type_id - leave empty, defaults to Individual
+                '',  // country_id - leave empty, defaults to Ghana
+                'Sample client notes',
                 date('Y-m-d')
             ]);
             
