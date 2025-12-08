@@ -143,8 +143,8 @@
                     <thead>
                     <tr>
                         <th>
-                            <a href="{{table_order_link('id')}}">
-                                <span>{{ trans_choice('core::general.id',1) }}</span>
+                            <a href="{{table_order_link('account_number')}}">
+                                <span>Loan Reference</span>
                             </a>
                         </th>
                         <th>
@@ -195,7 +195,7 @@
                         <tr>
                             <td>
                                 <a href="{{url('loan/'.$key->id.'/show')}}">
-                                    <span>{{$key->id}}</span>
+                                    <span>{{$key->account_number ?: 'LOAN-'.$key->id}}</span>
                                 </a>
                             </td>
                             <td>

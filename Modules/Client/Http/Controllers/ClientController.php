@@ -462,6 +462,56 @@ class ClientController extends Controller
         return redirect()->back();
     }
     
+    public function bulk_approve(Request $request)
+    {
+        $request->validate([
+            'client_ids' => ['required', 'array'],
+            'client_ids.*' => ['exists:clients,id'],
+            'approved_on_date' => ['required', 'date'],
+            'approved_notes' => ['nullable', 'string'],
+        ]);
+        
+        $clientIds = $request->client_ids;
+        $approvedCount = 0;
+        $skippedCount = 0;
+        
+        foreach ($clientIds as $clientId) {
+            $client = Client::find($clientId);
+            
+            if (!$client || $client->status !== 'pending') {
+                $skippedCount++;
+                continue;
+            }
+            
+            $oldStatus = $client->status;
+            
+            $client->status = 'active';
+            $client->approved_on_date = $request->approved_on_date;
+            $client->approved_by_user_id = Auth::id();
+            $client->approved_notes = $request->approved_notes;
+            $client->save();
+            
+            // Fire event for status change
+            event(new \Modules\Client\Events\ClientStatusChanged($client, $oldStatus, 'active'));
+            
+            activity()->on($client)
+                ->withProperties(['id' => $client->id, 'approved_on' => $request->approved_on_date, 'bulk' => true])
+                ->log('Bulk Approve Client');
+                
+            $approvedCount++;
+        }
+        
+        if ($approvedCount > 0) {
+            \flash("Successfully approved {$approvedCount} client(s)")->success()->important();
+        }
+        
+        if ($skippedCount > 0) {
+            \flash("{$skippedCount} client(s) were skipped (already approved or not found)")->warning()->important();
+        }
+        
+        return redirect()->back();
+    }
+    
     public function reject_client(Request $request, $id)
     {
         $request->validate([

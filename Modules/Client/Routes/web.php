@@ -34,6 +34,7 @@ Route::prefix('client')->group(function () {
     Route::get('user/{id}/destroy', 'ClientController@destroy_user');
     Route::post('{id}/approve', 'ClientController@approve_client');
     Route::post('{id}/reject', 'ClientController@reject_client');
+    Route::post('bulk-approve', 'ClientController@bulk_approve');
     Route::get('{id}/undo_approval', 'ClientController@undo_approval');
     Route::get('{id}/undo_rejection', 'ClientController@undo_rejection');
     //client identification

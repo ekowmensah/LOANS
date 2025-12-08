@@ -35,6 +35,13 @@
                         <i class="fas fa-upload"></i> Bulk Upload
                     </a>
                 @endcan
+                @if(request('status') == 'pending')
+                    @can('client.clients.activate')
+                        <button type="button" class="btn btn-primary btn-sm" id="bulkApproveBtn" style="display: none;" data-toggle="modal" data-target="#bulkApproveModal">
+                            <i class="fas fa-check-circle"></i> Bulk Approve (<span id="selectedCount">0</span>)
+                        </button>
+                    @endcan
+                @endif
                 <div class="btn-group">
                     <div class="dropdown">
                         <a href="#" class="btn btn-trigger btn-icon dropdown-toggle"
@@ -90,6 +97,13 @@
                 <table class="table  table-striped table-hover table-condensed" id="data-table">
                     <thead>
                     <tr>
+                        @if(request('status') == 'pending')
+                            @can('client.clients.activate')
+                                <th style="width: 40px;">
+                                    <input type="checkbox" id="selectAll" title="Select All">
+                                </th>
+                            @endcan
+                        @endif
                         <th style="width: 60px;">Photo</th>
                         <th>
                             <a href="{{table_order_link('name')}}">
@@ -129,6 +143,13 @@
                     <tbody>
                     @foreach($data as $key)
                         <tr>
+                            @if(request('status') == 'pending')
+                                @can('client.clients.activate')
+                                    <td>
+                                        <input type="checkbox" class="client-checkbox" value="{{$key->id}}" data-name="{{$key->name}}" data-mobile="{{$key->mobile}}" data-account="{{$key->savings_account ?? 'N/A'}}">
+                                    </td>
+                                @endcan
+                            @endif
                             <td>
                                 <div style="position: relative; width: 40px; height: 40px; display: inline-block;">
                                     @if($key->photo)
@@ -379,6 +400,54 @@
             </div>
         </div>
     </div>
+
+    <!-- Bulk Approve Modal -->
+    <div class="modal fade" id="bulkApproveModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <form method="post" action="{{url('client/bulk-approve')}}" id="bulkApproveForm">
+                    {{csrf_field()}}
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-check-circle text-success"></i> Bulk Approve Clients
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> You are about to approve <strong id="bulkSelectedCount">0</strong> client(s).
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Selected Clients:</label>
+                            <ul id="selectedClientsList" style="max-height: 200px; overflow-y: auto; padding-left: 20px;">
+                            </ul>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Approval Date <span class="text-danger">*</span></label>
+                            <input type="date" name="approved_on_date" class="form-control" value="{{date('Y-m-d')}}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Approval Notes</label>
+                            <textarea name="approved_notes" class="form-control" rows="3" placeholder="Optional notes for this approval"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check-circle"></i> Approve All
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 @section('scripts')
     <script>
@@ -462,6 +531,86 @@
                     toastr.error(errorMsg);
                     btn.prop('disabled', false);
                     btn.html('<i class="fas fa-plus-circle"></i> Generate Account');
+                }
+            });
+        });
+
+        // Bulk Approval Functionality
+        var selectedClients = [];
+        
+        // Select All checkbox
+        $('#selectAll').on('change', function() {
+            var isChecked = $(this).is(':checked');
+            $('.client-checkbox').prop('checked', isChecked);
+            updateSelectedClients();
+        });
+        
+        // Individual checkbox
+        $(document).on('change', '.client-checkbox', function() {
+            updateSelectedClients();
+            
+            // Update select all checkbox
+            var totalCheckboxes = $('.client-checkbox').length;
+            var checkedCheckboxes = $('.client-checkbox:checked').length;
+            $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+        });
+        
+        function updateSelectedClients() {
+            selectedClients = [];
+            $('.client-checkbox:checked').each(function() {
+                selectedClients.push({
+                    id: $(this).val(),
+                    name: $(this).data('name'),
+                    mobile: $(this).data('mobile'),
+                    account: $(this).data('account')
+                });
+            });
+            
+            var count = selectedClients.length;
+            $('#selectedCount').text(count);
+            
+            if (count > 0) {
+                $('#bulkApproveBtn').show();
+            } else {
+                $('#bulkApproveBtn').hide();
+            }
+        }
+        
+        // Show selected clients in modal
+        $('#bulkApproveModal').on('show.bs.modal', function() {
+            var clientsList = '';
+            selectedClients.forEach(function(client) {
+                clientsList += '<li style="margin-bottom: 10px;">';
+                clientsList += '<strong>' + client.name + '</strong><br>';
+                clientsList += '<small class="text-muted">';
+                clientsList += '<i class="fas fa-phone"></i> ' + (client.mobile || 'N/A') + ' &nbsp;&nbsp;';
+                clientsList += '<i class="fas fa-university"></i> ' + (client.account || 'N/A');
+                clientsList += '</small>';
+                clientsList += '</li>';
+            });
+            $('#selectedClientsList').html(clientsList);
+            $('#bulkSelectedCount').text(selectedClients.length);
+        });
+        
+        // Handle bulk approval form submission
+        $('#bulkApproveForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            var formData = $(this).serializeArray();
+            selectedClients.forEach(function(client) {
+                formData.push({name: 'client_ids[]', value: client.id});
+            });
+            
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: $.param(formData),
+                success: function(response) {
+                    $('#bulkApproveModal').modal('hide');
+                    location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error: ' + (xhr.responseJSON?.message || 'Failed to approve clients'));
                 }
             });
         });

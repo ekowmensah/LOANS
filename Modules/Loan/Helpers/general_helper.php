@@ -134,7 +134,9 @@ if (!function_exists('generate_loan_reference')) {
             $sequence_number = $id;
         }
         $random_number = uniqid();
-        $reference_format = Setting::where('setting_key', 'core.reference_format')->first()->setting_value;
+        $reference_format_setting = Setting::where('setting_key', 'core.reference_format')->first();
+        $reference_format = $reference_format_setting ? $reference_format_setting->setting_value : 'YEAR/Sequence Number (SL/2014/001)';
+        
         if ($reference_format == 'Sequence Number') {
             return $prefix . $sequence_number;
         } elseif ($reference_format == 'Random Number') {
