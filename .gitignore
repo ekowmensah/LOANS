@@ -24,3 +24,4 @@ CLIENT_REQUIREMENTS_SUMMARY.md
 check_loan_transactions.php
 check_collections.php
 BULK_UPLOAD_VALIDATION_FEATURE.md
+add_client_approval_fields.sql

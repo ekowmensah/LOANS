@@ -64,11 +64,20 @@ class CreateDefaultSavingsAccount
             $savings->minimum_overdraft_for_interest = $savingsProduct->minimum_overdraft_for_interest;
             $savings->submitted_on_date = $client->created_date ?? date('Y-m-d');
             $savings->submitted_by_user_id = Auth::id();
-            $savings->status = 'active'; // Auto-approve the account
-            $savings->approved_on_date = date('Y-m-d');
-            $savings->approved_by_user_id = Auth::id();
-            $savings->activated_on_date = date('Y-m-d');
-            $savings->activated_by_user_id = Auth::id();
+            
+            // Match savings account status to client status
+            if ($client->status === 'active') {
+                // If client is already active, activate the account immediately
+                $savings->status = 'active';
+                $savings->approved_on_date = date('Y-m-d');
+                $savings->approved_by_user_id = Auth::id();
+                $savings->activated_on_date = date('Y-m-d');
+                $savings->activated_by_user_id = Auth::id();
+            } else {
+                // If client is pending, create account in submitted status
+                $savings->status = 'submitted';
+            }
+            
             $savings->save();
 
             // Generate account number

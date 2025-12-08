@@ -31,7 +31,10 @@ Route::prefix('client')->group(function () {
     Route::get('{id}/user/create', 'ClientController@create_user');
     Route::post('{id}/user/store', 'ClientController@store_user');
     Route::get('user/{id}/destroy', 'ClientController@destroy_user');
-    Route::post('{id}/change_status', 'ClientController@change_status');
+    Route::post('{id}/approve', 'ClientController@approve_client');
+    Route::post('{id}/reject', 'ClientController@reject_client');
+    Route::get('{id}/undo_approval', 'ClientController@undo_approval');
+    Route::get('{id}/undo_rejection', 'ClientController@undo_rejection');
     //client identification
     Route::get('{id}/client_identification/create', 'ClientIdentificationController@create');
     Route::post('{id}/client_identification/store', 'ClientIdentificationController@store');

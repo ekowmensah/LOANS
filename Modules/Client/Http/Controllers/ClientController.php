@@ -37,7 +37,7 @@ class ClientController extends Controller
         $this->middleware(['permission:client.clients.destroy'])->only(['destroy']);
         $this->middleware(['permission:client.clients.user.create'])->only(['store_user', 'create_user']);
         $this->middleware(['permission:client.clients.user.destroy'])->only(['destroy_user']);
-        $this->middleware(['permission:client.clients.activate'])->only(['change_status']);
+        $this->middleware(['permission:client.clients.activate'])->only(['approve_client', 'reject_client', 'undo_approval', 'undo_rejection']);
 
     }
 
@@ -54,10 +54,7 @@ class ClientController extends Controller
         $status = $request->status;
         $data = Client::leftJoin("branches", "branches.id", "clients.branch_id")
             ->leftJoin("users", "users.id", "clients.loan_officer_id")
-            ->leftJoin("savings", function($join) {
-                $join->on("savings.client_id", "=", "clients.id")
-                     ->where("savings.status", "=", "active");
-            })
+            ->leftJoin("savings", "savings.client_id", "=", "clients.id")
             ->leftJoin("group_members", "group_members.client_id", "=", "clients.id")
             ->leftJoin("loans", "loans.client_id", "=", "clients.id")
             ->when($orderBy, function (Builder $query) use ($orderBy, $orderByDir) {
@@ -412,19 +409,144 @@ class ClientController extends Controller
         return redirect()->back();
     }
 
-    public function change_status(Request $request, $id)
+    public function approve_client(Request $request, $id)
     {
         $request->validate([
-            'status' => ['required'],
-            'date' => ['required', 'date'],
+            'approved_on_date' => ['required', 'date'],
+            'approved_notes' => ['nullable', 'string'],
         ]);
+        
         $client = Client::find($id);
-        $client->status = $request->status;
+        
+        if (!$client) {
+            \flash('Client not found')->error()->important();
+            return redirect()->back();
+        }
+        
+        if ($client->status !== 'pending') {
+            \flash('Only pending clients can be approved')->warning()->important();
+            return redirect()->back();
+        }
+        
+        $oldStatus = $client->status;
+        
+        $client->status = 'active';
+        $client->approved_on_date = $request->approved_on_date;
+        $client->approved_by_user_id = Auth::id();
+        $client->approved_notes = $request->approved_notes;
         $client->save();
+        
+        // Fire event for status change
+        event(new \Modules\Client\Events\ClientStatusChanged($client, $oldStatus, 'active'));
+        
+        activity()->on($client)
+            ->withProperties(['id' => $client->id, 'approved_on' => $request->approved_on_date])
+            ->log('Approve Client');
+            
+        \flash('Client approved successfully')->success()->important();
+        return redirect()->back();
+    }
+    
+    public function reject_client(Request $request, $id)
+    {
+        $request->validate([
+            'rejected_notes' => ['required', 'string'],
+        ]);
+        
+        $client = Client::find($id);
+        
+        if (!$client) {
+            \flash('Client not found')->error()->important();
+            return redirect()->back();
+        }
+        
+        if ($client->status !== 'pending') {
+            \flash('Only pending clients can be rejected')->warning()->important();
+            return redirect()->back();
+        }
+        
+        $oldStatus = $client->status;
+        
+        $client->status = 'rejected';
+        $client->rejected_on_date = date('Y-m-d');
+        $client->rejected_by_user_id = Auth::id();
+        $client->rejected_notes = $request->rejected_notes;
+        $client->save();
+        
+        // Fire event for status change
+        event(new \Modules\Client\Events\ClientStatusChanged($client, $oldStatus, 'rejected'));
+        
         activity()->on($client)
             ->withProperties(['id' => $client->id])
-            ->log('Update Client Status');
-        \flash(trans_choice("core::general.successfully_saved", 1))->success()->important();
+            ->log('Reject Client');
+            
+        \flash('Client rejected')->warning()->important();
+        return redirect()->back();
+    }
+    
+    public function undo_approval(Request $request, $id)
+    {
+        $client = Client::find($id);
+        
+        if (!$client) {
+            \flash('Client not found')->error()->important();
+            return redirect()->back();
+        }
+        
+        if ($client->status !== 'active') {
+            \flash('Only active clients can have approval undone')->warning()->important();
+            return redirect()->back();
+        }
+        
+        $oldStatus = $client->status;
+        
+        $client->status = 'pending';
+        $client->approved_on_date = null;
+        $client->approved_by_user_id = null;
+        $client->approved_notes = null;
+        $client->save();
+        
+        // Fire event for status change
+        event(new \Modules\Client\Events\ClientStatusChanged($client, $oldStatus, 'pending'));
+        
+        activity()->on($client)
+            ->withProperties(['id' => $client->id])
+            ->log('Undo Client Approval');
+            
+        \flash('Client approval undone successfully')->success()->important();
+        return redirect()->back();
+    }
+    
+    public function undo_rejection(Request $request, $id)
+    {
+        $client = Client::find($id);
+        
+        if (!$client) {
+            \flash('Client not found')->error()->important();
+            return redirect()->back();
+        }
+        
+        if ($client->status !== 'rejected') {
+            \flash('Only rejected clients can have rejection undone')->warning()->important();
+            return redirect()->back();
+        }
+        
+        $oldStatus = $client->status;
+        
+        $client->status = 'pending';
+        $client->rejected_on_date = null;
+        $client->rejected_by_user_id = null;
+        $client->rejected_notes = null;
+        $client->save();
+        
+        // Fire event for status change
+        event(new \Modules\Client\Events\ClientStatusChanged($client, $oldStatus, 'pending'));
+        
+        activity()->on($client)
+            ->withProperties(['id' => $client->id])
+            ->log('Undo Client Rejection');
+            
+        \flash('Client rejection undone successfully')->success()->important();
         return redirect()->back();
     }
 

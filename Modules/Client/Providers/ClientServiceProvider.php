@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Factory;
 use Illuminate\Support\Facades\Event;
 use Modules\Client\Console\DeactivateInactiveClients;
 use Modules\Client\Events\ClientCreated;
+use Modules\Client\Events\ClientStatusChanged;
 use Modules\Client\Listeners\CreateDefaultSavingsAccount;
+use Modules\Client\Listeners\AutoApproveSavingsAccount;
 
 class ClientServiceProvider extends ServiceProvider
 {
@@ -52,6 +54,11 @@ class ClientServiceProvider extends ServiceProvider
         Event::listen(
             ClientCreated::class,
             CreateDefaultSavingsAccount::class
+        );
+        
+        Event::listen(
+            ClientStatusChanged::class,
+            AutoApproveSavingsAccount::class
         );
     }
 

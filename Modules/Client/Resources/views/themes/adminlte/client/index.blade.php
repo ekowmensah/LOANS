@@ -67,6 +67,13 @@
                 </div>
                 <div class="card-tools">
                     <form class="form-inline ml-0 ml-md-3" action="{{url('client')}}">
+                        <select name="status" class="form-control form-control-sm mr-2" onchange="this.form.submit()">
+                            <option value="">All Status</option>
+                            <option value="pending" {{request('status')=='pending'?'selected':''}}>Pending</option>
+                            <option value="active" {{request('status')=='active'?'selected':''}}>Active</option>
+                            <option value="rejected" {{request('status')=='rejected'?'selected':''}}>Rejected</option>
+                            <option value="inactive" {{request('status')=='inactive'?'selected':''}}>Inactive</option>
+                        </select>
                         <div class="input-group input-group-sm">
                             <input type="text" name="s" class="form-control" value="{{request('s')}}"
                                    placeholder="Search">
@@ -162,19 +169,22 @@
                             </td>
                             <td>
                                 @if($key->status == "pending")
-                                    <span>{{trans_choice('core::general.pending',1)}}</span>
+                                    <span class="badge badge-warning">{{trans_choice('core::general.pending',1)}}</span>
                                 @endif
                                 @if($key->status == "active")
-                                    <span>{{trans_choice('core::general.active',1)}}</span>
+                                    <span class="badge badge-success">{{trans_choice('core::general.active',1)}}</span>
                                 @endif
                                 @if($key->status == "inactive")
-                                    <span>{{trans_choice('core::general.inactive',1)}}</span>
+                                    <span class="badge badge-secondary">{{trans_choice('core::general.inactive',1)}}</span>
+                                @endif
+                                @if($key->status == "rejected")
+                                    <span class="badge badge-danger">Rejected</span>
                                 @endif
                                 @if($key->status == "deceased")
-                                    <span>{{trans_choice('client::general.deceased',1)}}</span>
+                                    <span class="badge badge-dark">{{trans_choice('client::general.deceased',1)}}</span>
                                 @endif
                                 @if($key->status == "unspecified")
-                                    <span>{{trans_choice('core::general.unspecified',1)}}</span>
+                                    <span class="badge badge-light">{{trans_choice('core::general.unspecified',1)}}</span>
                                 @endif
                             </td>
                             <td>
@@ -188,13 +198,31 @@
                                 </a>
                             </td>
                             <td>
+                                @if($key->status == 'pending')
+                                    @can('client.clients.activate')
+                                        <button type="button" class="btn btn-sm btn-success mb-1 approve-btn" 
+                                                data-client-id="{{$key->id}}" 
+                                                data-client-name="{{$key->name}}"
+                                                title="Approve Client">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger mb-1 reject-btn" 
+                                                data-client-id="{{$key->id}}" 
+                                                data-client-name="{{$key->name}}"
+                                                title="Reject Client">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    @endcan
+                                @endif
+                                
                                 @if(!$key->group_id)
-                                    <a href="{{url('client/group/member/create?client_id=' . $key->id)}}" class="btn btn-sm btn-success mb-1">
+                                    <a href="{{url('client/group/member/create?client_id=' . $key->id)}}" class="btn btn-sm btn-info mb-1">
                                         <i class="fas fa-users"></i> Add to Group
                                     </a>
                                 @endif
+                                
                                 <div class="btn-group">
-                                    <button href="#" class="btn btn-default dropdown-toggle"
+                                    <button href="#" class="btn btn-default dropdown-toggle btn-sm"
                                             data-toggle="dropdown">
                                         <i class="fas fa-ellipsis-h"></i>
                                     </button>
@@ -209,6 +237,27 @@
                                                 <span>{{trans_choice('core::general.edit',1)}}</span>
                                             </a>
                                         @endcan
+                                        
+                                        @if($key->status == 'active')
+                                            @can('client.clients.activate')
+                                                <div class="divider"></div>
+                                                <a href="{{url('client/' . $key->id . '/undo_approval')}}" class="dropdown-item confirm">
+                                                    <i class="fas fa-undo"></i>
+                                                    <span>Undo Approval</span>
+                                                </a>
+                                            @endcan
+                                        @endif
+                                        
+                                        @if($key->status == 'rejected')
+                                            @can('client.clients.activate')
+                                                <div class="divider"></div>
+                                                <a href="{{url('client/' . $key->id . '/undo_rejection')}}" class="dropdown-item confirm">
+                                                    <i class="fas fa-undo"></i>
+                                                    <span>Undo Rejection</span>
+                                                </a>
+                                            @endcan
+                                        @endif
+                                        
                                         @can('core.payment_types.destroy')
                                             @if(!$key->group_id && $key->loan_count == 0)
                                                 <div class="divider"></div>
@@ -251,6 +300,70 @@
             </div>
         </div>
     </section>
+    
+    <!-- Approve Client Modal -->
+    <div class="modal fade" id="approve_client_modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Approve Client</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <form id="approve_client_form" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        <p>Are you sure you want to approve <strong id="approve_client_name"></strong>?</p>
+                        <div class="form-group">
+                            <label for="approved_on_date">Approval Date <span class="text-danger">*</span></label>
+                            <input type="date" name="approved_on_date" id="approved_on_date" class="form-control" value="{{date('Y-m-d')}}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="approved_notes">Notes (Optional)</label>
+                            <textarea name="approved_notes" id="approved_notes" class="form-control" rows="3" placeholder="Enter any approval notes..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check"></i> Approve Client
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reject Client Modal -->
+    <div class="modal fade" id="reject_client_modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reject Client</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <form id="reject_client_form" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        <p>Are you sure you want to reject <strong id="reject_client_name"></strong>?</p>
+                        <div class="form-group">
+                            <label for="rejected_notes">Rejection Reason <span class="text-danger">*</span></label>
+                            <textarea name="rejected_notes" id="rejected_notes" class="form-control" rows="4" placeholder="Enter reason for rejection..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-times"></i> Reject Client
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 @section('scripts')
     <script>
@@ -272,6 +385,28 @@
                 },
             },
         })
+
+        // Handle Approve Client button
+        $(document).on('click', '.approve-btn', function() {
+            var btn = $(this);
+            var clientId = btn.data('client-id');
+            var clientName = btn.data('client-name');
+            
+            $('#approve_client_name').text(clientName);
+            $('#approve_client_form').attr('action', '{{url("client")}}/' + clientId + '/approve');
+            $('#approve_client_modal').modal('show');
+        });
+        
+        // Handle Reject Client button
+        $(document).on('click', '.reject-btn', function() {
+            var btn = $(this);
+            var clientId = btn.data('client-id');
+            var clientName = btn.data('client-name');
+            
+            $('#reject_client_name').text(clientName);
+            $('#reject_client_form').attr('action', '{{url("client")}}/' + clientId + '/reject');
+            $('#reject_client_modal').modal('show');
+        });
 
         // Handle Generate Savings Account button
         $(document).on('click', '.generate-savings-btn', function() {
