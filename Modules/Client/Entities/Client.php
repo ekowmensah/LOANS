@@ -129,4 +129,15 @@ class Client extends Model
     {
         return $this->active_group_memberships()->where('role', 'leader')->count();
     }
+
+    // Approval workflow relationships
+    public function approved_by_user()
+    {
+        return $this->belongsTo(User::class, 'approved_by_user_id');
+    }
+
+    public function rejected_by_user()
+    {
+        return $this->belongsTo(User::class, 'rejected_by_user_id');
+    }
 }

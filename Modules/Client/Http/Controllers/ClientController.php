@@ -235,9 +235,13 @@ class ClientController extends Controller
      */
     public function show($id)
     {
-        $client = Client::with(['loan_officer', 'active_groups', 'group_memberships'])->find($id);
+        $client = Client::with(['loan_officer', 'active_groups', 'group_memberships', 'approved_by_user', 'rejected_by_user'])->find($id);
         $custom_fields = CustomField::where('category', 'add_client')->where('active', 1)->get();
-        return theme_view('client::client.show', compact('client', 'custom_fields'));
+        $branches = \Modules\Branch\Entities\Branch::all();
+        $users = User::whereHas('roles', function ($query) {
+            return $query->where('name', '!=', 'client');
+        })->get();
+        return theme_view('client::client.show', compact('client', 'custom_fields', 'branches', 'users'));
     }
 
     /**

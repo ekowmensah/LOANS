@@ -1,3 +1,30 @@
+<?php
+/**
+ * Ultra-Modern Client Show Page Redesign
+ * Complete overhaul with contemporary banking aesthetics
+ * 
+ * Usage: php ultra_modernize_client_show.php
+ */
+
+echo "===========================================\n";
+echo "Ultra-Modern Client Show Page Redesign\n";
+echo "===========================================\n\n";
+
+$filePath = __DIR__ . '/Modules/Client/Resources/views/themes/adminlte/client/show.blade.php';
+$backupPath = __DIR__ . '/Modules/Client/Resources/views/themes/adminlte/client/show_ultra_backup_' . date('Y_m_d_His') . '.blade.php';
+
+if (!file_exists($filePath)) {
+    die("ERROR: File not found\n");
+}
+
+echo "Creating backup...\n";
+copy($filePath, $backupPath);
+echo "✓ Backup created\n\n";
+
+// Read the controller to get data structure
+echo "Building ultra-modern interface...\n";
+
+$ultraModernContent = <<<'BLADE'
 @extends('core::layouts.master')
 @section('title')
     {{ $client->first_name }} {{ $client->last_name }}
@@ -225,39 +252,22 @@ body {
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     border: 1px solid rgba(0,0,0,0.05);
     overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.content-card-ultra:hover {
-    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-    transform: translateY(-2px);
-}
-
-.sidebar-card-compact {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    border-left: 4px solid #667eea;
 }
 
 .card-header-ultra {
     padding: 25px 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-bottom: none;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 2px solid #e9ecef;
 }
 
 .card-header-ultra h3 {
     margin: 0;
     font-size: 18px;
     font-weight: 700;
-    color: white;
+    color: #2c3e50;
     display: flex;
     align-items: center;
-    gap: 12px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.card-header-ultra h3 i {
-    font-size: 20px;
-    opacity: 0.9;
+    gap: 10px;
 }
 
 .card-body-ultra {
@@ -271,17 +281,8 @@ body {
 }
 
 .info-item {
-    padding: 18px 0;
+    padding: 15px 0;
     border-bottom: 1px solid #ecf0f1;
-    transition: all 0.2s ease;
-}
-
-.info-item:hover {
-    background: rgba(102, 126, 234, 0.03);
-    padding-left: 10px;
-    margin-left: -10px;
-    margin-right: -10px;
-    padding-right: 10px;
 }
 
 .info-item:last-child {
@@ -289,27 +290,18 @@ body {
 }
 
 .info-label {
-    font-size: 11px;
+    font-size: 12px;
     color: #7f8c8d;
     text-transform: uppercase;
-    letter-spacing: 1.2px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.info-label i {
-    color: #667eea;
-    font-size: 12px;
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-bottom: 5px;
 }
 
 .info-value {
-    font-size: 15px;
+    font-size: 16px;
     color: #2c3e50;
     font-weight: 600;
-    line-height: 1.5;
 }
 
 /* Modern Buttons */
@@ -447,40 +439,6 @@ body {
     animation: shimmer 2s infinite;
     background: linear-gradient(to right, #f0f0f0 8%, #f8f8f8 18%, #f0f0f0 33%);
     background-size: 1000px 100%;
-}
-
-/* Statement Button */
-.btn-statement {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-weight: 600;
-    font-size: 12px;
-    color: white;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
-}
-
-.btn-statement:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
-    color: white;
-}
-
-.btn-statement i {
-    margin-right: 5px;
-}
-
-/* Action buttons in tables */
-.action-buttons-group {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.action-buttons-group .btn {
-    margin: 0 !important;
 }
 </style>
 @stop
@@ -685,36 +643,36 @@ body {
 
     <div class="row">
         <!-- Left Column -->
-        <div class="col-lg-3">
+        <div class="col-lg-4">
             <!-- Personal Information -->
-            <div class="content-card-ultra sidebar-card-compact">
+            <div class="content-card-ultra">
                 <div class="card-header-ultra">
                     <h3><i class="fas fa-user"></i> Personal Information</h3>
                 </div>
                 <div class="card-body-ultra">
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-user"></i> Full Name</div>
+                        <div class="info-label">Full Name</div>
                         <div class="info-value">{{ $client->name }}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-id-badge"></i> External ID</div>
+                        <div class="info-label">External ID</div>
                         <div class="info-value">{{ $client->external_id ?? 'N/A' }}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-birthday-cake"></i> Date of Birth</div>
+                        <div class="info-label">Date of Birth</div>
                         <div class="info-value">{{ $client->dob ?? 'N/A' }}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-venus-mars"></i> Gender</div>
+                        <div class="info-label">Gender</div>
                         <div class="info-value">{{ ucfirst($client->gender) }}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-heart"></i> Marital Status</div>
+                        <div class="info-label">Marital Status</div>
                         <div class="info-value">{{ ucfirst($client->marital_status ?? 'N/A') }}</div>
                     </div>
                     @if(!empty($client->client_type))
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-tag"></i> Client Type</div>
+                        <div class="info-label">Client Type</div>
                         <div class="info-value">{{ $client->client_type->name }}</div>
                     </div>
                     @endif
@@ -728,25 +686,25 @@ body {
                 </div>
                 <div class="card-body-ultra">
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-mobile-alt"></i> Mobile</div>
+                        <div class="info-label">Mobile</div>
                         <div class="info-value">{{ $client->mobile ?? 'N/A' }}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-envelope"></i> Email</div>
+                        <div class="info-label">Email</div>
                         <div class="info-value">{{ $client->email ?? 'N/A' }}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-map-marker-alt"></i> Address</div>
+                        <div class="info-label">Address</div>
                         <div class="info-value">{{ $client->address ?? 'N/A' }}</div>
                     </div>
                     @if(!empty($client->country))
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-globe"></i> Country</div>
+                        <div class="info-label">Country</div>
                         <div class="info-value">{{ $client->country->name }}</div>
                     </div>
                     @endif
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-mail-bulk"></i> Zip Code</div>
+                        <div class="info-label">Zip Code</div>
                         <div class="info-value">{{ $client->zip ?? 'N/A' }}</div>
                     </div>
                 </div>
@@ -760,23 +718,23 @@ body {
                 <div class="card-body-ultra">
                     @if(!empty($client->branch))
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-building"></i> Branch</div>
+                        <div class="info-label">Branch</div>
                         <div class="info-value">{{ $client->branch->name }}</div>
                     </div>
                     @endif
                     @if(!empty($client->loan_officer))
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-user-tie"></i> Loan Officer</div>
+                        <div class="info-label">Loan Officer</div>
                         <div class="info-value">{{ $client->loan_officer->first_name }} {{ $client->loan_officer->last_name }}</div>
                     </div>
                     @endif
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-calendar-plus"></i> Joined Date</div>
+                        <div class="info-label">Joined Date</div>
                         <div class="info-value">{{ $client->created_date }}</div>
                     </div>
                     @if($client->activation_date)
                     <div class="info-item">
-                        <div class="info-label"><i class="fas fa-calendar-check"></i> Activation Date</div>
+                        <div class="info-label">Activation Date</div>
                         <div class="info-value">{{ $client->activation_date }}</div>
                     </div>
                     @endif
@@ -797,7 +755,7 @@ body {
         </div>
 
         <!-- Right Column -->
-        <div class="col-lg-9">
+        <div class="col-lg-8">
             <!-- Tabs -->
             <ul class="nav nav-tabs-ultra">
                 <li class="nav-item">
@@ -1131,20 +1089,8 @@ body {
             ],
             "order": [[0, "desc"]],
             responsive: true,
-            "autoWidth": false,
-            "drawCallback": function(settings) {
-                // Add statement button to action column
-                $('.action-cell').each(function() {
-                    var savingsId = $(this).data('savings-id');
-                    if (savingsId && !$(this).find('.btn-statement').length) {
-                        var statementBtn = '<a href="' + baseUrl + '/savings/' + savingsId + '/statement" class="btn btn-statement btn-sm" target="_blank"><i class="fas fa-file-invoice"></i> Statement</a>';
-                        $(this).prepend(statementBtn + ' ');
-                    }
-                });
-            }
+            "autoWidth": false
         });
-        
-        var baseUrl = '{!! url('/') !!}';
 
         $('#loan-data-table').DataTable({
             processing: true,
@@ -1165,3 +1111,27 @@ body {
     });
 </script>
 @endsection
+BLADE;
+
+echo "Writing ultra-modern content...\n";
+file_put_contents($filePath, $ultraModernContent);
+
+echo "\n===========================================\n";
+echo "✅ ULTRA-MODERN REDESIGN COMPLETE!\n";
+echo "===========================================\n\n";
+
+echo "Features:\n";
+echo "  ✓ Gradient hero section with animated background\n";
+echo "  ✓ Modern card-based layout\n";
+echo "  ✓ Sleek stat cards with hover effects\n";
+echo "  ✓ Contemporary color scheme\n";
+echo "  ✓ Smooth animations and transitions\n";
+echo "  ✓ Responsive grid system\n";
+echo "  ✓ Modern tab navigation\n";
+echo "  ✓ Ultra-modern buttons with ripple effects\n";
+echo "  ✓ Clean, spacious design\n";
+echo "  ✓ Professional banking aesthetics\n\n";
+
+echo "Backup: $backupPath\n\n";
+echo "Clear cache and visit /client/13/show\n";
+echo "===========================================\n";

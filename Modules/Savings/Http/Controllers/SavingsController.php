@@ -156,9 +156,15 @@ class SavingsController extends Controller
             }
 
         })->editColumn('action', function ($data) {
-
-            $action = '<a href="' . url('savings/' . $data->id . '/show') . '" class="btn btn-info">' . trans_choice('general.detail', 2) . '</a>';
-
+            $action = '<div class="action-buttons-group">';
+            
+            // Statement button
+            $action .= '<a href="' . url('savings/' . $data->id . '/statement') . '" class="btn btn-statement btn-sm" target="_blank" title="View Statement"><i class="fas fa-file-invoice"></i> Statement</a>';
+            
+            // Details button
+            $action .= '<a href="' . url('savings/' . $data->id . '/show') . '" class="btn btn-info btn-sm" title="View Details"><i class="fas fa-eye"></i> Details</a>';
+            
+            $action .= '</div>';
             return $action;
         })->editColumn('id', function ($data) {
             return '<a href="' . url('savings/' . $data->id . '/show') . '" class="">' . $data->id . '</a>';
@@ -1427,6 +1433,7 @@ class SavingsController extends Controller
         
         // Get transactions within date range
         $transactions = $savings->transactions()
+            ->with('savings_transaction_type')
             ->where('reversed', 0)
             ->whereBetween('submitted_on', [$start_date, $end_date])
             ->orderBy('submitted_on', 'asc')
@@ -1450,6 +1457,7 @@ class SavingsController extends Controller
         $end_date = $request->end_date ?? Carbon::now()->format('Y-m-d');
         
         $transactions = $savings->transactions()
+            ->with('savings_transaction_type')
             ->where('reversed', 0)
             ->whereBetween('submitted_on', [$start_date, $end_date])
             ->orderBy('submitted_on', 'asc')
@@ -1472,6 +1480,7 @@ class SavingsController extends Controller
         $end_date = $request->end_date ?? Carbon::now()->format('Y-m-d');
         
         $transactions = $savings->transactions()
+            ->with('savings_transaction_type')
             ->where('reversed', 0)
             ->whereBetween('submitted_on', [$start_date, $end_date])
             ->orderBy('submitted_on', 'asc')

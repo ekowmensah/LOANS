@@ -443,7 +443,7 @@
                             <td>{{ date('d M Y', strtotime($transaction->submitted_on)) }}</td>
                             <td>
                                 <span class="transaction-type {{ $type_class }}">
-                                    {{ $transaction->savings_transaction_type->name }}
+                                    {{ $transaction->savings_transaction_type->name ?? 'N/A' }}
                                 </span>
                             </td>
                             <td>{{ $transaction->id }}</td>

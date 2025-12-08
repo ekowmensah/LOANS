@@ -30,4 +30,9 @@ class SavingsTransaction extends Model
     {
         return $this->hasOne(SavingsLinkedCharge::class, 'id', 'savings_linked_charge_id');
     }
+
+    public function savings_transaction_type()
+    {
+        return $this->belongsTo(SavingsTransactionType::class, 'savings_transaction_type_id');
+    }
 }
