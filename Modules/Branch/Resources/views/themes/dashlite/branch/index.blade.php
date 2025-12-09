@@ -199,6 +199,11 @@
                                     <label class="custom-control-label" for="selectAll"></label>
                                 </div>
                             </div>
+                            <div class="nk-tb-col">
+                                <a href="{{table_order_link('id')}}">
+                                    <span class="sub-text">ID</span>
+                                </a>
+                            </div>
                             <div class="nk-tb-col tb-col-mb">
                                 <a href="{{table_order_link('name')}}">
                                     <span class="sub-text">{{ trans_choice('core::general.name',1) }}</span>
@@ -222,6 +227,9 @@
                                                v-model="selectedRecords" v-on:click="selectAll=false" id="{{$key->id}}">
                                         <label class="custom-control-label" for="{{$key->id}}"></label>
                                     </div>
+                                </div>
+                                <div class="nk-tb-col">
+                                    <span class="badge badge-dim badge-secondary">{{$key->id}}</span>
                                 </div>
                                 <div class="nk-tb-col  tb-col-mb">
                                     <a href="{{url('branch/' . $key->id . '/show')}}">

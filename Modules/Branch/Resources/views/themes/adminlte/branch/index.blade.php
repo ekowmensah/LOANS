@@ -79,6 +79,11 @@
                     <thead>
                     <tr>
                         <th>
+                            <a href="{{table_order_link('id')}}">
+                                ID
+                            </a>
+                        </th>
+                        <th>
                             <a href="{{table_order_link('name')}}">
                                 {{ trans_choice('core::general.name',1) }}
                             </a>
@@ -97,6 +102,9 @@
                     <tbody>
                     @foreach($data as $key)
                         <tr>
+                            <td>
+                                <span class="badge badge-secondary">{{$key->id}}</span>
+                            </td>
                             <td>
                                 <a href="{{url('branch/' . $key->id . '/show')}}" class="font-weight-bold">
                                     {{$key->name}}
@@ -161,6 +169,7 @@
                     </tbody>
                     <tfoot class="bg-light">
                         <tr>
+                            <th></th>
                             <th class="text-right">TOTALS:</th>
                             <th class="text-center">
                                 <span class="badge badge-primary">{{$data->sum('total_clients')}}</span>
