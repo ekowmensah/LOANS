@@ -150,17 +150,17 @@
                                 </a>
                             </td>
                             <td>
-                                <a href="{{url('branch/'.$key->id.'/show')}}">
+                                <a href="{{url('branch/'.$key->branch_id.'/show')}}">
                                     <span>{{$key->branch}}</span>
                                 </a>
                             </td>
                             <td>
-                                <a href="{{url('user/'.$key->id.'/show')}}">
+                                <a href="{{url('user/'.$key->savings_officer_id.'/show')}}">
                                     <span>{{$key->savings_officer}}</span>
                                 </a>
                             </td>
                             <td>
-                                <a href="{{url('client/'.$key->id.'/show')}}">
+                                <a href="{{url('client/'.$key->client_id.'/show')}}">
                                     <span>{{$key->client}}</span>
                                 </a>
                             </td>

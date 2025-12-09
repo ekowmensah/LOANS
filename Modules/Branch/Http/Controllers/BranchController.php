@@ -142,8 +142,202 @@ class BranchController extends Controller
     public function show($id)
     {
         $branch = Branch::with('users')->find($id);
+        
+        if (!$branch) {
+            abort(404, 'Branch not found');
+        }
+        
         $custom_fields = CustomField::where('category', 'add_branch')->where('active', 1)->get();
-        return theme_view('branch::branch.show', compact('branch', 'custom_fields'));
+        
+        // Client Statistics
+        $total_clients = \DB::table('clients')->where('branch_id', $id)->count();
+        $active_clients = \DB::table('clients')->where('branch_id', $id)->where('status', 'active')->count();
+        $inactive_clients = \DB::table('clients')->where('branch_id', $id)->where('status', 'inactive')->count();
+        
+        // Group Statistics
+        $total_groups = \DB::table('groups')->where('branch_id', $id)->count();
+        $active_groups = \DB::table('groups')->where('branch_id', $id)->where('status', 'active')->count();
+        
+        // Loan Statistics
+        $loan_stats = \DB::table('loans')
+            ->where('branch_id', $id)
+            ->selectRaw('
+                COUNT(*) as total_loans,
+                COUNT(CASE WHEN status = "active" THEN 1 END) as active_loans,
+                COUNT(CASE WHEN status = "pending" THEN 1 END) as pending_loans,
+                COUNT(CASE WHEN status = "approved" THEN 1 END) as approved_loans,
+                COUNT(CASE WHEN status = "disbursed" THEN 1 END) as disbursed_loans,
+                COUNT(CASE WHEN status = "closed" THEN 1 END) as closed_loans,
+                COUNT(CASE WHEN status = "written_off" THEN 1 END) as written_off_loans,
+                COUNT(CASE WHEN status = "rescheduled" THEN 1 END) as rescheduled_loans,
+                COUNT(CASE WHEN status = "overpaid" THEN 1 END) as overpaid_loans,
+                COALESCE(SUM(principal), 0) as total_principal,
+                COALESCE(SUM(principal_disbursed_derived), 0) as principal_disbursed,
+                COALESCE(SUM(principal_repaid_derived), 0) as principal_repaid,
+                COALESCE(SUM(principal_written_off_derived), 0) as principal_written_off,
+                COALESCE(SUM(principal_disbursed_derived - principal_repaid_derived - principal_written_off_derived), 0) as principal_outstanding,
+                COALESCE(SUM(interest_disbursed_derived), 0) as interest_disbursed,
+                COALESCE(SUM(interest_repaid_derived), 0) as interest_repaid,
+                COALESCE(SUM(interest_written_off_derived), 0) as interest_written_off,
+                COALESCE(SUM(interest_waived_derived), 0) as interest_waived,
+                COALESCE(SUM(interest_disbursed_derived - interest_repaid_derived - interest_written_off_derived - interest_waived_derived), 0) as interest_outstanding,
+                COALESCE(SUM(fees_disbursed_derived), 0) as fees_disbursed,
+                COALESCE(SUM(fees_repaid_derived), 0) as fees_repaid,
+                COALESCE(SUM(fees_written_off_derived), 0) as fees_written_off,
+                COALESCE(SUM(fees_waived_derived), 0) as fees_waived,
+                COALESCE(SUM(penalties_disbursed_derived), 0) as penalties_disbursed,
+                COALESCE(SUM(penalties_repaid_derived), 0) as penalties_repaid,
+                COALESCE(SUM(penalties_written_off_derived), 0) as penalties_written_off,
+                COALESCE(SUM(penalties_waived_derived), 0) as penalties_waived
+            ')
+            ->first();
+        
+        // Ensure loan_stats is not null
+        if (!$loan_stats) {
+            $loan_stats = (object)[
+                'total_loans' => 0,
+                'active_loans' => 0,
+                'pending_loans' => 0,
+                'approved_loans' => 0,
+                'disbursed_loans' => 0,
+                'closed_loans' => 0,
+                'written_off_loans' => 0,
+                'rescheduled_loans' => 0,
+                'overpaid_loans' => 0,
+                'total_principal' => 0,
+                'principal_disbursed' => 0,
+                'principal_repaid' => 0,
+                'principal_written_off' => 0,
+                'principal_outstanding' => 0,
+                'interest_disbursed' => 0,
+                'interest_repaid' => 0,
+                'interest_written_off' => 0,
+                'interest_waived' => 0,
+                'interest_outstanding' => 0,
+                'fees_disbursed' => 0,
+                'fees_repaid' => 0,
+                'fees_written_off' => 0,
+                'fees_waived' => 0,
+                'penalties_disbursed' => 0,
+                'penalties_repaid' => 0,
+                'penalties_written_off' => 0,
+                'penalties_waived' => 0,
+            ];
+        }
+        
+        // Savings Statistics
+        $savings_stats = \DB::table('savings')
+            ->where('branch_id', $id)
+            ->selectRaw('
+                COUNT(*) as total_savings,
+                COUNT(CASE WHEN status = "active" THEN 1 END) as active_savings,
+                COUNT(CASE WHEN status = "inactive" THEN 1 END) as inactive_savings,
+                COUNT(CASE WHEN status = "closed" THEN 1 END) as closed_savings,
+                COUNT(CASE WHEN status = "withdrawn" THEN 1 END) as withdrawn_savings,
+                COALESCE(SUM(CASE WHEN status = "active" THEN balance_derived ELSE 0 END), 0) as total_balance,
+                COALESCE(SUM(total_deposits_derived), 0) as total_deposits,
+                COALESCE(SUM(total_withdrawals_derived), 0) as total_withdrawals,
+                COALESCE(SUM(total_interest_posted_derived), 0) as total_interest_posted
+            ')
+            ->first();
+        
+        // Ensure savings_stats is not null
+        if (!$savings_stats) {
+            $savings_stats = (object)[
+                'total_savings' => 0,
+                'active_savings' => 0,
+                'inactive_savings' => 0,
+                'closed_savings' => 0,
+                'withdrawn_savings' => 0,
+                'total_balance' => 0,
+                'total_deposits' => 0,
+                'total_withdrawals' => 0,
+                'total_interest_posted' => 0,
+            ];
+        }
+        
+        // Loan Portfolio Quality (PAR - Portfolio at Risk)
+        $par_stats = \DB::table('loans')
+            ->leftJoin('loan_repayment_schedules', 'loan_repayment_schedules.loan_id', '=', 'loans.id')
+            ->where('loans.branch_id', $id)
+            ->where('loans.status', 'active')
+            ->selectRaw('
+                COALESCE(SUM(CASE WHEN loan_repayment_schedules.due_date < CURDATE() 
+                    AND (loan_repayment_schedules.principal - loan_repayment_schedules.principal_repaid_derived - loan_repayment_schedules.principal_written_off_derived) > 0 
+                    THEN (loan_repayment_schedules.principal - loan_repayment_schedules.principal_repaid_derived - loan_repayment_schedules.principal_written_off_derived) 
+                    ELSE 0 END), 0) as par_amount,
+                COALESCE(SUM(CASE WHEN loan_repayment_schedules.due_date < DATE_SUB(CURDATE(), INTERVAL 30 DAY) 
+                    AND (loan_repayment_schedules.principal - loan_repayment_schedules.principal_repaid_derived - loan_repayment_schedules.principal_written_off_derived) > 0 
+                    THEN (loan_repayment_schedules.principal - loan_repayment_schedules.principal_repaid_derived - loan_repayment_schedules.principal_written_off_derived) 
+                    ELSE 0 END), 0) as par_30,
+                COALESCE(SUM(CASE WHEN loan_repayment_schedules.due_date < DATE_SUB(CURDATE(), INTERVAL 90 DAY) 
+                    AND (loan_repayment_schedules.principal - loan_repayment_schedules.principal_repaid_derived - loan_repayment_schedules.principal_written_off_derived) > 0 
+                    THEN (loan_repayment_schedules.principal - loan_repayment_schedules.principal_repaid_derived - loan_repayment_schedules.principal_written_off_derived) 
+                    ELSE 0 END), 0) as par_90
+            ')
+            ->first();
+        
+        // Ensure par_stats is not null
+        if (!$par_stats) {
+            $par_stats = (object)[
+                'par_amount' => 0,
+                'par_30' => 0,
+                'par_90' => 0,
+            ];
+        }
+        
+        // Recent Loan Applications (Last 30 days)
+        $recent_loan_applications = \DB::table('loans')
+            ->where('branch_id', $id)
+            ->where('created_at', '>=', \DB::raw('DATE_SUB(CURDATE(), INTERVAL 30 DAY)'))
+            ->count();
+        
+        // Recent Loan Disbursements (Last 30 days)
+        $recent_disbursements = \DB::table('loans')
+            ->where('branch_id', $id)
+            ->where('disbursed_on_date', '>=', \DB::raw('DATE_SUB(CURDATE(), INTERVAL 30 DAY)'))
+            ->selectRaw('
+                COUNT(*) as count,
+                COALESCE(SUM(principal_disbursed_derived), 0) as amount
+            ')
+            ->first();
+        
+        // Ensure recent_disbursements is not null
+        if (!$recent_disbursements) {
+            $recent_disbursements = (object)[
+                'count' => 0,
+                'amount' => 0,
+            ];
+        }
+        
+        // Monthly trends (Last 6 months)
+        $monthly_trends = \DB::table('loans')
+            ->where('branch_id', $id)
+            ->where('disbursed_on_date', '>=', \DB::raw('DATE_SUB(CURDATE(), INTERVAL 6 MONTH)'))
+            ->selectRaw('
+                DATE_FORMAT(disbursed_on_date, "%Y-%m") as month,
+                COUNT(*) as loan_count,
+                COALESCE(SUM(principal_disbursed_derived), 0) as disbursed_amount
+            ')
+            ->groupBy('month')
+            ->orderBy('month', 'desc')
+            ->get();
+        
+        return theme_view('branch::branch.show', compact(
+            'branch', 
+            'custom_fields',
+            'total_clients',
+            'active_clients',
+            'inactive_clients',
+            'total_groups',
+            'active_groups',
+            'loan_stats',
+            'savings_stats',
+            'par_stats',
+            'recent_loan_applications',
+            'recent_disbursements',
+            'monthly_trends'
+        ));
     }
 
     /**

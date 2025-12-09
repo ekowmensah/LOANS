@@ -87,7 +87,7 @@ class SavingsController extends Controller
             ->when($orderBy, function (Builder $query) use ($orderBy, $orderByDir) {
                 $query->orderBy($orderBy, $orderByDir);
             })
-            ->selectRaw("concat(clients.first_name,' ',clients.last_name) client,concat(users.first_name,' ',users.last_name) savings_officer,savings.id,savings.client_id,savings.interest_rate,savings.activated_on_date,savings_products.name savings_product,savings.status,savings.decimals,savings.balance_derived,savings.account_number,branches.name branch, COALESCE(SUM(COALESCE(savings_transactions.credit,0))-SUM(COALESCE(savings_transactions.debit,0)),0) balance")
+            ->selectRaw("concat(clients.first_name,' ',clients.last_name) client,concat(users.first_name,' ',users.last_name) savings_officer,savings.id,savings.client_id,savings.branch_id,savings.savings_officer_id,savings.interest_rate,savings.activated_on_date,savings_products.name savings_product,savings.status,savings.decimals,savings.balance_derived,savings.account_number,branches.name branch, COALESCE(SUM(COALESCE(savings_transactions.credit,0))-SUM(COALESCE(savings_transactions.debit,0)),0) balance")
             ->groupBy("savings.id")
             ->paginate($perPage)
             ->appends($request->input());

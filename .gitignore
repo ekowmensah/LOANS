@@ -35,3 +35,9 @@ STATEMENT_FIX_SUMMARY.md
 ULTRA_MODERN_CLIENT_SHOW_SUMMARY.md
 TELLER_RECEIPT_SYSTEM.md
 TELLER_REDESIGN_SUMMARY.md
+fix_duplicate_checks_and_edit.php
+Modules/Client/Database/Migrations/2025_12_09_000001_fix_client_mobile_numbers_remove_spaces.php
+Modules/Loan/Database/Migrations/2025_12_09_000002_add_last_penalty_applied_date_to_loan_linked_charges.php
+DUPLICATE_CHECK_TESTING.md
+CLIENT_WIZARD_STATUS.md
+CLIENT_CREATE_WIZARD_SUMMARY.md

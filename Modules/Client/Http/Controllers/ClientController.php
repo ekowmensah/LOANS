@@ -71,8 +71,8 @@ class ClientController extends Controller
             ->when($status, function ($query) use ($status) {
                 $query->where('clients.status', $status);
             })
-            ->selectRaw("branches.name branch,concat(users.first_name,' ',users.last_name) staff,clients.id,clients.loan_officer_id,clients.first_name,clients.last_name,clients.gender,clients.mobile,clients.email,clients.external_id,clients.status,clients.photo,savings.account_number as savings_account,savings.balance_derived as savings_balance,group_members.group_id,COUNT(DISTINCT loans.id) as loan_count")
-            ->groupBy('clients.id', 'branches.name', 'users.first_name', 'users.last_name', 'clients.loan_officer_id', 'clients.first_name', 'clients.last_name', 'clients.gender', 'clients.mobile', 'clients.email', 'clients.external_id', 'clients.status', 'clients.photo', 'savings.account_number', 'savings.balance_derived', 'group_members.group_id');
+            ->selectRaw("branches.name branch,concat(users.first_name,' ',users.last_name) staff,clients.id,clients.branch_id,clients.loan_officer_id,clients.first_name,clients.last_name,clients.gender,clients.mobile,clients.email,clients.external_id,clients.status,clients.photo,savings.account_number as savings_account,savings.balance_derived as savings_balance,group_members.group_id,COUNT(DISTINCT loans.id) as loan_count")
+            ->groupBy('clients.id', 'clients.branch_id', 'branches.name', 'users.first_name', 'users.last_name', 'clients.loan_officer_id', 'clients.first_name', 'clients.last_name', 'clients.gender', 'clients.mobile', 'clients.email', 'clients.external_id', 'clients.status', 'clients.photo', 'savings.account_number', 'savings.balance_derived', 'group_members.group_id');
         
         // Check if user wants to see all records
         if ($request->per_page === 'all') {
