@@ -180,6 +180,18 @@ class LoanChargeController extends Controller
         $loan_charge->is_penalty = $request->is_penalty;
         $loan_charge->active = $request->active;
         $loan_charge->allow_override = $request->allow_override;
+        
+        // Handle schedule frequency for overdue on loan maturity charges
+        if ($request->loan_charge_type_id == 7 && $request->schedule == 1) {
+            $loan_charge->schedule = 1;
+            $loan_charge->schedule_frequency = $request->schedule_frequency;
+            $loan_charge->schedule_frequency_type = $request->schedule_frequency_type;
+        } else {
+            $loan_charge->schedule = 0;
+            $loan_charge->schedule_frequency = null;
+            $loan_charge->schedule_frequency_type = null;
+        }
+        
         $loan_charge->save();
         activity()->on($loan_charge)
             ->withProperties(['id' => $loan_charge->id])
@@ -240,6 +252,18 @@ class LoanChargeController extends Controller
         $loan_charge->is_penalty = $request->is_penalty;
         $loan_charge->active = $request->active;
         $loan_charge->allow_override = $request->allow_override;
+        
+        // Handle schedule frequency for overdue on loan maturity charges
+        if ($request->loan_charge_type_id == 7 && $request->schedule == 1) {
+            $loan_charge->schedule = 1;
+            $loan_charge->schedule_frequency = $request->schedule_frequency;
+            $loan_charge->schedule_frequency_type = $request->schedule_frequency_type;
+        } else {
+            $loan_charge->schedule = 0;
+            $loan_charge->schedule_frequency = null;
+            $loan_charge->schedule_frequency_type = null;
+        }
+        
         $loan_charge->save();
         activity()->on($loan_charge)
             ->withProperties(['id' => $loan_charge->id])

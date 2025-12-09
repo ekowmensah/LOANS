@@ -22,6 +22,7 @@ class LoanServiceProvider extends ServiceProvider
         $this->app->booted(function () {
             $schedule = $this->app->make(Schedule::class);
             $schedule->command('loan_penalties:process')->daily();
+            $schedule->command('loan_maturity_penalties:process')->daily();
             $schedule->command('loans:update-provisioning-status')->daily();
         });
         app('arrilot.widget-namespaces')->registerNamespace('Loan', '\Modules\Loan\Widgets');
@@ -38,6 +39,7 @@ class LoanServiceProvider extends ServiceProvider
         $this->app->register(RouteServiceProvider::class);
         $this->commands([
             \Modules\Loan\Console\ProcessPenalties::class,
+            \Modules\Loan\Console\ProcessMaturityPenalties::class,
             \Modules\Loan\Console\FixSchedules::class,
             \Modules\Loan\Console\UpdateLoanProvisioningStatus::class,
         ]);

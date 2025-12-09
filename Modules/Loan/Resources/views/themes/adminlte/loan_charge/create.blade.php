@@ -187,6 +187,68 @@
                                 @enderror
                             </div>
                         </div>
+                        
+                        <!-- Frequency Settings for Overdue on Loan Maturity (Type 7) -->
+                        <div class="col-md-12" v-if="loan_charge_type_id == 7">
+                            <div class="card bg-light">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Recurring Penalty Settings</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-group">
+                                        <label for="schedule" class="control-label">Enable Recurring Penalty</label>
+                                        <select v-model="schedule" class="form-control" name="schedule" id="schedule">
+                                            <option value="0">No - Apply Once Only</option>
+                                            <option value="1">Yes - Apply Repeatedly</option>
+                                        </select>
+                                        <small class="form-text text-muted">
+                                            If enabled, this penalty will be applied repeatedly based on the frequency below
+                                        </small>
+                                    </div>
+                                    
+                                    <div v-if="schedule == 1">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="schedule_frequency" class="control-label">Frequency</label>
+                                                    <input type="number" name="schedule_frequency" v-model="schedule_frequency"
+                                                           id="schedule_frequency" min="1"
+                                                           class="form-control @error('schedule_frequency') is-invalid @enderror"
+                                                           :required="schedule == 1">
+                                                    @error('schedule_frequency')
+                                                    <span class="invalid-feedback" role="alert">
+                                                        <strong>{{ $message }}</strong>
+                                                    </span>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="schedule_frequency_type" class="control-label">Frequency Type</label>
+                                                    <select v-model="schedule_frequency_type" class="form-control @error('schedule_frequency_type') is-invalid @enderror" 
+                                                            name="schedule_frequency_type" id="schedule_frequency_type" :required="schedule == 1">
+                                                        <option value="days">Days</option>
+                                                        <option value="weeks">Weeks</option>
+                                                        <option value="months">Months</option>
+                                                        <option value="years">Years</option>
+                                                    </select>
+                                                    @error('schedule_frequency_type')
+                                                    <span class="invalid-feedback" role="alert">
+                                                        <strong>{{ $message }}</strong>
+                                                    </span>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="alert alert-info" v-if="schedule_frequency && schedule_frequency_type">
+                                            <i class="fas fa-info-circle"></i>
+                                            <strong>Example:</strong> Penalty will be applied every <strong>@{{ schedule_frequency }} @{{ schedule_frequency_type }}</strong> 
+                                            while the loan remains overdue past maturity date.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="card-footer border-top ">
@@ -210,6 +272,9 @@
                 active: "{{old('active',1)}}",
                 is_penalty: "{{old('is_penalty',0)}}",
                 allow_override: "{{old('allow_override',0)}}",
+                schedule: "{{old('schedule',0)}}",
+                schedule_frequency: "{{old('schedule_frequency','')}}",
+                schedule_frequency_type: "{{old('schedule_frequency_type','days')}}",
                 charge_types: {!! json_encode($charge_types) !!},
                 charge_options: {!! json_encode($charge_options) !!},
                 currencies: {!! json_encode($currencies) !!},
