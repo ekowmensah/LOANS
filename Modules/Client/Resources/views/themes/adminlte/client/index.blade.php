@@ -60,6 +60,8 @@
                             </a>
                             <a href="{{request()->fullUrlWithQuery(['per_page'=>50])}}"
                                class="dropdown-item {{request('per_page')==50?'active':''}}">50</a>
+                            <a href="{{request()->fullUrlWithQuery(['per_page'=>'all'])}}"
+                               class="dropdown-item {{request('per_page')=='all'?'active':''}}">All</a>
                             <a class="dropdown-item">Order</a>
                             <a href="{{request()->fullUrlWithQuery(['order_by_dir'=>'asc'])}}"
                                class="dropdown-item {{(request('order_by_dir')=='asc'||!request('order_by_dir'))?'active':''}}">

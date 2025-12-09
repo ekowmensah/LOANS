@@ -52,7 +52,7 @@ class ClientController extends Controller
         $orderByDir = $request->order_by_dir;
         $search = $request->s;
         $status = $request->status;
-        $data = Client::leftJoin("branches", "branches.id", "clients.branch_id")
+        $query = Client::leftJoin("branches", "branches.id", "clients.branch_id")
             ->leftJoin("users", "users.id", "clients.loan_officer_id")
             ->leftJoin("savings", "savings.client_id", "=", "clients.id")
             ->leftJoin("group_members", "group_members.client_id", "=", "clients.id")
@@ -72,9 +72,23 @@ class ClientController extends Controller
                 $query->where('clients.status', $status);
             })
             ->selectRaw("branches.name branch,concat(users.first_name,' ',users.last_name) staff,clients.id,clients.loan_officer_id,clients.first_name,clients.last_name,clients.gender,clients.mobile,clients.email,clients.external_id,clients.status,clients.photo,savings.account_number as savings_account,savings.balance_derived as savings_balance,group_members.group_id,COUNT(DISTINCT loans.id) as loan_count")
-            ->groupBy('clients.id', 'branches.name', 'users.first_name', 'users.last_name', 'clients.loan_officer_id', 'clients.first_name', 'clients.last_name', 'clients.gender', 'clients.mobile', 'clients.email', 'clients.external_id', 'clients.status', 'clients.photo', 'savings.account_number', 'savings.balance_derived', 'group_members.group_id')
-            ->paginate($perPage)
-            ->appends($request->input());
+            ->groupBy('clients.id', 'branches.name', 'users.first_name', 'users.last_name', 'clients.loan_officer_id', 'clients.first_name', 'clients.last_name', 'clients.gender', 'clients.mobile', 'clients.email', 'clients.external_id', 'clients.status', 'clients.photo', 'savings.account_number', 'savings.balance_derived', 'group_members.group_id');
+        
+        // Check if user wants to see all records
+        if ($request->per_page === 'all') {
+            $data = $query->get();
+            // Wrap in a paginator-like object for compatibility with the view
+            $data = new \Illuminate\Pagination\LengthAwarePaginator(
+                $data,
+                $data->count(),
+                $data->count(),
+                1,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+        } else {
+            $data = $query->paginate($perPage)->appends($request->input());
+        }
+        
         return theme_view('client::client.index', compact('data'));
     }
 
