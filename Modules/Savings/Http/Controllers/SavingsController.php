@@ -1767,7 +1767,7 @@ class SavingsController extends Controller
                     $transaction->credit = $balanceData['balance_brought_forward'];
                     $transaction->debit = 0;
                     $transaction->balance = $balanceData['balance_brought_forward'];
-                    $transaction->notes = $balanceData['notes'] ?? 'Balance Brought Forward - Bulk Upload';
+                    $transaction->description = $balanceData['notes'] ?? 'Balance Brought Forward - Bulk Upload';
                     $transaction->reversible = 1;
                     $transaction->save();
                     
