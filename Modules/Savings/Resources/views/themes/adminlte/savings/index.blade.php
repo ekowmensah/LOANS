@@ -31,6 +31,14 @@
                     <a href="{{ url('savings/create') }}" class="btn btn-info btn-sm">
                         <i class="fas fa-plus"></i> {{ trans_choice('core::general.add',1) }} {{ trans_choice('savings::general.savings',1) }}
                     </a>
+                    <a href="{{ url('savings/bulk-upload-balance') }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-upload"></i> Bulk Upload Balance
+                    </a>
+                @endcan
+                @can('savings.savings.index')
+                    <a href="{{ url('savings/export') }}" class="btn btn-primary btn-sm" title="Export all savings accounts to CSV">
+                        <i class="fas fa-download"></i> Export All to CSV
+                    </a>
                 @endcan
                 <div class="btn-group">
                     <div class="dropdown">

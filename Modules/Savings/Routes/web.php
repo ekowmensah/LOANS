@@ -14,9 +14,14 @@
 Route::prefix('savings')->group(function () {
     Route::get('/', 'SavingsController@index');
     Route::get('get_savings', 'SavingsController@get_savings');
+    Route::get('export', 'SavingsController@export');
     Route::get('test', 'SavingsController@test');
     Route::get('create', 'SavingsController@create');
     Route::post('store', 'SavingsController@store');
+    Route::get('bulk-upload-balance', 'SavingsController@bulk_upload_balance');
+    Route::post('bulk-upload-balance/validate', 'SavingsController@validate_bulk_upload_balance');
+    Route::post('bulk-upload-balance/process', 'SavingsController@process_bulk_upload_balance');
+    Route::get('bulk-upload-balance/template', 'SavingsController@download_balance_template');
     Route::get('{id}/show', 'SavingsController@show');
     Route::get('{id}/statement', 'SavingsController@statement');
     Route::get('{id}/statement/print', 'SavingsController@print_statement');

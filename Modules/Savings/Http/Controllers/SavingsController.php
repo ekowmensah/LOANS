@@ -31,8 +31,8 @@ class SavingsController extends Controller
     public function __construct()
     {
         $this->middleware(['auth', '2fa']);
-        $this->middleware(['permission:savings.savings.index'])->only(['index', 'show', 'statement', 'print_statement', 'pdf_statement']);
-        $this->middleware(['permission:savings.savings.create'])->only(['create', 'store']);
+        $this->middleware(['permission:savings.savings.index'])->only(['index', 'show', 'statement', 'print_statement', 'pdf_statement', 'export']);
+        $this->middleware(['permission:savings.savings.create'])->only(['create', 'store', 'bulk_upload_balance', 'validate_bulk_upload_balance', 'process_bulk_upload_balance', 'download_balance_template']);
         $this->middleware(['permission:savings.savings.edit'])->only(['edit', 'update', 'change_savings_officer']);
         $this->middleware(['permission:savings.savings.destroy'])->only(['destroy']);
         $this->middleware(['permission:savings.savings.approve_savings'])->only(['approve_savings', 'undo_approval', 'reject_savings', 'undo_rejection']);
@@ -1494,6 +1494,322 @@ class SavingsController extends Controller
         
         $pdf = PDF::loadView('savings::themes.adminlte.savings.pdf_statement', compact('savings', 'transactions', 'start_date', 'end_date', 'opening_balance'));
         return $pdf->download('statement_' . $savings->account_number . '_' . date('Y-m-d') . '.pdf');
+    }
+
+    /**
+     * Export savings to CSV - exports ALL accounts
+     */
+    public function export(Request $request)
+    {
+        // Note: Ignoring filters to export ALL accounts
+        $query = Savings::leftJoin("clients", "clients.id", "savings.client_id")
+            ->leftJoin("savings_products", "savings_products.id", "savings.savings_product_id")
+            ->leftJoin("branches", "branches.id", "savings.branch_id")
+            ->leftJoin("users", "users.id", "savings.savings_officer_id")
+            ->selectRaw("
+                savings.id,
+                savings.account_number,
+                concat(clients.first_name,' ',clients.last_name) as client_name,
+                clients.mobile,
+                clients.email,
+                savings_products.name as savings_product,
+                savings.balance_derived,
+                savings.total_deposits_derived,
+                savings.total_withdrawals_derived,
+                savings.interest_rate,
+                savings.status,
+                savings.activated_on_date,
+                branches.name as branch,
+                concat(users.first_name,' ',users.last_name) as savings_officer
+            ")
+            ->orderBy('savings.id', 'asc')
+            ->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="savings_export_' . date('Y-m-d_His') . '.csv"',
+        ];
+
+        $columns = [
+            'ID',
+            'Account Number',
+            'Client Name',
+            'Mobile',
+            'Email',
+            'Savings Product',
+            'Balance',
+            'Total Deposits',
+            'Total Withdrawals',
+            'Interest Rate (%)',
+            'Status',
+            'Activated Date',
+            'Branch',
+            'Savings Officer'
+        ];
+
+        $callback = function() use ($query, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+            
+            foreach ($query as $savings) {
+                fputcsv($file, [
+                    $savings->id,
+                    $savings->account_number,
+                    $savings->client_name,
+                    $savings->mobile ?? '',
+                    $savings->email ?? '',
+                    $savings->savings_product,
+                    number_format($savings->balance_derived, 2, '.', ''),
+                    number_format($savings->total_deposits_derived, 2, '.', ''),
+                    number_format($savings->total_withdrawals_derived, 2, '.', ''),
+                    number_format($savings->interest_rate, 2, '.', ''),
+                    ucfirst($savings->status),
+                    $savings->activated_on_date ?? '',
+                    $savings->branch ?? '',
+                    $savings->savings_officer ?? ''
+                ]);
+            }
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Show bulk upload balance form
+     */
+    public function bulk_upload_balance()
+    {
+        return theme_view('savings::savings.bulk_upload_balance');
+    }
+
+    /**
+     * Download CSV template for bulk upload balance
+     */
+    public function download_balance_template()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="savings_balance_template.csv"',
+        ];
+
+        $columns = [
+            'account_number',
+            'client_name',
+            'balance_brought_forward',
+            'transaction_date',
+            'notes'
+        ];
+
+        $callback = function() use ($columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+            
+            // Add sample row
+            fputcsv($file, [
+                'SAV001',
+                'John Doe',
+                '1000.00',
+                date('Y-m-d'),
+                'Opening balance'
+            ]);
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Validate bulk upload balance
+     */
+    public function validate_bulk_upload_balance(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'], // 5MB max
+        ]);
+
+        try {
+            $file = $request->file('file');
+            $path = $file->getRealPath();
+            $data = array_map('str_getcsv', file($path));
+            
+            // Get header row
+            $header = array_shift($data);
+            
+            // Validate header
+            $requiredColumns = ['account_number', 'balance_brought_forward', 'transaction_date'];
+            $missingColumns = array_diff($requiredColumns, $header);
+            
+            if (!empty($missingColumns)) {
+                Flash::error('Missing required columns: ' . implode(', ', $missingColumns));
+                return redirect()->back();
+            }
+            
+            // Validate each row and collect results
+            $validRows = [];
+            $invalidRows = [];
+            $rowNumber = 2; // Start from 2 (1 is header)
+            
+            foreach ($data as $index => $row) {
+                // Skip empty rows
+                if (empty(array_filter($row))) {
+                    continue;
+                }
+                
+                // Map row to associative array
+                $balanceData = array_combine($header, $row);
+                $errors = [];
+                
+                // Validate required fields
+                if (empty($balanceData['account_number'])) {
+                    $errors[] = 'Account number is required';
+                } else {
+                    // Check if savings account exists
+                    $savings = Savings::where('account_number', $balanceData['account_number'])->first();
+                    if (!$savings) {
+                        $errors[] = 'Savings account not found';
+                    } elseif ($savings->status !== 'active') {
+                        $errors[] = 'Savings account must be active';
+                    } else {
+                        $balanceData['savings_id'] = $savings->id;
+                        // Use client name from database (overrides CSV if provided)
+                        $balanceData['client_name'] = $savings->client ? $savings->client->first_name . ' ' . $savings->client->last_name : 'N/A';
+                    }
+                }
+                
+                // Keep client_name from CSV if account not found (for error display)
+                if (!isset($balanceData['client_name']) && !empty($balanceData['client_name'])) {
+                    // Client name from CSV is already in $balanceData
+                }
+                
+                if (empty($balanceData['balance_brought_forward'])) {
+                    $errors[] = 'Balance brought forward is required';
+                } elseif (!is_numeric($balanceData['balance_brought_forward'])) {
+                    $errors[] = 'Balance must be a valid number';
+                } elseif ($balanceData['balance_brought_forward'] < 0) {
+                    $errors[] = 'Balance cannot be negative';
+                }
+                
+                if (empty($balanceData['transaction_date'])) {
+                    $errors[] = 'Transaction date is required';
+                } elseif (!strtotime($balanceData['transaction_date'])) {
+                    $errors[] = 'Invalid date format. Use YYYY-MM-DD';
+                }
+                
+                $balanceData['row_number'] = $rowNumber;
+                
+                if (empty($errors)) {
+                    $validRows[] = $balanceData;
+                } else {
+                    $balanceData['errors'] = $errors;
+                    $invalidRows[] = $balanceData;
+                }
+                
+                $rowNumber++;
+            }
+            
+            // Store data in session for processing
+            session(['bulk_balance_data' => [
+                'valid' => $validRows,
+                'invalid' => $invalidRows,
+                'total' => count($validRows) + count($invalidRows)
+            ]]);
+            
+            return theme_view('savings::savings.bulk_upload_balance_preview', compact('validRows', 'invalidRows'));
+            
+        } catch (\Exception $e) {
+            Flash::error('Error processing file: ' . $e->getMessage());
+            return redirect()->back();
+        }
+    }
+
+    /**
+     * Process bulk upload balance
+     */
+    public function process_bulk_upload_balance(Request $request)
+    {
+        $bulkData = session('bulk_balance_data');
+        
+        if (!$bulkData || empty($bulkData['valid'])) {
+            Flash::error('No valid data to process');
+            return redirect('savings/bulk-upload-balance');
+        }
+        
+        DB::beginTransaction();
+        
+        try {
+            $successCount = 0;
+            $failCount = 0;
+            $errors = [];
+            
+            foreach ($bulkData['valid'] as $balanceData) {
+                try {
+                    $savings = Savings::find($balanceData['savings_id']);
+                    
+                    if (!$savings) {
+                        $failCount++;
+                        $errors[] = "Row {$balanceData['row_number']}: Savings account not found";
+                        continue;
+                    }
+                    
+                    // Create a deposit transaction for balance brought forward
+                    $transaction = new SavingsTransaction();
+                    $transaction->created_by_id = Auth::id();
+                    $transaction->savings_id = $savings->id;
+                    $transaction->branch_id = $savings->branch_id;
+                    $transaction->name = 'Balance Brought Forward';
+                    $transaction->savings_transaction_type_id = 1; // Deposit
+                    $transaction->submitted_on = $balanceData['transaction_date'];
+                    $transaction->created_on = date('Y-m-d');
+                    $transaction->amount = $balanceData['balance_brought_forward'];
+                    $transaction->credit = $balanceData['balance_brought_forward'];
+                    $transaction->debit = 0;
+                    $transaction->balance = $balanceData['balance_brought_forward'];
+                    $transaction->notes = $balanceData['notes'] ?? 'Balance Brought Forward - Bulk Upload';
+                    $transaction->reversible = 1;
+                    $transaction->save();
+                    
+                    // Update savings balance
+                    $savings->balance_derived = $balanceData['balance_brought_forward'];
+                    $savings->total_deposits_derived = $balanceData['balance_brought_forward'];
+                    $savings->save();
+                    
+                    activity()->on($savings)
+                        ->withProperties(['id' => $savings->id, 'amount' => $balanceData['balance_brought_forward']])
+                        ->log('Bulk Upload Balance Brought Forward');
+                    
+                    event(new TransactionUpdated($savings));
+                    
+                    $successCount++;
+                    
+                } catch (\Exception $e) {
+                    $failCount++;
+                    $errors[] = "Row {$balanceData['row_number']}: " . $e->getMessage();
+                }
+            }
+            
+            DB::commit();
+            
+            // Clear session data
+            session()->forget('bulk_balance_data');
+            
+            if ($successCount > 0) {
+                Flash::success("Successfully processed {$successCount} balance(s)");
+            }
+            
+            if ($failCount > 0) {
+                Flash::warning("Failed to process {$failCount} balance(s). " . implode('; ', $errors));
+            }
+            
+            return redirect('savings');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Flash::error('Error processing bulk upload: ' . $e->getMessage());
+            return redirect()->back();
+        }
     }
 
     public function test()
