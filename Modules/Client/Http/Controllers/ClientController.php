@@ -747,6 +747,7 @@ class ClientController extends Controller
             $csvExternalIds = [];
             $csvMobiles = [];
             $csvGhanaCards = [];
+            $csvEmails = [];
             
             foreach ($data as $index => $row) {
                 // Skip empty rows
@@ -789,6 +790,59 @@ class ClientController extends Controller
                     $errors[] = 'Invalid email format';
                 }
                 
+                // Validate marital_status if provided
+                if (!empty($clientData['marital_status'])) {
+                    $validMaritalStatuses = ['single', 'married', 'divorced', 'widowed'];
+                    if (!in_array(strtolower($clientData['marital_status']), $validMaritalStatuses)) {
+                        $errors[] = 'Invalid marital status. Must be: single, married, divorced, or widowed';
+                    }
+                }
+                
+                // Validate created_date if provided
+                if (!empty($clientData['created_date']) && !strtotime($clientData['created_date'])) {
+                    $errors[] = 'Invalid date format for created_date. Use YYYY-MM-DD';
+                }
+                
+                // Validate loan_officer_id if provided
+                if (!empty($clientData['loan_officer_id'])) {
+                    $loanOfficer = User::find($clientData['loan_officer_id']);
+                    if (!$loanOfficer) {
+                        $errors[] = 'Invalid loan officer ID';
+                    }
+                }
+                
+                // Validate title_id if provided
+                if (!empty($clientData['title_id'])) {
+                    $title = Title::find($clientData['title_id']);
+                    if (!$title) {
+                        $errors[] = 'Invalid title ID';
+                    }
+                }
+                
+                // Validate profession_id if provided
+                if (!empty($clientData['profession_id'])) {
+                    $profession = Profession::find($clientData['profession_id']);
+                    if (!$profession) {
+                        $errors[] = 'Invalid profession ID';
+                    }
+                }
+                
+                // Validate client_type_id if provided
+                if (!empty($clientData['client_type_id'])) {
+                    $clientType = ClientType::find($clientData['client_type_id']);
+                    if (!$clientType) {
+                        $errors[] = 'Invalid client type ID';
+                    }
+                }
+                
+                // Validate country_id if provided
+                if (!empty($clientData['country_id'])) {
+                    $country = Country::find($clientData['country_id']);
+                    if (!$country) {
+                        $errors[] = 'Invalid country ID';
+                    }
+                }
+                
                 // Check for duplicates in database
                 if (!empty($clientData['external_id'])) {
                     $existingClient = Client::where('external_id', $clientData['external_id'])->first();
@@ -829,6 +883,20 @@ class ClientController extends Controller
                         $errors[] = 'Ghana Card duplicated in CSV (also in row ' . $csvGhanaCards[$clientData['ghana_card']] . ')';
                     } else {
                         $csvGhanaCards[$clientData['ghana_card']] = $rowNumber;
+                    }
+                }
+                
+                if (!empty($clientData['email'])) {
+                    $existingClient = Client::where('email', $clientData['email'])->first();
+                    if ($existingClient) {
+                        $errors[] = 'Email already exists in database (Client: ' . $existingClient->name . ')';
+                    }
+                    
+                    // Check for duplicates within CSV
+                    if (isset($csvEmails[$clientData['email']])) {
+                        $errors[] = 'Email duplicated in CSV (also in row ' . $csvEmails[$clientData['email']] . ')';
+                    } else {
+                        $csvEmails[$clientData['email']] = $rowNumber;
                     }
                 }
                 

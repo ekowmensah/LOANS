@@ -116,9 +116,15 @@
                                     <th>Row #</th>
                                     <th>First Name</th>
                                     <th>Last Name</th>
+                                    <th>Gender</th>
+                                    <th>DOB</th>
                                     <th>Mobile</th>
+                                    <th>Email</th>
+                                    <th>Branch ID</th>
                                     <th>External ID</th>
                                     <th>Ghana Card</th>
+                                    <th>Marital Status</th>
+                                    <th>Address</th>
                                     <th>Errors</th>
                                 </tr>
                             </thead>
@@ -128,9 +134,15 @@
                                         <td><span class="badge badge-danger">{{ $row['row_number'] }}</span></td>
                                         <td>{{ $row['data']['first_name'] ?? '-' }}</td>
                                         <td>{{ $row['data']['last_name'] ?? '-' }}</td>
+                                        <td>{{ isset($row['data']['gender']) ? ucfirst($row['data']['gender']) : '-' }}</td>
+                                        <td>{{ $row['data']['dob'] ?? '-' }}</td>
                                         <td>{{ $row['data']['mobile'] ?? '-' }}</td>
+                                        <td>{{ $row['data']['email'] ?? '-' }}</td>
+                                        <td>{{ $row['data']['branch_id'] ?? '-' }}</td>
                                         <td>{{ $row['data']['external_id'] ?? '-' }}</td>
                                         <td>{{ $row['data']['ghana_card'] ?? '-' }}</td>
+                                        <td>{{ isset($row['data']['marital_status']) ? ucfirst($row['data']['marital_status']) : '-' }}</td>
+                                        <td><small>{{ $row['data']['address'] ? substr($row['data']['address'], 0, 30) . '...' : '-' }}</small></td>
                                         <td>
                                             <ul class="mb-0 pl-3">
                                                 @foreach($row['errors'] as $error)
@@ -166,11 +178,18 @@
                                     <th>Row #</th>
                                     <th>First Name</th>
                                     <th>Last Name</th>
+                                    <th>Middle Name</th>
                                     <th>Gender</th>
                                     <th>DOB</th>
                                     <th>Mobile</th>
+                                    <th>Email</th>
                                     <th>Branch ID</th>
+                                    <th>External ID</th>
                                     <th>Ghana Card</th>
+                                    <th>Marital Status</th>
+                                    <th>Title ID</th>
+                                    <th>Profession ID</th>
+                                    <th>Address</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -179,16 +198,23 @@
                                         <td><span class="badge badge-success">{{ $row['row_number'] }}</span></td>
                                         <td>{{ $row['data']['first_name'] }}</td>
                                         <td>{{ $row['data']['last_name'] }}</td>
+                                        <td>{{ $row['data']['middle_name'] ?? '-' }}</td>
                                         <td>{{ ucfirst($row['data']['gender']) }}</td>
                                         <td>{{ $row['data']['dob'] }}</td>
                                         <td>{{ $row['data']['mobile'] }}</td>
+                                        <td>{{ $row['data']['email'] ?? '-' }}</td>
                                         <td>{{ $row['data']['branch_id'] }}</td>
+                                        <td>{{ $row['data']['external_id'] ?? '-' }}</td>
                                         <td>{{ $row['data']['ghana_card'] ?? '-' }}</td>
+                                        <td>{{ isset($row['data']['marital_status']) ? ucfirst($row['data']['marital_status']) : '-' }}</td>
+                                        <td>{{ $row['data']['title_id'] ?? '-' }}</td>
+                                        <td>{{ $row['data']['profession_id'] ?? '-' }}</td>
+                                        <td><small>{{ isset($row['data']['address']) && $row['data']['address'] ? substr($row['data']['address'], 0, 30) . '...' : '-' }}</small></td>
                                     </tr>
                                 @endforeach
                                 @if(count($uploadData['valid_rows']) > 20)
                                     <tr>
-                                        <td colspan="8" class="text-center text-muted">
+                                        <td colspan="15" class="text-center text-muted">
                                             <em>... and {{ count($uploadData['valid_rows']) - 20 }} more row(s)</em>
                                         </td>
                                     </tr>
