@@ -31,7 +31,8 @@ class ClientController extends Controller
     public function __construct()
     {
         $this->middleware(['auth', '2fa']);
-        $this->middleware(['permission:client.clients.index'])->only(['index', 'show', 'get_clients']);
+        $this->middleware(['permission:client.clients.index'])->only(['index', 'get_clients']);
+        // Allow field agents to view their assigned clients without special permission
         $this->middleware(['permission:client.clients.create'])->only(['create', 'store', 'bulk_upload', 'validate_bulk_upload', 'bulk_upload_preview', 'process_bulk_upload', 'download_template', 'generate_savings_account']);
         $this->middleware(['permission:client.clients.edit'])->only(['edit', 'update']);
         $this->middleware(['permission:client.clients.destroy'])->only(['destroy']);
