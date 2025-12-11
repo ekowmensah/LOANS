@@ -18,9 +18,8 @@ class FieldCollectionController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(['permission:field_agent.collections.index'])->only(['index', 'get_collections']);
-        $this->middleware(['permission:field_agent.collections.create'])->only(['create', 'store', 'edit', 'update']);
-        $this->middleware(['permission:field_agent.collections.view'])->only(['show']);
+        // Allow field agents to view their own collections without full index permission
+        $this->middleware(['permission:field_agent.collections.index'])->only(['get_collections']);
         $this->middleware(['permission:field_agent.collections.verify'])->only(['verify_index', 'verify', 'reject']);
         $this->middleware(['permission:field_agent.collections.post'])->only(['post']);
     }
@@ -30,8 +29,17 @@ class FieldCollectionController extends Controller
      */
     public function index()
     {
-        $fieldAgents = FieldAgent::active()->get();
-        return theme_view('fieldagent::collection.index', compact('fieldAgents'));
+        $user = Auth::user();
+        $currentFieldAgent = FieldAgent::where('user_id', $user->id)->first();
+        
+        // If user is a field agent, only show field agents dropdown to admins
+        if ($currentFieldAgent) {
+            $fieldAgents = collect([$currentFieldAgent]); // Only show their own data
+        } else {
+            $fieldAgents = FieldAgent::active()->get(); // Admins see all
+        }
+        
+        return theme_view('fieldagent::collection.index', compact('fieldAgents', 'currentFieldAgent'));
     }
 
     /**
@@ -63,11 +71,10 @@ class FieldCollectionController extends Controller
 
         // If user is a field agent, show only their collections
         $user = Auth::user();
-        if ($user->can('field_agent.collections.view_own') && !$user->can('field_agent.collections.index')) {
-            $fieldAgent = FieldAgent::where('user_id', $user->id)->first();
-            if ($fieldAgent) {
-                $query->where('field_agent_id', $fieldAgent->id);
-            }
+        $fieldAgent = FieldAgent::where('user_id', $user->id)->first();
+        if ($fieldAgent) {
+            // Field agent can only see their own collections
+            $query->where('field_agent_id', $fieldAgent->id);
         }
 
         return DataTables::of($query)
