@@ -40,9 +40,27 @@ class ClientFieldAgentController extends Controller
         if ($request->has('field_agent_id') && $request->field_agent_id != '') {
             if ($request->field_agent_id == 'unassigned') {
                 $clients->whereNull('field_agent_id');
+            } elseif ($request->field_agent_id == 'assigned') {
+                $clients->whereNotNull('field_agent_id');
             } else {
                 $clients->where('field_agent_id', $request->field_agent_id);
             }
+        }
+
+        // Filter by branch if specified
+        if ($request->has('branch_id') && $request->branch_id != '') {
+            $clients->where('branch_id', $request->branch_id);
+        }
+
+        // Search by name, ID, or mobile
+        if ($request->has('search_query') && $request->search_query != '') {
+            $searchTerm = $request->search_query;
+            $clients->where(function($query) use ($searchTerm) {
+                $query->where('first_name', 'like', '%' . $searchTerm . '%')
+                      ->orWhere('last_name', 'like', '%' . $searchTerm . '%')
+                      ->orWhere('mobile', 'like', '%' . $searchTerm . '%')
+                      ->orWhere('id', 'like', '%' . $searchTerm . '%');
+            });
         }
 
         return DataTables::of($clients)
