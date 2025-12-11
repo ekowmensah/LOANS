@@ -316,7 +316,7 @@ class SavingsController extends Controller
             return $query->where('name', '!=', 'client');
         })->get();
         $payment_types = PaymentType::where('active', 1)->get();
-        $savings = Savings::with('transactions')->with('charges')->with('client')->with('savings_product.charges.charge')->find($id);
+        $savings = Savings::with('transactions')->with('charges.savings_charge.savings_charge_type')->with('client')->with('savings_product.charges.charge')->find($id);
         $custom_fields = CustomField::where('category', 'add_savings')->where('active', 1)->get();
         
         // Get all charges linked to this savings product for the modal

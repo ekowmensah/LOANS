@@ -811,7 +811,13 @@
                                             @foreach($savings->charges as $key)
                                                 <tr>
                                                     <td>{{$key->name}}</td>
-                                                    <td>{{$key->savings_charge->savings_charge_type->name}}</td>
+                                                    <td>
+                                                        @if($key->savings_charge && $key->savings_charge->savings_charge_type)
+                                                            {{$key->savings_charge->savings_charge_type->name}}
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         @if($key->savings_charge_option_id==1)
                                                             {{number_format($key->amount,2)}}
@@ -826,25 +832,25 @@
                                                         @endif
                                                     </td>
                                                     <td>
-                                                        @if($key->savings_charge->savings_charge_type_id==1)
+                                                        @if($key->savings_charge && $key->savings_charge->savings_charge_type_id==1)
                                                             {{trans_choice('savings::general.savings_activation',1)}}
                                                         @endif
-                                                        @if($key->savings_charge->savings_charge_type_id==2)
+                                                        @if($key->savings_charge && $key->savings_charge->savings_charge_type_id==2)
                                                             {{trans_choice('savings::general.specified_due_date',1)}}
                                                         @endif
-                                                        @if($key->savings_charge->savings_charge_type_id==3)
+                                                        @if($key->savings_charge && $key->savings_charge->savings_charge_type_id==3)
                                                             {{trans_choice('savings::general.withdrawal_fee',1)}}
                                                         @endif
-                                                        @if($key->savings_charge->savings_charge_type_id==4)
+                                                        @if($key->savings_charge && $key->savings_charge->savings_charge_type_id==4)
                                                             {{trans_choice('savings::general.annual_fee',1)}}
                                                         @endif
-                                                        @if($key->savings_charge->savings_charge_type_id==5)
+                                                        @if($key->savings_charge && $key->savings_charge->savings_charge_type_id==5)
                                                             {{trans_choice('savings::general.monthly_fee',1)}}
                                                         @endif
-                                                        @if($key->savings_charge->savings_charge_type_id==6)
+                                                        @if($key->savings_charge && $key->savings_charge->savings_charge_type_id==6)
                                                             {{trans_choice('savings::general.inactivity_fee',1)}}
                                                         @endif
-                                                        @if($key->savings_charge->savings_charge_type_id==7)
+                                                        @if($key->savings_charge && $key->savings_charge->savings_charge_type_id==7)
                                                             {{trans_choice('savings::general.quarterly_fee',1)}}
                                                         @endif
                                                     </td>
