@@ -1230,6 +1230,13 @@
 
 @section('scripts')
     <script>
+        // Initialize charges from server
+        var chargesData = {!! json_encode($charges ?? []) !!};
+        
+        // Debug: Check if charges variable exists
+        console.log('Charges from Blade:', chargesData);
+        console.log('Charges from JavaScript::put:', typeof charges !== 'undefined' ? charges : 'undefined');
+        
         var app = new Vue({
             el: '#app',
             data: {
@@ -1237,7 +1244,7 @@
                 savings_charge_id: "{{ old('savings_charge_id') }}",
                 amount: "{{ old('amount') }}",
                 date: "{{ old('date',date('Y-m-d')) }}",
-                charges: charges,
+                charges: chargesData,
                 canOverride: true
             },
             methods: {
@@ -1264,6 +1271,10 @@
                 }
             },
             mounted() {
+                // Debug: Check what charges are loaded
+                console.log('Charges loaded:', this.charges);
+                console.log('Number of charges:', Object.keys(this.charges).length);
+                
                 // Check on page load if there's a pre-selected charge
                 if (this.savings_charge_id) {
                     this.changeCharge();

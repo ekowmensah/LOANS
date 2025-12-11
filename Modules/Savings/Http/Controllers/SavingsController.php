@@ -333,7 +333,7 @@ class SavingsController extends Controller
             'charges' => $charges
         ]);
         
-        return theme_view('savings::savings.show', compact('savings', 'payment_types', 'users', 'custom_fields'));
+        return theme_view('savings::savings.show', compact('savings', 'payment_types', 'users', 'custom_fields', 'charges'));
     }
 
     /**
@@ -1334,6 +1334,12 @@ class SavingsController extends Controller
             'date' => ['required', 'date'],
         ]);
         $savings_charge = SavingsCharge::find($request->savings_charge_id);
+        
+        if (!$savings_charge) {
+            \flash('Charge not found. Please select a valid charge.')->error()->important();
+            return redirect()->back()->withInput();
+        }
+        
         $savings_linked_charge = new SavingsLinkedCharge();
         $savings_linked_charge->savings_id = $savings->id;
         $savings_linked_charge->name = $savings_charge->name;
