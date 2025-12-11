@@ -32,6 +32,9 @@
                         </a>
                     @endcan
                     @can('field_agent.collections.verify')
+                        <button type="button" class="btn btn-sm btn-success" id="bulk-verify-btn" style="display: none;">
+                            <i class="fas fa-check-double"></i> Verify Selected (<span id="selected-count">0</span>)
+                        </button>
                         <a href="{{ url('field-agent/collection/verify') }}" class="btn btn-sm btn-warning">
                             <i class="fas fa-check-circle"></i> Verify Collections
                         </a>
@@ -98,6 +101,7 @@
                 <table class="table table-bordered table-hover" id="collections-table">
                     <thead>
                         <tr>
+                            <th><input type="checkbox" id="select-all"></th>
                             <th>{{ trans_choice('fieldagent::general.receipt_number', 1) }}</th>
                             <th>{{ trans_choice('fieldagent::general.field_agent', 1) }}</th>
                             <th>{{ trans_choice('client::general.client', 1) }}</th>
@@ -133,6 +137,7 @@
                     }
                 },
                 columns: [
+                    {data: 'checkbox', name: 'checkbox', orderable: false, searchable: false},
                     {data: 'receipt_number', name: 'receipt_number'},
                     {data: 'field_agent', name: 'field_agent'},
                     {data: 'client', name: 'client'},
@@ -144,7 +149,7 @@
                     {data: 'status', name: 'status'},
                     {data: 'action', name: 'action', orderable: false, searchable: false}
                 ],
-                order: [[0, 'desc']]
+                order: [[1, 'desc']]
             });
 
             $('#field_agent_filter, #status_filter, #type_filter, #start_date_filter, #end_date_filter').change(function() {
@@ -162,6 +167,70 @@
 
             $('.select2').select2({
                 theme: 'bootstrap4'
+            });
+
+            // Bulk verification functionality
+            var selectedCollections = [];
+
+            // Select all checkbox
+            $('#select-all').on('click', function() {
+                var checked = $(this).prop('checked');
+                $('.collection-checkbox:visible').prop('checked', checked);
+                updateSelectedCollections();
+            });
+
+            // Individual checkbox
+            $(document).on('change', '.collection-checkbox', function() {
+                updateSelectedCollections();
+            });
+
+            // Update selected collections array and button
+            function updateSelectedCollections() {
+                selectedCollections = [];
+                $('.collection-checkbox:checked').each(function() {
+                    selectedCollections.push($(this).val());
+                });
+                
+                $('#selected-count').text(selectedCollections.length);
+                
+                if (selectedCollections.length > 0) {
+                    $('#bulk-verify-btn').show();
+                } else {
+                    $('#bulk-verify-btn').hide();
+                }
+            }
+
+            // Bulk verify button click
+            $('#bulk-verify-btn').on('click', function() {
+                if (selectedCollections.length === 0) {
+                    alert('Please select at least one collection to verify.');
+                    return;
+                }
+
+                if (confirm('Are you sure you want to verify ' + selectedCollections.length + ' collection(s)?')) {
+                    $.ajax({
+                        url: '{{ url("field-agent/collection/bulk-verify") }}',
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            collection_ids: selectedCollections
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                alert(response.message);
+                                table.draw();
+                                selectedCollections = [];
+                                $('#select-all').prop('checked', false);
+                                updateSelectedCollections();
+                            } else {
+                                alert('Error: ' + response.message);
+                            }
+                        },
+                        error: function(xhr) {
+                            alert('Error verifying collections. Please try again.');
+                        }
+                    });
+                }
             });
         });
     </script>

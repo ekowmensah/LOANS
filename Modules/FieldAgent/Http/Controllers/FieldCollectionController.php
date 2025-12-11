@@ -77,6 +77,13 @@ class FieldCollectionController extends Controller
         }
 
         return DataTables::of($query)
+            ->addColumn('checkbox', function ($data) {
+                // Only show checkbox for pending collections
+                if ($data->status === 'pending') {
+                    return '<input type="checkbox" class="collection-checkbox" value="' . $data->id . '">';
+                }
+                return '';
+            })
             ->editColumn('receipt_number', function ($data) {
                 return '<a href="' . url('field-agent/collection/' . $data->id . '/show') . '">' . $data->receipt_number . '</a>';
             })
@@ -133,8 +140,65 @@ class FieldCollectionController extends Controller
                 $actions .= '</div>';
                 return $actions;
             })
-            ->rawColumns(['receipt_number', 'status', 'action'])
+            ->rawColumns(['checkbox', 'receipt_number', 'status', 'action'])
             ->make(true);
+    }
+
+    /**
+     * Bulk verify collections
+     */
+    public function bulkVerify(Request $request)
+    {
+        $request->validate([
+            'collection_ids' => 'required|array',
+            'collection_ids.*' => 'exists:field_collections,id'
+        ]);
+
+        $user = Auth::user();
+        $verifiedCount = 0;
+        $errors = [];
+
+        foreach ($request->collection_ids as $collectionId) {
+            $collection = FieldCollection::find($collectionId);
+            
+            if (!$collection) {
+                $errors[] = "Collection #$collectionId not found";
+                continue;
+            }
+
+            // Check if collection can be verified
+            if ($collection->status !== 'pending') {
+                $errors[] = "Collection {$collection->receipt_number} is not pending";
+                continue;
+            }
+
+            // Verify the collection
+            $collection->status = 'verified';
+            $collection->verified_by = $user->id;
+            $collection->verified_at = now();
+            $collection->save();
+
+            activity()->on($collection)->log('Bulk Verify Collection');
+            $verifiedCount++;
+        }
+
+        if ($verifiedCount > 0) {
+            $message = "$verifiedCount collection(s) verified successfully";
+            if (count($errors) > 0) {
+                $message .= ". " . count($errors) . " collection(s) could not be verified.";
+            }
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'verified_count' => $verifiedCount,
+                'errors' => $errors
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'No collections were verified. ' . implode(', ', $errors)
+            ], 400);
+        }
     }
 
     /**

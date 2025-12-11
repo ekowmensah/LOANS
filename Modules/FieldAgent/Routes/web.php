@@ -47,6 +47,7 @@ Route::prefix('field-agent')->middleware(['auth'])->group(function () {
         
         // Verification
         Route::get('verify', [FieldCollectionController::class, 'verify_index']);
+        Route::post('bulk-verify', [FieldCollectionController::class, 'bulkVerify']);
         Route::match(['get', 'post'], '{id}/verify', [FieldCollectionController::class, 'verify']);
         Route::post('{id}/reject', [FieldCollectionController::class, 'reject']);
         Route::get('{id}/post', [FieldCollectionController::class, 'post']);
