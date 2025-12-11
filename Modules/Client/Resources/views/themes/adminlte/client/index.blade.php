@@ -139,6 +139,7 @@
                                 {{ trans_choice('core::general.staff',1) }}
                             </a>
                         </th>
+                        <th>Field Officer</th>
                         <th>{{ trans_choice('core::general.action',1) }}</th>
                     </tr>
                     </thead>
@@ -234,6 +235,22 @@
                                 <a href="{{url('user/' . $key->loan_officer_id . '/show')}}">
                                     <span>{{$key->staff}}</span>
                                 </a>
+                            </td>
+                            <td>
+                                @if($key->field_agent)
+                                    <span class="badge badge-primary">
+                                        <i class="fas fa-user-tie"></i> {{$key->field_agent->full_name}}
+                                    </span>
+                                    <br>
+                                    <small class="text-muted">{{$key->field_agent->agent_code}}</small>
+                                @else
+                                    <button type="button" class="btn btn-sm btn-warning assign-field-officer-btn" 
+                                            data-client-id="{{$key->id}}" 
+                                            data-client-name="{{$key->name}}"
+                                            title="Assign Field Officer">
+                                        <i class="fas fa-user-plus"></i> Assign
+                                    </button>
+                                @endif
                             </td>
                             <td>
                                 @if($key->status == 'pending')
@@ -403,6 +420,40 @@
         </div>
     </div>
 
+    <!-- Assign Field Officer Modal -->
+    <div class="modal fade" id="assignFieldOfficerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Assign Field Officer</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Client: <strong id="field-officer-client-name"></strong></p>
+                    <div class="form-group">
+                        <label>Select Field Officer <span class="text-danger">*</span></label>
+                        <select class="form-control" id="field-officer-id">
+                            <option value="">-- Select Field Officer --</option>
+                            @if(isset($fieldAgents))
+                                @foreach($fieldAgents as $agent)
+                                    <option value="{{ $agent->id }}">{{ $agent->full_name }} ({{ $agent->agent_code }})</option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-field-officer-btn">
+                        <i class="fas fa-save"></i> Assign Field Officer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bulk Approve Modal -->
     <div class="modal fade" id="bulkApproveModal" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
@@ -533,6 +584,63 @@
                     toastr.error(errorMsg);
                     btn.prop('disabled', false);
                     btn.html('<i class="fas fa-plus-circle"></i> Generate Account');
+                }
+            });
+        });
+
+        // Handle Assign Field Officer button
+        var selectedClientIdForFieldOfficer = null;
+        
+        $(document).on('click', '.assign-field-officer-btn', function() {
+            var btn = $(this);
+            selectedClientIdForFieldOfficer = btn.data('client-id');
+            var clientName = btn.data('client-name');
+            
+            $('#field-officer-client-name').text(clientName);
+            $('#field-officer-id').val('');
+            $('#assignFieldOfficerModal').modal('show');
+        });
+        
+        // Save field officer assignment
+        $('#save-field-officer-btn').on('click', function() {
+            var fieldOfficerId = $('#field-officer-id').val();
+            var $btn = $(this);
+            
+            if (!fieldOfficerId) {
+                alert('Please select a field officer');
+                return;
+            }
+            
+            // Show loading state
+            $btn.prop('disabled', true);
+            $btn.html('<i class="fas fa-spinner fa-spin"></i> Assigning...');
+            
+            $.ajax({
+                url: '{{url("field-agent/client-assignments/update")}}',
+                method: 'POST',
+                data: {
+                    _token: '{{csrf_token()}}',
+                    client_id: selectedClientIdForFieldOfficer,
+                    field_agent_id: fieldOfficerId
+                },
+                success: function(response) {
+                    $('#assignFieldOfficerModal').modal('hide');
+                    toastr.success(response.message || 'Field officer assigned successfully');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                },
+                error: function(xhr) {
+                    var errorMsg = 'Error assigning field officer';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    alert(errorMsg);
+                },
+                complete: function() {
+                    // Reset button state
+                    $btn.prop('disabled', false);
+                    $btn.html('<i class="fas fa-save"></i> Assign Field Officer');
                 }
             });
         });

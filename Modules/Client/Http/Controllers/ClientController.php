@@ -52,7 +52,8 @@ class ClientController extends Controller
         $orderByDir = $request->order_by_dir;
         $search = $request->s;
         $status = $request->status;
-        $query = Client::leftJoin("branches", "branches.id", "clients.branch_id")
+        $query = Client::with('field_agent')
+            ->leftJoin("branches", "branches.id", "clients.branch_id")
             ->leftJoin("users", "users.id", "clients.loan_officer_id")
             ->leftJoin("savings", "savings.client_id", "=", "clients.id")
             ->leftJoin("group_members", "group_members.client_id", "=", "clients.id")
@@ -71,8 +72,8 @@ class ClientController extends Controller
             ->when($status, function ($query) use ($status) {
                 $query->where('clients.status', $status);
             })
-            ->selectRaw("branches.name branch,concat(users.first_name,' ',users.last_name) staff,clients.id,clients.branch_id,clients.loan_officer_id,clients.first_name,clients.last_name,clients.gender,clients.mobile,clients.email,clients.external_id,clients.status,clients.photo,savings.account_number as savings_account,savings.balance_derived as savings_balance,group_members.group_id,COUNT(DISTINCT loans.id) as loan_count")
-            ->groupBy('clients.id', 'clients.branch_id', 'branches.name', 'users.first_name', 'users.last_name', 'clients.loan_officer_id', 'clients.first_name', 'clients.last_name', 'clients.gender', 'clients.mobile', 'clients.email', 'clients.external_id', 'clients.status', 'clients.photo', 'savings.account_number', 'savings.balance_derived', 'group_members.group_id');
+            ->selectRaw("branches.name branch,concat(users.first_name,' ',users.last_name) staff,clients.id,clients.branch_id,clients.loan_officer_id,clients.first_name,clients.last_name,clients.gender,clients.mobile,clients.email,clients.external_id,clients.status,clients.photo,clients.field_agent_id,savings.account_number as savings_account,savings.balance_derived as savings_balance,group_members.group_id,COUNT(DISTINCT loans.id) as loan_count")
+            ->groupBy('clients.id', 'clients.branch_id', 'branches.name', 'users.first_name', 'users.last_name', 'clients.loan_officer_id', 'clients.first_name', 'clients.last_name', 'clients.gender', 'clients.mobile', 'clients.email', 'clients.external_id', 'clients.status', 'clients.photo', 'clients.field_agent_id', 'savings.account_number', 'savings.balance_derived', 'group_members.group_id');
         
         // Check if user wants to see all records
         if ($request->per_page === 'all') {
@@ -89,7 +90,10 @@ class ClientController extends Controller
             $data = $query->paginate($perPage)->appends($request->input());
         }
         
-        return theme_view('client::client.index', compact('data'));
+        // Load field agents for assignment dropdown
+        $fieldAgents = \Modules\FieldAgent\Entities\FieldAgent::where('status', 'active')->get();
+        
+        return theme_view('client::client.index', compact('data', 'fieldAgents'));
     }
 
     public function get_clients(Request $request)
