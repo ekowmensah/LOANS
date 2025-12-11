@@ -170,7 +170,7 @@
                                     </a>
                                 </div>
                                 <div class="col-md-3 col-6">
-                                    <a href="{{ url('client') }}" class="btn btn-app btn-warning btn-block">
+                                    <a href="{{ url('field-agent/my-clients') }}" class="btn btn-app btn-warning btn-block">
                                         <i class="fas fa-users"></i> My Clients
                                     </a>
                                 </div>

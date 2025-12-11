@@ -18,8 +18,7 @@ class FieldCollectionController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        // Allow field agents to view their own collections without full index permission
-        $this->middleware(['permission:field_agent.collections.index'])->only(['get_collections']);
+        // Field agents can access their own data without special permissions
         $this->middleware(['permission:field_agent.collections.verify'])->only(['verify_index', 'verify', 'reject']);
         $this->middleware(['permission:field_agent.collections.post'])->only(['post']);
     }

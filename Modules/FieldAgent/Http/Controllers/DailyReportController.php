@@ -15,9 +15,7 @@ class DailyReportController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware(['permission:field_agent.reports.index'])->only(['index', 'get_reports']);
-        $this->middleware(['permission:field_agent.reports.create'])->only(['create', 'store']);
-        $this->middleware(['permission:field_agent.reports.view'])->only(['show']);
+        // Field agents can access their own reports without special permissions
         $this->middleware(['permission:field_agent.reports.approve'])->only(['approve', 'reject']);
     }
 
@@ -26,8 +24,17 @@ class DailyReportController extends Controller
      */
     public function index()
     {
-        $fieldAgents = FieldAgent::active()->get();
-        return theme_view('fieldagent::daily_report.index', compact('fieldAgents'));
+        $user = Auth::user();
+        $currentFieldAgent = FieldAgent::where('user_id', $user->id)->first();
+        
+        // If user is a field agent, only show their own data
+        if ($currentFieldAgent) {
+            $fieldAgents = collect([$currentFieldAgent]);
+        } else {
+            $fieldAgents = FieldAgent::active()->get();
+        }
+        
+        return theme_view('fieldagent::daily_report.index', compact('fieldAgents', 'currentFieldAgent'));
     }
 
     /**
@@ -54,11 +61,10 @@ class DailyReportController extends Controller
 
         // If user is a field agent, show only their reports
         $user = Auth::user();
-        if ($user->can('field_agent.reports.view_own') && !$user->can('field_agent.reports.index')) {
-            $fieldAgent = FieldAgent::where('user_id', $user->id)->first();
-            if ($fieldAgent) {
-                $query->where('field_agent_id', $fieldAgent->id);
-            }
+        $fieldAgent = FieldAgent::where('user_id', $user->id)->first();
+        if ($fieldAgent) {
+            // Field agent can only see their own reports
+            $query->where('field_agent_id', $fieldAgent->id);
         }
 
         return DataTables::of($query)

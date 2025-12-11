@@ -32,17 +32,6 @@
             $isFieldAgent = \Modules\FieldAgent\Entities\FieldAgent::where('user_id', Auth::id())->exists();
         @endphp
         
-        <!-- Debug indicator -->
-        @if($isFieldAgent)
-            <div style="background: #28a745; color: white; padding: 5px; text-align: center; font-size: 12px;">
-                ✓ Field Agent Mode Active
-            </div>
-        @else
-            <div style="background: #dc3545; color: white; padding: 5px; text-align: center; font-size: 12px;">
-                ✗ Admin Mode (User ID: {{ Auth::id() }})
-            </div>
-        @endif
-        
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="true">
                 @if($isFieldAgent)
@@ -69,6 +58,22 @@
                         <a href="{{url('field-agent/daily-report')}}" class="nav-link @if(Request::is('field-agent/daily-report*')) active @endif">
                             <i class="nav-icon fas fa-file-alt"></i>
                             <p>Daily Reports</p>
+                        </a>
+                    </li>
+                    
+                    {{-- Quick Actions Separator --}}
+                    <li class="nav-header">QUICK ACTIONS</li>
+                    
+                    <li class="nav-item">
+                        <a href="{{url('field-agent/collection/create')}}" class="nav-link">
+                            <i class="nav-icon fas fa-plus-circle text-success"></i>
+                            <p>Record Collection</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{url('field-agent/daily-report/create')}}" class="nav-link">
+                            <i class="nav-icon fas fa-file-plus text-primary"></i>
+                            <p>Submit Report</p>
                         </a>
                     </li>
                 @else
