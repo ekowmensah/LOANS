@@ -534,15 +534,20 @@
                             this.error_message = null;
                             this.currentStep = 2;
                             
-                            // Enable collection type dropdown
-                            $('#collection_type').prop('disabled', false);
+                            // Reset and enable collection type dropdown
+                            $('#collection_type')
+                                .prop('disabled', false)
+                                .prop('readonly', false)
+                                .val('')
+                                .trigger('change');
+                            
                             $('#collection_type option:first').text('Select collection type');
                             
-                            // Reset collection type to default 'Select' option
-                            $('#collection_type').val('');
-                            
                             // Reset account/loan field
-                            $('#reference_id').html('<option value="">Select type first</option>').prop('disabled', true).val('');
+                            $('#reference_id')
+                                .html('<option value="">Select type first</option>')
+                                .prop('disabled', true)
+                                .val('');
                             
                             // Hide loan payment info
                             $('#loan-payment-info').hide();
