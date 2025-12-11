@@ -84,6 +84,16 @@
                                 <strong>Selected Client:</strong> @{{ client.first_name }} @{{ client.last_name }}<br>
                                 <small>Phone: @{{ client.mobile || 'N/A' }} | Savings A/C: @{{ client.savings_account_number }}</small>
                             </div>
+                            
+                            <!-- Error message (shown when client not assigned) -->
+                            <div v-if="error_message" class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Access Denied!</strong><br>
+                                @{{ error_message }}
+                                <button type="button" class="close" @click="error_message = null">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -247,18 +257,20 @@
                 client_search: '',
                 searching_client: false,
                 client: null,
-                selected_client_id: ''
+                selected_client_id: '',
+                error_message: null
             },
             methods: {
                 searchClient() {
                     if (!this.client_search) {
-                        alert('Please enter savings account number');
+                        this.error_message = 'Please enter a savings account number to search.';
                         return;
                     }
 
                     this.searching_client = true;
                     this.client = null;
                     this.selected_client_id = '';
+                    this.error_message = null;
 
                     axios.post('{{url("field-agent/collection/search-clients")}}', {
                         search: this.client_search
@@ -268,19 +280,20 @@
                         if (response.data.success) {
                             this.client = response.data.data;
                             this.selected_client_id = this.client.id;
+                            this.error_message = null;
                             // Trigger change event for collection type dropdown
                             $('#client_id').trigger('change');
                         } else {
-                            alert(response.data.message || 'Client not found');
+                            this.error_message = response.data.message || 'Client not found';
                         }
                     })
                     .catch(error => {
                         this.searching_client = false;
                         console.error(error);
                         if (error.response && error.response.data && error.response.data.message) {
-                            alert(error.response.data.message);
+                            this.error_message = error.response.data.message;
                         } else {
-                            alert('Error searching for client. Please try again.');
+                            this.error_message = 'Error searching for client. Please try again.';
                         }
                     });
                 }
@@ -363,7 +376,17 @@
                             console.error('Status:', status);
                             console.error('Error:', error);
                             $('#reference_id').html('<option value="">Error loading accounts</option>');
-                            alert('Error loading accounts. Check console for details.');
+                            
+                            // Show nice error message
+                            var errorMessage = 'Error loading accounts. Please try again.';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            }
+                            
+                            // Display error in Vue app
+                            if (app && app.error_message !== undefined) {
+                                app.error_message = errorMessage;
+                            }
                         }
                     });
                 } else {
