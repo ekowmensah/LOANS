@@ -223,6 +223,7 @@ class ClientController extends Controller
         $client->gender = $request->gender;
         $client->country_id = $country_id;
         $client->loan_officer_id = $request->loan_officer_id;
+        $client->field_agent_id = $request->field_agent_id;
         $client->title_id = $request->title_id;
         $client->branch_id = $request->branch_id;
         $client->client_type_id = $client_type_id;
@@ -315,6 +316,7 @@ class ClientController extends Controller
         $client->gender = $request->gender;
         $client->country_id = $request->country_id;
         $client->loan_officer_id = $request->loan_officer_id;
+        $client->field_agent_id = $request->field_agent_id;
         $client->title_id = $request->title_id;
         $client->client_type_id = $request->client_type_id;
         $client->profession_id = $request->profession_id;
