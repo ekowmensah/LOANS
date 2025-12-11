@@ -48,6 +48,63 @@
                 </div>
             </div>
             <div class="card-body">
+                <!-- Filters -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>{{ trans_choice('fieldagent::general.field_agent', 1) }}</label>
+                            <select class="form-control select2" id="field_agent_filter">
+                                <option value="">{{ trans_choice('core::general.all', 1) }}</option>
+                                @foreach($fieldAgents as $agent)
+                                    <option value="{{ $agent->id }}">{{ $agent->agent_code }} - {{ $agent->full_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Branch</label>
+                            <select class="form-control" id="branch_filter">
+                                <option value="">{{ trans_choice('core::general.all', 1) }}</option>
+                                @foreach($branches as $branch)
+                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>{{ trans_choice('fieldagent::general.collection_type', 1) }}</label>
+                            <select class="form-control" id="type_filter">
+                                <option value="">{{ trans_choice('core::general.all', 1) }}</option>
+                                <option value="savings_deposit">Savings Deposit</option>
+                                <option value="loan_repayment">Loan Repayment</option>
+                                <option value="share_purchase">Share Purchase</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>{{ trans_choice('core::general.start_date', 1) }}</label>
+                            <input type="date" class="form-control" id="start_date_filter">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>{{ trans_choice('core::general.end_date', 1) }}</label>
+                            <input type="date" class="form-control" id="end_date_filter">
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-default btn-block" id="clear_filters">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <table class="table table-bordered table-hover" id="pending-collections-table">
                     <thead>
                         <tr>
@@ -105,6 +162,11 @@
                     url: "{{ url('field-agent/collection/data') }}",
                     data: function(d) {
                         d.status = 'pending';
+                        d.field_agent_id = $('#field_agent_filter').val();
+                        d.branch_id = $('#branch_filter').val();
+                        d.collection_type = $('#type_filter').val();
+                        d.start_date = $('#start_date_filter').val();
+                        d.end_date = $('#end_date_filter').val();
                     }
                 },
                 columns: [
@@ -149,6 +211,26 @@
                     }
                 ],
                 order: [[1, 'desc']]
+            });
+
+            // Real-time filtering
+            $('#field_agent_filter, #branch_filter, #type_filter, #start_date_filter, #end_date_filter').change(function() {
+                table.draw();
+            });
+
+            // Clear filters
+            $('#clear_filters').click(function() {
+                $('#field_agent_filter').val('').trigger('change');
+                $('#branch_filter').val('');
+                $('#type_filter').val('');
+                $('#start_date_filter').val('');
+                $('#end_date_filter').val('');
+                table.draw();
+            });
+
+            // Initialize select2
+            $('.select2').select2({
+                theme: 'bootstrap4'
             });
 
             // Bulk verification functionality

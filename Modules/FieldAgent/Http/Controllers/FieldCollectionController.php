@@ -68,6 +68,13 @@ class FieldCollectionController extends Controller
             $query->whereBetween('collection_date', [$request->start_date, $request->end_date]);
         }
 
+        // Filter by branch
+        if ($request->branch_id) {
+            $query->whereHas('client', function($q) use ($request) {
+                $q->where('branch_id', $request->branch_id);
+            });
+        }
+
         // If user is a field agent, show only their collections
         $user = Auth::user();
         $fieldAgent = FieldAgent::where('user_id', $user->id)->first();
@@ -677,7 +684,10 @@ class FieldCollectionController extends Controller
     public function verify_index()
     {
         $pendingCount = FieldCollection::pending()->count();
-        return theme_view('fieldagent::collection.verify', compact('pendingCount'));
+        $fieldAgents = FieldAgent::active()->get();
+        $branches = \Modules\Branch\Entities\Branch::where('active', 1)->get();
+        
+        return theme_view('fieldagent::collection.verify', compact('pendingCount', 'fieldAgents', 'branches'));
     }
 
     /**
