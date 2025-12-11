@@ -635,6 +635,13 @@
                                             name="branch_id" v-model="formData.branch_id" required>
                                         <option value="">Select Branch</option>
                                         @foreach($branches as $key)
+                                            <option value="{{$key->id}}">{{$key->name}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-wizard">
                                     <label>Loan Officer</label>
                                     <select class="form-control custom-select" name="loan_officer_id" v-model="formData.loan_officer_id">
                                         <option value="">Select Officer</option>
