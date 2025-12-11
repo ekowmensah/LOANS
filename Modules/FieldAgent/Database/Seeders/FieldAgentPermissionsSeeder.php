@@ -44,6 +44,12 @@ class FieldAgentPermissionsSeeder extends Seeder
             // Dashboard & Analytics
             ['name' => 'field_agent.dashboard.view', 'display_name' => 'View Field Agent Dashboard', 'guard_name' => 'web'],
             ['name' => 'field_agent.analytics.view', 'display_name' => 'View Analytics', 'guard_name' => 'web'],
+
+            // Client Assignment Management
+            ['name' => 'field_agent.assignments.index', 'display_name' => 'View Client Assignments', 'guard_name' => 'web'],
+            ['name' => 'field_agent.assignments.create', 'display_name' => 'Create Client Assignment', 'guard_name' => 'web'],
+            ['name' => 'field_agent.assignments.edit', 'display_name' => 'Edit Client Assignment', 'guard_name' => 'web'],
+            ['name' => 'field_agent.assignments.destroy', 'display_name' => 'Delete Client Assignment', 'guard_name' => 'web'],
         ];
 
         foreach ($permissions as $permission) {
@@ -84,6 +90,10 @@ class FieldAgentPermissionsSeeder extends Seeder
             'field_agent.reports.approve',
             'field_agent.reports.reject',
             'field_agent.analytics.view',
+            'field_agent.assignments.index',
+            'field_agent.assignments.create',
+            'field_agent.assignments.edit',
+            'field_agent.assignments.destroy',
         ];
 
         $managerRole->syncPermissions($managerPermissions);

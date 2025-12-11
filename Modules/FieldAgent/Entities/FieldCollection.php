@@ -264,7 +264,34 @@ class FieldCollection extends Model
     }
 
     /**
-     * Boot method to auto-generate receipt number
+     * Check if field agent is assigned to the client
+     */
+    public function validateAgentClientAssignment()
+    {
+        $client = Client::find($this->client_id);
+        
+        if (!$client) {
+            return [
+                'valid' => false,
+                'message' => 'Client not found.'
+            ];
+        }
+
+        if (!$client->isAssignedTo($this->field_agent_id)) {
+            return [
+                'valid' => false,
+                'message' => 'This client is not assigned to you. You cannot collect money from unassigned clients.'
+            ];
+        }
+
+        return [
+            'valid' => true,
+            'message' => 'Client assignment validated.'
+        ];
+    }
+
+    /**
+     * Boot method to auto-generate receipt number and validate assignment
      */
     protected static function boot()
     {
@@ -273,6 +300,12 @@ class FieldCollection extends Model
         static::creating(function ($collection) {
             if (empty($collection->receipt_number)) {
                 $collection->receipt_number = self::generateReceiptNumber();
+            }
+
+            // Validate agent-client assignment before creating collection
+            $validation = $collection->validateAgentClientAssignment();
+            if (!$validation['valid']) {
+                throw new \Exception($validation['message']);
             }
         });
     }

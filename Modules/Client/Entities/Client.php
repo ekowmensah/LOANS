@@ -140,4 +140,63 @@ class Client extends Model
     {
         return $this->belongsTo(User::class, 'rejected_by_user_id');
     }
+
+    /**
+     * Get field agent assignments for this client
+     */
+    public function fieldAgentAssignments()
+    {
+        return $this->hasMany(\Modules\FieldAgent\Entities\FieldAgentClientAssignment::class);
+    }
+
+    /**
+     * Get active field agent assignment
+     */
+    public function activeFieldAgentAssignment()
+    {
+        return $this->hasOne(\Modules\FieldAgent\Entities\FieldAgentClientAssignment::class)
+            ->where('status', 'active')
+            ->latest();
+    }
+
+    /**
+     * Get assigned field agents (many-to-many through assignments)
+     */
+    public function assignedFieldAgents()
+    {
+        return $this->belongsToMany(
+            \Modules\FieldAgent\Entities\FieldAgent::class,
+            'field_agent_client_assignments',
+            'client_id',
+            'field_agent_id'
+        )->wherePivot('status', 'active')
+         ->withPivot('assigned_date', 'assigned_by_user_id', 'notes')
+         ->withTimestamps();
+    }
+
+    /**
+     * Get the currently assigned field agent
+     */
+    public function getAssignedFieldAgentAttribute()
+    {
+        return $this->activeFieldAgentAssignment ? $this->activeFieldAgentAssignment->fieldAgent : null;
+    }
+
+    /**
+     * Check if client is assigned to a field agent
+     */
+    public function hasFieldAgent()
+    {
+        return $this->activeFieldAgentAssignment()->exists();
+    }
+
+    /**
+     * Check if client is assigned to a specific field agent
+     */
+    public function isAssignedTo($fieldAgentId)
+    {
+        return $this->activeFieldAgentAssignment()
+            ->where('field_agent_id', $fieldAgentId)
+            ->exists();
+    }
 }

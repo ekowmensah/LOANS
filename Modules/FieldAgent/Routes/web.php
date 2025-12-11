@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\FieldAgent\Http\Controllers\FieldAgentController;
 use Modules\FieldAgent\Http\Controllers\FieldCollectionController;
 use Modules\FieldAgent\Http\Controllers\DailyReportController;
+use Modules\FieldAgent\Http\Controllers\FieldAgentClientAssignmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -59,5 +60,21 @@ Route::prefix('field-agent')->middleware(['auth'])->group(function () {
         Route::get('{id}/approve', [DailyReportController::class, 'approve']);
         Route::post('{id}/reject', [DailyReportController::class, 'reject']);
         Route::post('{id}/record-deposit', [DailyReportController::class, 'record_deposit']);
+    });
+
+    // Client Assignment Management
+    Route::prefix('assignments')->group(function () {
+        Route::get('/', [FieldAgentClientAssignmentController::class, 'index'])->name('field_agent.assignments.index');
+        Route::get('data', [FieldAgentClientAssignmentController::class, 'get_assignments']);
+        Route::get('create', [FieldAgentClientAssignmentController::class, 'create'])->name('field_agent.assignments.create');
+        Route::post('store', [FieldAgentClientAssignmentController::class, 'store'])->name('field_agent.assignments.store');
+        Route::get('{id}/edit', [FieldAgentClientAssignmentController::class, 'edit'])->name('field_agent.assignments.edit');
+        Route::post('{id}/update', [FieldAgentClientAssignmentController::class, 'update'])->name('field_agent.assignments.update');
+        Route::get('{id}/deactivate', [FieldAgentClientAssignmentController::class, 'deactivate'])->name('field_agent.assignments.deactivate');
+        Route::get('{id}/delete', [FieldAgentClientAssignmentController::class, 'destroy'])->name('field_agent.assignments.destroy');
+        
+        // API endpoints
+        Route::get('agent/{agentId}/clients', [FieldAgentClientAssignmentController::class, 'getAgentClients']);
+        Route::post('bulk-assign', [FieldAgentClientAssignmentController::class, 'bulkAssign'])->name('field_agent.assignments.bulk_assign');
     });
 });

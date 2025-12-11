@@ -62,6 +62,47 @@ class FieldAgent extends Model
     }
 
     /**
+     * Get all client assignments for this field agent
+     */
+    public function clientAssignments()
+    {
+        return $this->hasMany(FieldAgentClientAssignment::class);
+    }
+
+    /**
+     * Get active client assignments
+     */
+    public function activeClientAssignments()
+    {
+        return $this->hasMany(FieldAgentClientAssignment::class)->where('status', 'active');
+    }
+
+    /**
+     * Get assigned clients (many-to-many through assignments)
+     */
+    public function assignedClients()
+    {
+        return $this->belongsToMany(
+            \Modules\Client\Entities\Client::class,
+            'field_agent_client_assignments',
+            'field_agent_id',
+            'client_id'
+        )->wherePivot('status', 'active')
+         ->withPivot('assigned_date', 'assigned_by_user_id', 'notes')
+         ->withTimestamps();
+    }
+
+    /**
+     * Check if a client is assigned to this field agent
+     */
+    public function hasClient($clientId)
+    {
+        return $this->activeClientAssignments()
+            ->where('client_id', $clientId)
+            ->exists();
+    }
+
+    /**
      * Get collections for a specific date
      */
     public function collectionsForDate($date)
