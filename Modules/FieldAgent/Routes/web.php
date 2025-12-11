@@ -17,6 +17,9 @@ Route::prefix('field-agent')->middleware(['auth'])->group(function () {
     // Field Agent Dashboard
     Route::get('dashboard', [FieldAgentController::class, 'dashboard']);
     
+    // Field Agent - My Clients
+    Route::get('my-clients', [FieldAgentController::class, 'my_clients']);
+    
     // Field Agent Management
     Route::prefix('agent')->group(function () {
         Route::get('/', [FieldAgentController::class, 'index']);

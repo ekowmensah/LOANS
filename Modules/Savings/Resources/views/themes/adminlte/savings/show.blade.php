@@ -802,6 +802,9 @@
                                                 <th>{{trans_choice('core::general.name',1)}}</th>
                                                 <th>{{trans_choice('savings::general.charge',1)}} {{trans_choice('core::general.type',1)}}</th>
                                                 <th>{{trans_choice('core::general.amount',1)}}</th>
+                                                <th>Paid Amount</th>
+                                                <th>Outstanding</th>
+                                                <th>{{trans_choice('core::general.status',1)}}</th>
                                                 <th>{{trans_choice('savings::general.collected_on',1)}}</th>
                                                 <th>{{trans_choice('core::general.date',1)}}</th>
                                                 <th>{{trans_choice('core::general.action',1)}}</th>
@@ -831,6 +834,17 @@
                                                             % {{trans_choice('savings::general.percentage_of_savings_balance',1)}}
                                                         @endif
                                                     </td>
+                                                    <td>{{number_format($key->paid_amount ?? 0, 2)}}</td>
+                                                    <td>{{number_format($key->amount - ($key->paid_amount ?? 0), 2)}}</td>
+                                                    <td>
+                                                        @if($key->is_paid)
+                                                            <span class="badge badge-success">Paid</span>
+                                                        @elseif($key->waived)
+                                                            <span class="badge badge-info">Waived</span>
+                                                        @else
+                                                            <span class="badge badge-warning">Pending</span>
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         @if($key->savings_charge && $key->savings_charge->savings_charge_type_id==1)
                                                             {{trans_choice('savings::general.savings_activation',1)}}
@@ -856,9 +870,21 @@
                                                     </td>
                                                     <td>{{$key->date}}</td>
                                                     <td>
+                                                        @if(!$key->is_paid && !$key->waived)
+                                                            @can('savings.savings.transactions.create')
+                                                                <a href="{{url('savings/charge/'.$key->id.'/pay')}}" class="btn btn-sm btn-success mb-1">
+                                                                    <i class="fas fa-money-bill"></i> Pay
+                                                                </a>
+                                                            @endcan
+                                                            @can('savings.savings.transactions.edit')
+                                                                <a href="{{url('savings/charge/'.$key->id.'/waive')}}" class="btn btn-sm btn-warning mb-1 confirm">
+                                                                    <i class="fas fa-hand-holding-usd"></i> Waive
+                                                                </a>
+                                                            @endcan
+                                                        @endif
                                                         <div class="btn-group">
-                                                            <button href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-                                                                {{trans_choice('core::general.action',1)}}
+                                                            <button href="#" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+                                                                <i class="fas fa-ellipsis-h"></i>
                                                             </button>
                                                             <ul class="dropdown-menu dropdown-menu-right" role="menu">
                                                                 @can('savings.savings.charges.edit')

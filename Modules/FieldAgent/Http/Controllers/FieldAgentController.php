@@ -131,6 +131,29 @@ class FieldAgentController extends Controller
     }
 
     /**
+     * Display my clients for field agent
+     */
+    public function my_clients()
+    {
+        $user = Auth::user();
+        
+        // Get field agent record for current user
+        $fieldAgent = FieldAgent::where('user_id', $user->id)->first();
+        
+        if (!$fieldAgent) {
+            flash('You are not registered as a field agent.')->error();
+            return redirect('/');
+        }
+        
+        // Get clients assigned to this field agent
+        $clients = \Modules\Client\Entities\Client::where('field_agent_id', $fieldAgent->id)
+            ->with(['branch', 'savings', 'loans'])
+            ->get();
+        
+        return theme_view('fieldagent::my_clients', compact('fieldAgent', 'clients'));
+    }
+
+    /**
      * Display a listing of field agents
      */
     public function index()

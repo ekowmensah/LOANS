@@ -1415,6 +1415,25 @@ class SavingsController extends Controller
         return redirect('savings/' . $savings->id . '/show');
     }
 
+    public function waive_charge($id)
+    {
+        $savings_linked_charge = SavingsLinkedCharge::with('savings')->find($id);
+        $savings = $savings_linked_charge->savings;
+        
+        // Mark charge as waived
+        $savings_linked_charge->waived = 1;
+        $savings_linked_charge->is_paid = 1;
+        $savings_linked_charge->paid_amount = $savings_linked_charge->amount;
+        $savings_linked_charge->save();
+        
+        activity()->on($savings)
+            ->withProperties(['id' => $savings->id])
+            ->log('Waive Savings Charge');
+        
+        \flash('Charge waived successfully')->success()->important();
+        return redirect('savings/' . $savings->id . '/show');
+    }
+
     public function reverse_transaction(Request $request, $id)
     {
 
