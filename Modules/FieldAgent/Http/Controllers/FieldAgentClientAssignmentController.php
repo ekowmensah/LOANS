@@ -65,11 +65,11 @@ class FieldAgentClientAssignmentController extends Controller
                 $actions = '';
                 
                 if ($assignment->status === 'active') {
-                    $actions .= '<a href="' . url('field_agent/assignments/' . $assignment->id . '/deactivate') . '" class="btn btn-sm btn-warning confirm-action" data-message="Are you sure you want to deactivate this assignment?"><i class="fa fa-ban"></i> Deactivate</a> ';
+                    $actions .= '<a href="' . url('field-agent/assignments/' . $assignment->id . '/deactivate') . '" class="btn btn-sm btn-warning confirm-action" data-message="Are you sure you want to deactivate this assignment?"><i class="fa fa-ban"></i> Deactivate</a> ';
                 }
                 
-                $actions .= '<a href="' . url('field_agent/assignments/' . $assignment->id . '/edit') . '" class="btn btn-sm btn-info"><i class="fa fa-edit"></i> Edit</a> ';
-                $actions .= '<a href="' . url('field_agent/assignments/' . $assignment->id . '/delete') . '" class="btn btn-sm btn-danger confirm-action" data-message="Are you sure you want to delete this assignment?"><i class="fa fa-trash"></i> Delete</a>';
+                $actions .= '<a href="' . url('field-agent/assignments/' . $assignment->id . '/edit') . '" class="btn btn-sm btn-info"><i class="fa fa-edit"></i> Edit</a> ';
+                $actions .= '<a href="' . url('field-agent/assignments/' . $assignment->id . '/delete') . '" class="btn btn-sm btn-danger confirm-action" data-message="Are you sure you want to delete this assignment?"><i class="fa fa-trash"></i> Delete</a>';
                 
                 return $actions;
             })
@@ -103,17 +103,19 @@ class FieldAgentClientAssignmentController extends Controller
         try {
             DB::beginTransaction();
 
-            // Check if client already has an active assignment
-            $existingAssignment = FieldAgentClientAssignment::where('client_id', $request->client_id)
+            // Check if this specific agent-client combination already exists
+            $existingAssignment = FieldAgentClientAssignment::where('field_agent_id', $request->field_agent_id)
+                ->where('client_id', $request->client_id)
                 ->where('status', 'active')
                 ->first();
 
             if ($existingAssignment) {
-                // Deactivate the existing assignment
-                $existingAssignment->deactivate();
+                DB::rollBack();
+                flash('This client is already assigned to this field agent.')->warning();
+                return redirect()->back()->withInput();
             }
 
-            // Create new assignment
+            // Create new assignment (allows multiple agents per client)
             $assignment = FieldAgentClientAssignment::create([
                 'field_agent_id' => $request->field_agent_id,
                 'client_id' => $request->client_id,

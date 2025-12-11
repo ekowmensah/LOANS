@@ -277,7 +277,7 @@ class FieldCollection extends Model
             ];
         }
 
-        if (!$client->isAssignedTo($this->field_agent_id)) {
+        if ($client->field_agent_id != $this->field_agent_id) {
             return [
                 'valid' => false,
                 'message' => 'This client is not assigned to you. You cannot collect money from unassigned clients.'

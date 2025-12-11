@@ -62,34 +62,20 @@ class FieldAgent extends Model
     }
 
     /**
-     * Get all client assignments for this field agent
+     * Get all clients assigned to this field agent
      */
-    public function clientAssignments()
+    public function clients()
     {
-        return $this->hasMany(FieldAgentClientAssignment::class);
+        return $this->hasMany(\Modules\Client\Entities\Client::class, 'field_agent_id');
     }
 
     /**
-     * Get active client assignments
+     * Get active clients assigned to this field agent
      */
-    public function activeClientAssignments()
+    public function activeClients()
     {
-        return $this->hasMany(FieldAgentClientAssignment::class)->where('status', 'active');
-    }
-
-    /**
-     * Get assigned clients (many-to-many through assignments)
-     */
-    public function assignedClients()
-    {
-        return $this->belongsToMany(
-            \Modules\Client\Entities\Client::class,
-            'field_agent_client_assignments',
-            'field_agent_id',
-            'client_id'
-        )->wherePivot('status', 'active')
-         ->withPivot('assigned_date', 'assigned_by_user_id', 'notes')
-         ->withTimestamps();
+        return $this->hasMany(\Modules\Client\Entities\Client::class, 'field_agent_id')
+                    ->where('status', 'active');
     }
 
     /**
@@ -97,9 +83,7 @@ class FieldAgent extends Model
      */
     public function hasClient($clientId)
     {
-        return $this->activeClientAssignments()
-            ->where('client_id', $clientId)
-            ->exists();
+        return $this->clients()->where('id', $clientId)->exists();
     }
 
     /**

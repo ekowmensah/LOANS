@@ -29,6 +29,11 @@ class Client extends Model
         return $this->hasOne(User::class, 'id', 'loan_officer_id');
     }
 
+    public function field_agent()
+    {
+        return $this->belongsTo(\Modules\FieldAgent\Entities\FieldAgent::class, 'field_agent_id');
+    }
+
     public function branch()
     {
         return $this->hasOne(Branch::class, 'id', 'branch_id');
