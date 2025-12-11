@@ -1237,7 +1237,7 @@
                 savings_charge_id: "{{ old('savings_charge_id') }}",
                 amount: "{{ old('amount') }}",
                 date: "{{ old('date',date('Y-m-d')) }}",
-                charges: {},
+                charges: charges,
                 canOverride: true
             },
             methods: {
