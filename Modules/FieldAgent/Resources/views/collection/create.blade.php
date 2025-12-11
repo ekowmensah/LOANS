@@ -101,8 +101,8 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="collection_type" class="control-label">{{ trans_choice('fieldagent::general.collection_type', 1) }} <span class="text-danger">*</span></label>
-                                <select class="form-control" name="collection_type" id="collection_type" required>
-                                    <option value="">{{ trans_choice('core::general.select', 1) }}</option>
+                                <select class="form-control" name="collection_type" id="collection_type" required disabled>
+                                    <option value="">Select client first</option>
                                     <option value="savings_deposit" {{ old('collection_type') == 'savings_deposit' ? 'selected' : '' }}>Savings Deposit</option>
                                     <option value="loan_repayment" {{ old('collection_type') == 'loan_repayment' ? 'selected' : '' }}>Loan Repayment</option>
                                     <option value="share_purchase" {{ old('collection_type') == 'share_purchase' ? 'selected' : '' }}>Share Purchase</option>
@@ -282,6 +282,10 @@
                             this.selected_client_id = this.client.id;
                             this.error_message = null;
                             
+                            // Enable collection type dropdown when client is found
+                            $('#collection_type').prop('disabled', false);
+                            $('#collection_type option:first').text('{{ trans_choice("core::general.select", 1) }}');
+                            
                             // Reset collection type and account fields when new client is searched
                             $('#collection_type').val('').trigger('change');
                             $('#reference_id').html('<option value="">Select client and type first</option>').prop('disabled', true);
@@ -291,6 +295,10 @@
                             $('#client_id').trigger('change');
                         } else {
                             this.error_message = response.data.message || 'Client not found';
+                            
+                            // Disable collection type if client not found
+                            $('#collection_type').prop('disabled', true);
+                            $('#collection_type option:first').text('Select client first');
                         }
                     })
                     .catch(error => {
@@ -301,6 +309,10 @@
                         } else {
                             this.error_message = 'Error searching for client. Please try again.';
                         }
+                        
+                        // Disable collection type on error
+                        $('#collection_type').prop('disabled', true);
+                        $('#collection_type option:first').text('Select client first');
                     });
                 }
             }

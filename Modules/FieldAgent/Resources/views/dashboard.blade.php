@@ -162,7 +162,7 @@
                         <span class="info-box-icon bg-success"><i class="fas fa-check-circle"></i></span>
                         <div class="info-box-content">
                             <span class="info-box-text">Verified Collections</span>
-                            <span class="info-box-number">{{ $verifiedCollections }}</span>
+                            <span class="info-box-number">{{ $verifiedCollections ?? 0 }}</span>
                         </div>
                     </div>
                 </div>
@@ -172,7 +172,7 @@
                         <span class="info-box-icon bg-warning"><i class="fas fa-clock"></i></span>
                         <div class="info-box-content">
                             <span class="info-box-text">Pending Verification</span>
-                            <span class="info-box-number">{{ $pendingVerifications }}</span>
+                            <span class="info-box-number">{{ $pendingVerifications ?? 0 }}</span>
                         </div>
                     </div>
                 </div>
@@ -182,7 +182,7 @@
                         <span class="info-box-icon bg-danger"><i class="fas fa-times-circle"></i></span>
                         <div class="info-box-content">
                             <span class="info-box-text">Rejected Collections</span>
-                            <span class="info-box-number">{{ $rejectedCollections }}</span>
+                            <span class="info-box-number">{{ $rejectedCollections ?? 0 }}</span>
                         </div>
                     </div>
                 </div>
@@ -314,16 +314,26 @@
                                     <tbody>
                                         @foreach($recentCollections as $collection)
                                         <tr>
-                                            <td>{{ $collection->collection_date }}</td>
-                                            <td>{{ $collection->client->first_name ?? 'N/A' }}</td>
+                                            <td>{{ $collection->collection_date->format('Y-m-d') }}</td>
+                                            <td>
+                                                @if($collection->client)
+                                                    {{ $collection->client->first_name }} {{ $collection->client->last_name }}
+                                                @else
+                                                    N/A
+                                                @endif
+                                            </td>
                                             <td>{{ number_format($collection->amount, 2) }}</td>
                                             <td>
-                                                @if($collection->status == 'verified')
-                                                <span class="badge badge-success">Verified</span>
-                                                @elseif($collection->status == 'pending')
-                                                <span class="badge badge-warning">Pending</span>
+                                                @if($collection->status === 'verified')
+                                                    <span class="badge badge-success">Verified</span>
+                                                @elseif($collection->status === 'pending')
+                                                    <span class="badge badge-warning">Pending</span>
+                                                @elseif($collection->status === 'posted')
+                                                    <span class="badge badge-primary">Posted</span>
+                                                @elseif($collection->status === 'rejected')
+                                                    <span class="badge badge-danger">Rejected</span>
                                                 @else
-                                                <span class="badge badge-danger">Rejected</span>
+                                                    <span class="badge badge-secondary">{{ ucfirst($collection->status) }}</span>
                                                 @endif
                                             </td>
                                         </tr>
