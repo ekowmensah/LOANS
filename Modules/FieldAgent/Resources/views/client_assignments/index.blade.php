@@ -166,6 +166,9 @@
             <div class="card-header">
                 <h3 class="card-title">Client Assignments</h3>
                 <div class="card-tools">
+                    <button type="button" class="btn btn-sm btn-info" id="show-all-btn">
+                        <i class="fas fa-list"></i> Show All
+                    </button>
                     <button type="button" class="btn btn-sm btn-primary" id="select-all-pages">
                         <i class="fas fa-check-double"></i> Select All on Page
                     </button>
@@ -255,8 +258,9 @@
     <script>
         $(document).ready(function() {
             let selectedClientId = null;
-            let selectedClients = [];
+            let selectedClients = []; // Persistent array to store all selected client IDs
             let stats = {total: 0, assigned: 0, unassigned: 0};
+            let showingAll = false;
 
             // Initialize Select2
             $('.select2').select2({
@@ -299,12 +303,15 @@
                 order: [[1, 'asc']],
                 pageLength: 25,
                 drawCallback: function() {
-                    // Restore checkbox states
+                    // Restore checkbox states from persistent array
                     $('.client-checkbox').each(function() {
-                        if (selectedClients.includes($(this).val())) {
+                        const clientId = $(this).val();
+                        if (selectedClients.includes(clientId)) {
                             $(this).prop('checked', true);
                         }
                     });
+                    // Update select-all checkbox state
+                    updateSelectAllCheckbox();
                 }
             });
 
@@ -362,21 +369,69 @@
                 table.draw();
             });
 
-            // Select all checkbox
+            // Select all checkbox - add/remove visible items to/from persistent array
             $('#select-all').on('click', function() {
-                $('.client-checkbox').prop('checked', this.checked);
+                const isChecked = this.checked;
+                $('.client-checkbox').each(function() {
+                    const clientId = $(this).val();
+                    $(this).prop('checked', isChecked);
+                    
+                    if (isChecked) {
+                        // Add to array if not already present
+                        if (!selectedClients.includes(clientId)) {
+                            selectedClients.push(clientId);
+                        }
+                    } else {
+                        // Remove from array
+                        selectedClients = selectedClients.filter(id => id !== clientId);
+                    }
+                });
                 updateSelectedClients();
             });
 
-            // Individual checkbox
+            // Individual checkbox - add or remove from persistent array
             $(document).on('change', '.client-checkbox', function() {
+                const clientId = $(this).val();
+                if ($(this).is(':checked')) {
+                    // Add to array if not already present
+                    if (!selectedClients.includes(clientId)) {
+                        selectedClients.push(clientId);
+                    }
+                } else {
+                    // Remove from array
+                    selectedClients = selectedClients.filter(id => id !== clientId);
+                }
                 updateSelectedClients();
             });
 
             // Select all on current page
             $('#select-all-pages').click(function() {
-                $('.client-checkbox').prop('checked', true);
+                $('.client-checkbox').each(function() {
+                    const clientId = $(this).val();
+                    $(this).prop('checked', true);
+                    // Add to array if not already present
+                    if (!selectedClients.includes(clientId)) {
+                        selectedClients.push(clientId);
+                    }
+                });
                 updateSelectedClients();
+            });
+            
+            // Show all clients
+            $('#show-all-btn').click(function() {
+                if (showingAll) {
+                    // Return to paginated view
+                    table.page.len(25).draw();
+                    $(this).html('<i class="fas fa-list"></i> Show All');
+                    $(this).removeClass('btn-warning').addClass('btn-info');
+                    showingAll = false;
+                } else {
+                    // Show all records
+                    table.page.len(-1).draw();
+                    $(this).html('<i class="fas fa-th-list"></i> Show Paginated');
+                    $(this).removeClass('btn-info').addClass('btn-warning');
+                    showingAll = true;
+                }
             });
 
             // Clear selection
@@ -388,10 +443,7 @@
             });
 
             function updateSelectedClients() {
-                selectedClients = [];
-                $('.client-checkbox:checked').each(function() {
-                    selectedClients.push($(this).val());
-                });
+                // Update UI counters
                 $('#bulk-selected-count').text(selectedClients.length);
                 $('#selected-count').text(selectedClients.length);
                 $('#bulk-selected-count-text').text(selectedClients.length);
@@ -401,6 +453,25 @@
                     $('#bulk-actions-bar').addClass('active');
                 } else {
                     $('#bulk-actions-bar').removeClass('active');
+                }
+                
+                // Update select-all checkbox
+                updateSelectAllCheckbox();
+            }
+            
+            function updateSelectAllCheckbox() {
+                const visibleCheckboxes = $('.client-checkbox');
+                const checkedCheckboxes = $('.client-checkbox:checked');
+                
+                if (visibleCheckboxes.length > 0 && visibleCheckboxes.length === checkedCheckboxes.length) {
+                    $('#select-all').prop('checked', true);
+                    $('#select-all').prop('indeterminate', false);
+                } else if (checkedCheckboxes.length > 0) {
+                    $('#select-all').prop('checked', false);
+                    $('#select-all').prop('indeterminate', true);
+                } else {
+                    $('#select-all').prop('checked', false);
+                    $('#select-all').prop('indeterminate', false);
                 }
             }
 
@@ -520,8 +591,10 @@
                     },
                     success: function(response) {
                         $('#bulkAssignModal').modal('hide');
-                        $('#select-all').prop('checked', false);
+                        // Clear selections after successful assignment
                         selectedClients = [];
+                        $('.client-checkbox').prop('checked', false);
+                        $('#select-all').prop('checked', false);
                         updateSelectedClients();
                         table.draw();
                         alert(response.message);
