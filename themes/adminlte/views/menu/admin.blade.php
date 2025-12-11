@@ -26,9 +26,54 @@
                 <a href="#" class="d-block">{{Auth::user()->first_name}} {{Auth::user()->last_name}}</a>
             </div>
         </div>
+        
+        @php
+            // Check if user is a field agent by checking the field_agents table
+            $isFieldAgent = \Modules\FieldAgent\Entities\FieldAgent::where('user_id', Auth::id())->exists();
+        @endphp
+        
+        <!-- Debug indicator -->
+        @if($isFieldAgent)
+            <div style="background: #28a745; color: white; padding: 5px; text-align: center; font-size: 12px;">
+                ✓ Field Agent Mode Active
+            </div>
+        @else
+            <div style="background: #dc3545; color: white; padding: 5px; text-align: center; font-size: 12px;">
+                ✗ Admin Mode (User ID: {{ Auth::id() }})
+            </div>
+        @endif
+        
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="true">
-                @foreach(\Modules\Core\Entities\Menu::with('children')->where('is_parent',1)->orderBy('menu_order','asc')->get() as $parent)
+                @if($isFieldAgent)
+                    {{-- Field Agent Menu - Only Dashboard and Field Agent Functions --}}
+                    <li class="nav-item">
+                        <a href="{{url('field-agent/dashboard')}}" class="nav-link @if(Request::is('field-agent/dashboard')) active @endif">
+                            <i class="nav-icon fas fa-tachometer-alt"></i>
+                            <p>Dashboard</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{url('field-agent/my-clients')}}" class="nav-link @if(Request::is('field-agent/my-clients*')) active @endif">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>My Clients</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{url('field-agent/collection')}}" class="nav-link @if(Request::is('field-agent/collection*')) active @endif">
+                            <i class="nav-icon fas fa-money-bill-wave"></i>
+                            <p>Collections</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{url('field-agent/daily-report')}}" class="nav-link @if(Request::is('field-agent/daily-report*')) active @endif">
+                            <i class="nav-icon fas fa-file-alt"></i>
+                            <p>Daily Reports</p>
+                        </a>
+                    </li>
+                @else
+                    {{-- Regular Admin Menu --}}
+                    @foreach(\Modules\Core\Entities\Menu::with('children')->where('is_parent',1)->orderBy('menu_order','asc')->get() as $parent)
                     @if($parent->children->count()==0)
                         @if(!empty($parent->permissions))
                             @can($parent->permissions)
@@ -127,6 +172,7 @@
                         @endif
                     @endif
                 @endforeach
+                @endif
             </ul>
         </nav>
     </div>
