@@ -40,7 +40,7 @@
                                class="control-label">{{trans_choice('savings::general.charge',1)}}</label>
                         <select class="form-control  @error('savings_charge_id') is-invalid @enderror"
                                 name="savings_charge_id" id="savings_charge_id"
-                                v-model="savings_charge_id" v-on:click="change_charge" required>
+                                v-model="savings_charge_id" @change="changeCharge" required>
                             <option value=""></option>
                             <option v-for="(charge,index) in charges" v-bind:value="index">
                                 @{{ charge.name }}
@@ -55,12 +55,16 @@
                     <div class="form-group">
                         <label for="amount" class="control-label">{{trans('core::general.amount')}}</label>
                         <input type="text" name="amount" value="{{ old('amount') }}" id="amount" v-model="amount"
-                               class="form-control  @error('amount') is-invalid @enderror numeric" required>
+                               class="form-control  @error('amount') is-invalid @enderror numeric" 
+                               :disabled="!canOverride" :readonly="!canOverride" required>
                         @error('amount')
                         <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>
                                     </span>
                         @enderror
+                        <small v-if="!canOverride" class="form-text text-muted">
+                            Amount is fixed for this charge type and cannot be modified.
+                        </small>
                     </div>
                     <div class="form-group">
                         <label for="date" class="control-label">{{trans('core::general.date')}}</label>
@@ -93,8 +97,37 @@
                 amount: "{{ old('amount') }}",
                 date: "{{ old('date',date("Y-m-d")) }}",
                 charges: charges,
+                canOverride: true
             },
-            methods: {}
+            methods: {
+                changeCharge() {
+                    if (this.savings_charge_id && this.charges[this.savings_charge_id]) {
+                        const selectedCharge = this.charges[this.savings_charge_id];
+                        
+                        // Check if charge allows override
+                        if (selectedCharge.allow_override == 1) {
+                            this.canOverride = true;
+                            // Keep current amount or set to charge amount if empty
+                            if (!this.amount) {
+                                this.amount = selectedCharge.amount;
+                            }
+                        } else {
+                            this.canOverride = false;
+                            // Set amount to charge's fixed amount
+                            this.amount = selectedCharge.amount;
+                        }
+                    } else {
+                        this.canOverride = true;
+                        this.amount = '';
+                    }
+                }
+            },
+            mounted() {
+                // Check on page load if there's a pre-selected charge
+                if (this.savings_charge_id) {
+                    this.changeCharge();
+                }
+            }
         })
     </script>
 @endsection
