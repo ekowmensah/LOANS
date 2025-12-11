@@ -410,7 +410,7 @@
                                 </a>
                             @endcan
                             @can('savings.savings.charges.create')
-                                <a href="{{url('savings/'.$savings->id.'/charge/create')}}" class="btn action-btn btn-primary-modern">
+                                <a href="#" data-toggle="modal" data-target="#add_charge_modal" class="btn action-btn btn-primary-modern">
                                     <i class="fa fa-plus"></i> {{ trans_choice('core::general.add',1) }} {{ trans_choice('savings::general.charge',1) }}
                                 </a>
                             @endcan
@@ -1154,6 +1154,77 @@
                 </div>
             </div>
         @endcan
+
+        @can('savings.savings.charges.create')
+            <!-- Add Charge Modal -->
+            <div class="modal fade modern-modal" id="add_charge_modal">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title">{{ trans_choice('core::general.add',1) }} {{ trans_choice('savings::general.charge',1) }}</h4>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        </div>
+                        <form method="post" action="{{ url('savings/'.$savings->id.'/charge/store') }}">
+                            {{csrf_field()}}
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="savings_charge_id" class="control-label">{{trans_choice('savings::general.charge',1)}}</label>
+                                    <select class="form-control @error('savings_charge_id') is-invalid @enderror"
+                                            name="savings_charge_id" id="savings_charge_id"
+                                            v-model="savings_charge_id" @change="changeCharge" required>
+                                        <option value="">{{ trans_choice('core::general.select',1) }}</option>
+                                        <option v-for="(charge,index) in charges" v-bind:value="index">
+                                            @{{ charge.name }}
+                                        </option>
+                                    </select>
+                                    @error('savings_charge_id')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                    @enderror
+                                </div>
+                                <div class="form-group">
+                                    <label for="charge_amount" class="control-label">{{trans('core::general.amount')}}</label>
+                                    <input type="text" name="amount" value="{{ old('amount') }}" id="charge_amount" v-model="amount"
+                                           class="form-control numeric @error('amount') is-invalid @enderror" 
+                                           :readonly="!canOverride" 
+                                           :style="!canOverride ? 'background-color: #e9ecef; cursor: not-allowed;' : ''" 
+                                           required>
+                                    @error('amount')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                    @enderror
+                                    <small v-if="!canOverride" class="form-text text-muted">
+                                        Amount is fixed for this charge type and cannot be modified.
+                                    </small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="charge_date" class="control-label">{{trans('core::general.date')}}</label>
+                                    <input type="date" name="date" v-model="date" id="charge_date"
+                                           class="form-control @error('date') is-invalid @enderror" required>
+                                    @error('date')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">
+                                    {{ trans_choice('core::general.close',1) }}
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> {{ trans_choice('core::general.save',1) }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endcan
     </section>
 @endsection
 
@@ -1163,6 +1234,40 @@
             el: '#app',
             data: {
                 savings_officer_id: '{{old('savings_officer_id',$savings->savings_officer_id)}}',
+                savings_charge_id: "{{ old('savings_charge_id') }}",
+                amount: "{{ old('amount') }}",
+                date: "{{ old('date',date('Y-m-d')) }}",
+                charges: {},
+                canOverride: true
+            },
+            methods: {
+                changeCharge() {
+                    if (this.savings_charge_id && this.charges[this.savings_charge_id]) {
+                        const selectedCharge = this.charges[this.savings_charge_id];
+                        
+                        // Check if charge allows override
+                        if (selectedCharge.allow_override == 1) {
+                            this.canOverride = true;
+                            // Keep current amount or set to charge amount if empty
+                            if (!this.amount) {
+                                this.amount = selectedCharge.amount;
+                            }
+                        } else {
+                            this.canOverride = false;
+                            // Set amount to charge's fixed amount
+                            this.amount = selectedCharge.amount;
+                        }
+                    } else {
+                        this.canOverride = true;
+                        this.amount = '';
+                    }
+                }
+            },
+            mounted() {
+                // Check on page load if there's a pre-selected charge
+                if (this.savings_charge_id) {
+                    this.changeCharge();
+                }
             }
         })
     </script>

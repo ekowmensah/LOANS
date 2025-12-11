@@ -56,7 +56,9 @@
                         <label for="amount" class="control-label">{{trans('core::general.amount')}}</label>
                         <input type="text" name="amount" value="{{ old('amount') }}" id="amount" v-model="amount"
                                class="form-control  @error('amount') is-invalid @enderror numeric" 
-                               :disabled="!canOverride" :readonly="!canOverride" required>
+                               :readonly="!canOverride" 
+                               :style="!canOverride ? 'background-color: #e9ecef; cursor: not-allowed;' : ''" 
+                               required>
                         @error('amount')
                         <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>

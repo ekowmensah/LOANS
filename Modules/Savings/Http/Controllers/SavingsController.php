@@ -316,8 +316,23 @@ class SavingsController extends Controller
             return $query->where('name', '!=', 'client');
         })->get();
         $payment_types = PaymentType::where('active', 1)->get();
-        $savings = Savings::with('transactions')->with('charges')->with('client')->with('savings_product')->find($id);
+        $savings = Savings::with('transactions')->with('charges')->with('client')->with('savings_product.charges.charge')->find($id);
         $custom_fields = CustomField::where('category', 'add_savings')->where('active', 1)->get();
+        
+        // Get all charges linked to this savings product for the modal
+        $charges = [];
+        if ($savings->savings_product && $savings->savings_product->charges) {
+            foreach ($savings->savings_product->charges as $key) {
+                if ($key->charge) {
+                    $charges[$key->charge->id] = $key->charge;
+                }
+            }
+        }
+        
+        \JavaScript::put([
+            'charges' => $charges
+        ]);
+        
         return theme_view('savings::savings.show', compact('savings', 'payment_types', 'users', 'custom_fields'));
     }
 
