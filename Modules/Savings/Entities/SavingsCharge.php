@@ -13,9 +13,19 @@ class SavingsCharge extends Model
     {
         return $this->hasOne(SavingsChargeType::class, 'id', 'savings_charge_type_id');
     }
+    
+    public function savings_charge_type()
+    {
+        return $this->belongsTo(SavingsChargeType::class, 'savings_charge_type_id', 'id');
+    }
 
     public function charge_option()
     {
         return $this->hasOne(SavingsChargeOption::class, 'id', 'savings_charge_option_id');
+    }
+    
+    public function savings_charge_option()
+    {
+        return $this->belongsTo(SavingsChargeOption::class, 'savings_charge_option_id', 'id');
     }
 }
