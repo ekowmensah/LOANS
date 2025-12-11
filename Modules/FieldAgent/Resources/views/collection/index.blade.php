@@ -104,6 +104,7 @@
                             <th>{{ trans_choice('fieldagent::general.collection_type', 1) }}</th>
                             <th>{{ trans_choice('core::general.amount', 1) }}</th>
                             <th>{{ trans_choice('fieldagent::general.collection_date', 1) }}</th>
+                            <th>Time</th>
                             <th>{{ trans_choice('core::general.status', 1) }}</th>
                             <th>{{ trans_choice('core::general.action', 1) }}</th>
                         </tr>
@@ -137,6 +138,7 @@
                     {data: 'collection_type', name: 'collection_type'},
                     {data: 'amount', name: 'amount'},
                     {data: 'collection_date', name: 'collection_date'},
+                    {data: 'collection_time', name: 'collection_time'},
                     {data: 'status', name: 'status'},
                     {data: 'action', name: 'action', orderable: false, searchable: false}
                 ],

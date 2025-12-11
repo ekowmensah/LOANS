@@ -95,6 +95,9 @@ class FieldCollectionController extends Controller
             ->editColumn('collection_date', function ($data) {
                 return $data->collection_date->format('Y-m-d');
             })
+            ->addColumn('collection_time', function ($data) {
+                return $data->collection_time ?? 'N/A';
+            })
             ->editColumn('status', function ($data) {
                 return $data->status_badge;
             })
