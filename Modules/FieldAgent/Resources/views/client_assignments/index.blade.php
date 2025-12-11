@@ -4,6 +4,11 @@
     Assign Clients to Field Agents
 @endsection
 
+@section('styles')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap4-theme@1.0.0/dist/select2-bootstrap4.min.css">
+@endsection
+
 @section('content')
     <section class="content-header">
         <div class="container-fluid">
@@ -131,6 +136,7 @@
 @endsection
 
 @section('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
             let selectedClientId = null;
