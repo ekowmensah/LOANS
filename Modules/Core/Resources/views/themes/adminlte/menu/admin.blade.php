@@ -25,7 +25,8 @@
         <!-- sidebar menu: : style can be found in sidebar.less -->
         <ul class="sidebar-menu" data-widget="tree">
             @php
-                $isFieldAgent = Auth::user()->hasRole('field_agent');
+                // Check if user is a field agent by checking the field_agents table
+                $isFieldAgent = \Modules\FieldAgent\Entities\FieldAgent::where('user_id', Auth::id())->exists();
             @endphp
             
             @if($isFieldAgent)
