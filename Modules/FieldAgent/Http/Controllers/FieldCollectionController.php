@@ -514,10 +514,24 @@ class FieldCollectionController extends Controller
                 $accounts = [];
             }
 
-            return response()->json($accounts);
+            // Format response for JavaScript
+            $formattedAccounts = $accounts->map(function($account) {
+                return [
+                    'id' => $account['id'],
+                    'text' => $account['name'] . ' (Balance: ' . $account['balance'] . ')'
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $formattedAccounts
+            ]);
         } catch (\Exception $e) {
             \Log::error('Error loading client accounts: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
