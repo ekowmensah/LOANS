@@ -635,13 +635,6 @@
                                             name="branch_id" v-model="formData.branch_id" required>
                                         <option value="">Select Branch</option>
                                         @foreach($branches as $key)
-                                            <option value="{{$key->id}}">{{$key->name}}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group-wizard">
                                     <label>Loan Officer</label>
                                     <select class="form-control custom-select" name="loan_officer_id" v-model="formData.loan_officer_id">
                                         <option value="">Select Officer</option>
@@ -653,8 +646,33 @@
                             </div>
                         </div>
 
-                        <div class="form-group-wizard">
-                            <label>Profession</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group-wizard">
+                                    <label>Field Agent</label>
+                                    <select class="form-control custom-select" name="field_agent_id" v-model="formData.field_agent_id">
+                                        <option value="">Select Field Agent</option>
+                                        @foreach($field_agents as $agent)
+                                            <option value="{{$agent->id}}">{{$agent->agent_code}} - {{$agent->full_name}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group-wizard">
+                                    <label>Profession</label>
+                                    <select class="form-control custom-select" name="profession_id" v-model="formData.profession_id">
+                                        <option value="">Select Profession</option>
+                                        @foreach($professions as $key)
+                                            <option value="{{$key->id}}">{{$key->name}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group-wizard d-none">
+                            <label>Profession (Hidden)</label>
                             <select class="form-control custom-select" name="profession_id" v-model="formData.profession_id">
                                 <option value="">Select Profession</option>
                                 @foreach($professions as $key)
@@ -803,6 +821,7 @@
                     country_id: '',
                     branch_id: '',
                     loan_officer_id: '',
+                    field_agent_id: '',
                     profession_id: '',
                     created_date: '{{date('Y-m-d')}}',
                     notes: ''
@@ -812,6 +831,7 @@
                 branches: @json($branches),
                 users: @json($users),
                 professions: @json($professions),
+                field_agents: @json($field_agents),
                 duplicateChecks: {
                     mobile: { checking: false, available: true, message: '' },
                     email: { checking: false, available: true, message: '' },

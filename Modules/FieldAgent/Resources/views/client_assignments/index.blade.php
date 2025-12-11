@@ -213,11 +213,16 @@
             // Save assignment
             $('#save-assignment-btn').on('click', function() {
                 const fieldAgentId = $('#modal-field-agent-id').val();
+                const $btn = $(this);
 
                 if (!fieldAgentId) {
                     alert('Please select a field agent');
                     return;
                 }
+
+                // Show loading state
+                $btn.prop('disabled', true);
+                $btn.html('<i class="fas fa-spinner fa-spin"></i> Saving...');
 
                 $.ajax({
                     url: "{{ url('field-agent/client-assignments/update') }}",
@@ -233,7 +238,12 @@
                         alert(response.message);
                     },
                     error: function(xhr) {
-                        alert('Error: ' + xhr.responseJSON.message);
+                        alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Unknown error'));
+                    },
+                    complete: function() {
+                        // Reset button state
+                        $btn.prop('disabled', false);
+                        $btn.html('Save Assignment');
                     }
                 });
             });
@@ -245,6 +255,12 @@
                 }
 
                 const clientId = $(this).data('client-id');
+                const $btn = $(this);
+                const originalHtml = $btn.html();
+
+                // Show loading state
+                $btn.prop('disabled', true);
+                $btn.html('<i class="fas fa-spinner fa-spin"></i> Removing...');
 
                 $.ajax({
                     url: "{{ url('field-agent/client-assignments/update') }}",
@@ -259,7 +275,9 @@
                         alert(response.message);
                     },
                     error: function(xhr) {
-                        alert('Error: ' + xhr.responseJSON.message);
+                        alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Unknown error'));
+                        $btn.prop('disabled', false);
+                        $btn.html(originalHtml);
                     }
                 });
             });
@@ -276,11 +294,16 @@
             // Save bulk assignment
             $('#save-bulk-assignment-btn').on('click', function() {
                 const fieldAgentId = $('#bulk-field-agent-id').val();
+                const $btn = $(this);
 
                 if (!fieldAgentId) {
                     alert('Please select a field agent');
                     return;
                 }
+
+                // Show loading state
+                $btn.prop('disabled', true);
+                $btn.html('<i class="fas fa-spinner fa-spin"></i> Assigning...');
 
                 $.ajax({
                     url: "{{ url('field-agent/client-assignments/bulk-assign') }}",
@@ -298,7 +321,12 @@
                         alert(response.message);
                     },
                     error: function(xhr) {
-                        alert('Error: ' + xhr.responseJSON.message);
+                        alert('Error: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Unknown error'));
+                    },
+                    complete: function() {
+                        // Reset button state
+                        $btn.prop('disabled', false);
+                        $btn.html('Assign Selected');
                     }
                 });
             });

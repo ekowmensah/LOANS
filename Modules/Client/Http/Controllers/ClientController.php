@@ -174,8 +174,9 @@ class ClientController extends Controller
         })->get();
         $branches = Branch::all();
         $countries = Country::all();
+        $field_agents = \Modules\FieldAgent\Entities\FieldAgent::with('user')->where('status', 'active')->get();
         $custom_fields = CustomField::where('category', 'add_client')->where('active', 1)->get();
-        return theme_view('client::client.create', compact('titles', 'professions', 'client_types', 'users', 'branches', 'countries', 'custom_fields'));
+        return theme_view('client::client.create', compact('titles', 'professions', 'client_types', 'users', 'branches', 'countries', 'field_agents', 'custom_fields'));
     }
 
     /**
@@ -282,8 +283,9 @@ class ClientController extends Controller
         })->get();
         $branches = Branch::all();
         $countries = Country::all();
+        $field_agents = \Modules\FieldAgent\Entities\FieldAgent::with('user')->where('status', 'active')->get();
         $custom_fields = CustomField::where('category', 'add_client')->where('active', 1)->get();
-        return theme_view('client::client.edit', compact('client', 'titles', 'professions', 'client_types', 'users', 'branches', 'countries', 'custom_fields'));
+        return theme_view('client::client.edit', compact('client', 'titles', 'professions', 'client_types', 'users', 'branches', 'countries', 'field_agents', 'custom_fields'));
     }
 
     /**
