@@ -538,10 +538,16 @@
                             $('#collection_type').prop('disabled', false);
                             $('#collection_type option:first').text('Select collection type');
                             
-                            // Reset fields
-                            $('#collection_type').val('').trigger('change');
-                            $('#reference_id').html('<option value="">Select type first</option>').prop('disabled', true);
+                            // Reset collection type to default 'Select' option
+                            $('#collection_type').val('');
+                            
+                            // Reset account/loan field
+                            $('#reference_id').html('<option value="">Select type first</option>').prop('disabled', true).val('');
+                            
+                            // Hide loan payment info
                             $('#loan-payment-info').hide();
+                            
+                            // Trigger change event for client_id
                             $('#client_id').trigger('change');
                         } else {
                             this.error_message = response.data.message || 'Client not found';
@@ -635,8 +641,13 @@
             }
 
             $('#collection_type').change(function() {
-                $('#reference_id').html('<option value="">Select type first</option>').prop('disabled', true);
+                // Reset account/loan field whenever collection type changes
+                $('#reference_id').html('<option value="">Select type first</option>').prop('disabled', true).val('');
+                
+                // Hide loan payment info
                 $('#loan-payment-info').hide();
+                
+                // Load accounts if both client and type are selected
                 loadAccounts();
             });
 
