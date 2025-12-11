@@ -27,7 +27,7 @@ class FieldAgentClientAssignmentController extends Controller
      */
     public function index()
     {
-        return view('field_agent::assignments.index');
+        return view('fieldagent::assignments.index');
     }
 
     /**
@@ -85,7 +85,7 @@ class FieldAgentClientAssignmentController extends Controller
         $fieldAgents = FieldAgent::with('user')->where('status', 'active')->get();
         $clients = Client::where('status', 'active')->get();
         
-        return view('field_agent::assignments.create', compact('fieldAgents', 'clients'));
+        return view('fieldagent::assignments.create', compact('fieldAgents', 'clients'));
     }
 
     /**
@@ -143,7 +143,7 @@ class FieldAgentClientAssignmentController extends Controller
         $fieldAgents = FieldAgent::with('user')->where('status', 'active')->get();
         $clients = Client::where('status', 'active')->get();
         
-        return view('field_agent::assignments.edit', compact('assignment', 'fieldAgents', 'clients'));
+        return view('fieldagent::assignments.edit', compact('assignment', 'fieldAgents', 'clients'));
     }
 
     /**
