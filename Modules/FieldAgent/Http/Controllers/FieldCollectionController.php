@@ -96,7 +96,19 @@ class FieldCollectionController extends Controller
                 return $data->collection_date->format('Y-m-d');
             })
             ->addColumn('collection_time', function ($data) {
-                return $data->collection_time ?? 'N/A';
+                // Extract only time from collection_time field (format: HH:MM or HH:MM:SS)
+                return $data->collection_time ? date('H:i', strtotime($data->collection_time)) : 'N/A';
+            })
+            ->addColumn('account_number', function ($data) {
+                // Get account number based on collection type
+                if ($data->collection_type === 'savings_deposit' && $data->reference_id) {
+                    $savings = \Modules\Savings\Entities\Savings::find($data->reference_id);
+                    return $savings ? $savings->account_number : 'N/A';
+                } elseif ($data->collection_type === 'loan_repayment' && $data->reference_id) {
+                    $loan = \Modules\Loan\Entities\Loan::find($data->reference_id);
+                    return $loan ? $loan->account_number : 'N/A';
+                }
+                return 'N/A';
             })
             ->editColumn('status', function ($data) {
                 return $data->status_badge;

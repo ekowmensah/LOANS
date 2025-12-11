@@ -102,6 +102,7 @@
                             <th>{{ trans_choice('fieldagent::general.field_agent', 1) }}</th>
                             <th>{{ trans_choice('client::general.client', 1) }}</th>
                             <th>{{ trans_choice('fieldagent::general.collection_type', 1) }}</th>
+                            <th>Account Number</th>
                             <th>{{ trans_choice('core::general.amount', 1) }}</th>
                             <th>{{ trans_choice('fieldagent::general.collection_date', 1) }}</th>
                             <th>Time</th>
@@ -136,6 +137,7 @@
                     {data: 'field_agent', name: 'field_agent'},
                     {data: 'client', name: 'client'},
                     {data: 'collection_type', name: 'collection_type'},
+                    {data: 'account_number', name: 'account_number'},
                     {data: 'amount', name: 'amount'},
                     {data: 'collection_date', name: 'collection_date'},
                     {data: 'collection_time', name: 'collection_time'},
