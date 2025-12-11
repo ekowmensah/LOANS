@@ -298,6 +298,20 @@ class FieldCollectionController extends Controller
             ], 404);
         }
         
+        // Check if current user is a field agent and if client is assigned to them
+        $user = Auth::user();
+        $currentFieldAgent = FieldAgent::where('user_id', $user->id)->first();
+        
+        if ($currentFieldAgent) {
+            // Field agent must only collect from their assigned clients
+            if ($client->field_agent_id != $currentFieldAgent->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This client is not assigned to you. You cannot collect money from unassigned clients.'
+                ], 403);
+            }
+        }
+        
         return response()->json([
             'success' => true,
             'data' => [
@@ -322,6 +336,22 @@ class FieldCollectionController extends Controller
         $type = $request->type;
 
         try {
+            // Check if current user is a field agent and if client is assigned to them
+            $user = Auth::user();
+            $currentFieldAgent = FieldAgent::where('user_id', $user->id)->first();
+            
+            if ($currentFieldAgent) {
+                // Verify client is assigned to this field agent
+                $client = Client::find($clientId);
+                
+                if (!$client || $client->field_agent_id != $currentFieldAgent->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This client is not assigned to you. You cannot collect money from unassigned clients.'
+                    ], 403);
+                }
+            }
+            
             if ($type === 'savings_deposit') {
                 $accounts = Savings::where('client_id', $clientId)
                     ->where('status', 'active')
@@ -419,6 +449,20 @@ class FieldCollectionController extends Controller
             'photo_proof' => 'nullable|image|max:5120',
             'notes' => 'nullable|string',
         ]);
+
+        // Check if current user is a field agent and if client is assigned to them
+        $user = Auth::user();
+        $currentFieldAgent = FieldAgent::where('user_id', $user->id)->first();
+        
+        if ($currentFieldAgent) {
+            // Verify client is assigned to this field agent
+            $client = Client::find($request->client_id);
+            
+            if (!$client || $client->field_agent_id != $currentFieldAgent->id) {
+                flash('This client is not assigned to you. You cannot collect money from unassigned clients.')->error();
+                return redirect()->back()->withInput();
+            }
+        }
 
         $data = $request->except('photo_proof');
         $data['status'] = 'pending';
