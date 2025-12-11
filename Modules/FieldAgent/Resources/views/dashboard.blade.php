@@ -112,19 +112,19 @@
                 </div>
             </div>
 
-            <!-- Additional Stats -->
+            <!-- Client & Loan Portfolio Stats -->
             <div class="row">
-                <div class="col-lg-4 col-6">
+                <div class="col-lg-3 col-6">
                     <div class="info-box">
                         <span class="info-box-icon bg-primary"><i class="fas fa-users"></i></span>
                         <div class="info-box-content">
-                            <span class="info-box-text">Assigned Clients</span>
-                            <span class="info-box-number">{{ $assignedClients }}</span>
+                            <span class="info-box-text">Active Clients</span>
+                            <span class="info-box-number">{{ $assignedClients }}<small>/{{ $totalClients }}</small></span>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-4 col-6">
+                <div class="col-lg-3 col-6">
                     <div class="info-box">
                         <span class="info-box-icon bg-success"><i class="fas fa-hand-holding-usd"></i></span>
                         <div class="info-box-content">
@@ -134,12 +134,55 @@
                     </div>
                 </div>
 
-                <div class="col-lg-4 col-6">
+                <div class="col-lg-3 col-6">
+                    <div class="info-box">
+                        <span class="info-box-icon bg-info"><i class="fas fa-wallet"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Portfolio Value</span>
+                            <span class="info-box-number">{{ number_format($portfolioValue, 0) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-6">
                     <div class="info-box">
                         <span class="info-box-icon bg-warning"><i class="fas fa-exclamation-circle"></i></span>
                         <div class="info-box-content">
                             <span class="info-box-text">Loans Due/Overdue</span>
                             <span class="info-box-number">{{ $dueLoans->count() }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collection Status Stats -->
+            <div class="row">
+                <div class="col-lg-4 col-6">
+                    <div class="info-box">
+                        <span class="info-box-icon bg-success"><i class="fas fa-check-circle"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Verified Collections</span>
+                            <span class="info-box-number">{{ $verifiedCollections }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-6">
+                    <div class="info-box">
+                        <span class="info-box-icon bg-warning"><i class="fas fa-clock"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Pending Verification</span>
+                            <span class="info-box-number">{{ $pendingVerifications }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-6">
+                    <div class="info-box">
+                        <span class="info-box-icon bg-danger"><i class="fas fa-times-circle"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Rejected Collections</span>
+                            <span class="info-box-number">{{ $rejectedCollections }}</span>
                         </div>
                     </div>
                 </div>

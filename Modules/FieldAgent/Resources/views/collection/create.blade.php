@@ -281,7 +281,13 @@
                             this.client = response.data.data;
                             this.selected_client_id = this.client.id;
                             this.error_message = null;
-                            // Trigger change event for collection type dropdown
+                            
+                            // Reset collection type and account fields when new client is searched
+                            $('#collection_type').val('').trigger('change');
+                            $('#reference_id').html('<option value="">Select client and type first</option>').prop('disabled', true);
+                            $('#loan-payment-info').hide();
+                            
+                            // Trigger change event for client_id
                             $('#client_id').trigger('change');
                         } else {
                             this.error_message = response.data.message || 'Client not found';

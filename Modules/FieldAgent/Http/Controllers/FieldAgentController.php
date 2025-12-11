@@ -67,17 +67,38 @@ class FieldAgentController extends Controller
             ->where('status', 'pending')
             ->count();
         
-        // Get unique clients from collections
-        $assignedClients = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
-            ->distinct('client_id')
-            ->count('client_id');
+        // Get verified collections count
+        $verifiedCollections = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
+            ->where('status', 'verified')
+            ->count();
         
-        // Get active loans from collections
-        $activeLoans = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
-            ->whereNotNull('reference_id')
-            ->where('collection_type', 'loan_repayment')
-            ->distinct('reference_id')
-            ->count('reference_id');
+        // Get rejected collections count
+        $rejectedCollections = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
+            ->where('status', 'rejected')
+            ->count();
+        
+        // Get actual assigned clients count
+        $assignedClients = \Modules\Client\Entities\Client::where('field_agent_id', $fieldAgent->id)
+            ->where('status', 'active')
+            ->count();
+        
+        // Get total clients (including inactive)
+        $totalClients = \Modules\Client\Entities\Client::where('field_agent_id', $fieldAgent->id)
+            ->count();
+        
+        // Get active loans for assigned clients
+        $activeLoans = \Modules\Loan\Entities\Loan::whereHas('client', function($q) use ($fieldAgent) {
+                $q->where('field_agent_id', $fieldAgent->id);
+            })
+            ->where('status', 'active')
+            ->count();
+        
+        // Get total loan portfolio value
+        $portfolioValue = \Modules\Loan\Entities\Loan::whereHas('client', function($q) use ($fieldAgent) {
+                $q->where('field_agent_id', $fieldAgent->id);
+            })
+            ->where('status', 'active')
+            ->sum('principal');
         
         // Get recent collections (last 10)
         $recentCollections = \Modules\FieldAgent\Entities\FieldCollection::where('field_agent_id', $fieldAgent->id)
@@ -122,8 +143,12 @@ class FieldAgentController extends Controller
             'monthAmount',
             'monthCount',
             'pendingVerifications',
+            'verifiedCollections',
+            'rejectedCollections',
             'assignedClients',
+            'totalClients',
             'activeLoans',
+            'portfolioValue',
             'recentCollections',
             'todayReport',
             'dueLoans'
