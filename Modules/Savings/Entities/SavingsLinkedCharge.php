@@ -13,6 +13,12 @@ class SavingsLinkedCharge extends Model
     {
         return $this->hasOne(SavingsCharge::class, 'id', 'savings_charge_id');
     }
+    
+    public function savings_charge()
+    {
+        return $this->belongsTo(SavingsCharge::class, 'savings_charge_id', 'id');
+    }
+    
     public function savings()
     {
         return $this->belongsTo(Savings::class, 'savings_id', 'id');
