@@ -1292,13 +1292,18 @@ class SavingsController extends Controller
 
     public function create_savings_linked_charge($id)
     {
-        $savings = Savings::with('savings_product')->with('savings_product.charges')->with('savings_product.charges.charge')->find($id);
+        $savings = Savings::with('savings_product.charges.charge')->find($id);
+        
+        // Get all charges linked to this savings product
         $charges = [];
-        foreach ($savings->savings_product->charges as $key) {
-            if ($key->charge->savings_charge_type_id == 2) {
-                $charges[$key->charge->id] = $key->charge;
+        if ($savings->savings_product && $savings->savings_product->charges) {
+            foreach ($savings->savings_product->charges as $key) {
+                if ($key->charge) {
+                    $charges[$key->charge->id] = $key->charge;
+                }
             }
         }
+        
         \JavaScript::put([
             'charges' => $charges
         ]);
