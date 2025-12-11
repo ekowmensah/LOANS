@@ -15,7 +15,20 @@
         @php
             // Check if user is a field agent by checking the field_agents table
             $isFieldAgent = \Modules\FieldAgent\Entities\FieldAgent::where('user_id', Auth::id())->exists();
+            // Debug: Log the check
+            \Log::info('Menu Check - User ID: ' . Auth::id() . ', Is Field Agent: ' . ($isFieldAgent ? 'YES' : 'NO'));
         @endphp
+        
+        <!-- Debug indicator (remove after testing) -->
+        @if($isFieldAgent)
+            <div style="background: #28a745; color: white; padding: 5px; text-align: center; font-size: 12px;">
+                ✓ Field Agent Mode Active
+            </div>
+        @else
+            <div style="background: #dc3545; color: white; padding: 5px; text-align: center; font-size: 12px;">
+                ✗ Admin Mode (User ID: {{ Auth::id() }})
+            </div>
+        @endif
         
         <!-- search form -->
         @if(!$isFieldAgent)
