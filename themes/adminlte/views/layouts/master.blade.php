@@ -12,26 +12,35 @@
     <link rel="stylesheet" href="{{ asset('themes/adminlte/css/custom.css') }}" type="text/css"/>
     @yield('styles')
     <script src="{{ asset('themes/adminlte/js/adminlte.js') }}"></script>
+    <script>
+        // Configure Vue to not parse inline scripts as templates
+        if (typeof Vue !== 'undefined') {
+            Vue.config.ignoredElements = ['script'];
+            Vue.config.silent = true; // Suppress Vue warnings in production
+        }
+    </script>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed">
-<div class="wrapper">
-    @include('core::partials.top_nav')
-    @if(Auth::user()->hasRole('client'))
-        @include('core::menu.client')
-    @else
-        @include('core::menu.admin')
-    @endif
-    <div class="content-wrapper">
-        <section class="content pt-2">
-            <div class="row">
-                <div class="col-md-12">
-                    @include('core::partials.flash.message')
+<div id="app" v-cloak>
+    <div class="wrapper">
+        @include('core::partials.top_nav')
+        @if(Auth::user()->hasRole('client'))
+            @include('core::menu.client')
+        @else
+            @include('core::menu.admin')
+        @endif
+        <div class="content-wrapper">
+            <section class="content pt-2">
+                <div class="row">
+                    <div class="col-md-12">
+                        @include('core::partials.flash.message')
+                    </div>
                 </div>
-            </div>
-        </section>
-        @yield('content')
+            </section>
+            @yield('content')
+        </div>
+        @include('core::partials.footer')
     </div>
-    @include('core::partials.footer')
 </div>
 <script src="{{ asset('themes/adminlte/js/custom.js') }}"></script>
 <script>

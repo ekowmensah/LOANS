@@ -77,14 +77,11 @@
                        class="btn btn-default btn-flat">
                         {{trans_choice('core::general.profile',1)}}
                     </a>
-                    <a href="#" onclick="logout()" class="btn btn-default btn-flat float-right">
+                    <a href="#" onclick="event.preventDefault(); document.getElementById('logout_form').submit();" class="btn btn-default btn-flat float-right">
                         {{trans_choice('core::general.logout',1)}}</a>
                     <form action="{{url('logout')}}" method="post" id="logout_form">
                         {{csrf_field()}}
                     </form>
-                    <script>function logout() {
-                            $("#logout_form").submit();
-                        }</script>
                 </li>
             </ul>
         </li>

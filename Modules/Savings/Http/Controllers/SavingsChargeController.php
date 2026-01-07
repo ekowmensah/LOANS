@@ -176,7 +176,7 @@ class SavingsChargeController extends Controller
      */
     public function edit($id)
     {
-        $savings_charge = SavingsCharge::find($id);
+        $savings_charge = SavingsCharge::findOrFail($id);
         $charge_types = SavingsChargeType::orderBy('id')->get();
         $charge_options = SavingsChargeOption::orderBy('id')->get();
         $currencies = Currency::orderBy('name')->get();
