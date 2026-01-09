@@ -28,6 +28,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('events:recur')->daily();
         //$schedule->command('penalties:process')->daily();
         $schedule->command('savings:interest')->daily();
+        $schedule->command('loan:process-auto-repayment-deductions')->daily();
     }
 
     /**

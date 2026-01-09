@@ -8,937 +8,708 @@
             <div class="row mb-2">
                 <div class="col-sm-6">
                     <h1>
-                        {{ trans_choice('core::general.add',1) }} {{ trans_choice('loan::general.product',1) }}
-                        <a href="#" onclick="window.history.back()"
-                           class="btn btn-outline-light bg-white d-none d-sm-inline-flex">
-                            <em class="icon ni ni-arrow-left"></em><span>{{ trans_choice('core::general.back',1) }}</span>
-                        </a>
+                        <i class="fas fa-box-open"></i> {{ trans_choice('core::general.add',1) }} {{ trans_choice('loan::general.product',1) }}
                     </h1>
-
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a
-                                    href="{{url('dashboard')}}">{{ trans_choice('dashboard::general.dashboard',1) }}</a>
-                        </li>
-                        <li class="breadcrumb-item"><a
-                                    href="{{url('loan/product')}}">{{ trans_choice('loan::general.product',2) }}</a>
-                        </li>
-                        <li class="breadcrumb-item active">{{ trans_choice('core::general.add',1) }} {{ trans_choice('loan::general.product',1) }}</li>
+                        <li class="breadcrumb-item"><a href="{{url('dashboard')}}">{{ trans_choice('dashboard::general.dashboard',1) }}</a></li>
+                        <li class="breadcrumb-item"><a href="{{url('loan/product')}}">{{ trans_choice('loan::general.product',2) }}</a></li>
+                        <li class="breadcrumb-item active">{{ trans_choice('core::general.add',1) }}</li>
                     </ol>
                 </div>
             </div>
-        </div><!-- /.container-fluid -->
+        </div>
     </section>
+
     <section class="content" id="app">
         <form method="post" action="{{ url('loan/product/store') }}">
             {{csrf_field()}}
-            <div class="card card-bordered card-preview">
+            
+            <!-- SECTION 1: Basic Information -->
+            <div class="card card-outline card-primary">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-info-circle mr-2"></i><strong>Basic Information</strong></h3>
+                </div>
                 <div class="card-body">
-                    <div class="row gy-4">
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="name"
-                                       class="control-label">{{trans_choice('core::general.name',1)}} </label>
-                                <input type="text" name="name" value="{{ old('name') }}"
-                                       id="name"
-                                       class="form-control @error('name') is-invalid @enderror" v-model="name" required>
+                                <label class="font-weight-bold">Product Name <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" 
+                                       v-model="name" required placeholder="e.g., Personal Loan">
                                 @error('name')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="short_name"
-                                       class="control-label">{{trans_choice('loan::general.short_name',1)}}</label>
-                                <input type="text" name="short_name" value="{{ old('short_name') }}"
-                                       id="short_name"
-                                       class="form-control @error('short_name') is-invalid @enderror"
-                                       v-model="short_name" required>
+                                <label class="font-weight-bold">Short Name <span class="text-danger">*</span></label>
+                                <input type="text" name="short_name" class="form-control @error('short_name') is-invalid @enderror"
+                                       v-model="short_name" required placeholder="e.g., PL">
                                 @error('short_name')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="description"
-                                       class="control-label">{{trans_choice('core::general.description',1)}}</label>
-                                <input type="text" name="description" value="{{ old('description') }}"
-                                       id="description"
-                                       class="form-control @error('description') is-invalid @enderror"
-                                       v-model="description" required>
+                                <label class="font-weight-bold">Description <span class="text-danger">*</span></label>
+                                <input type="text" name="description" class="form-control @error('description') is-invalid @enderror"
+                                       v-model="description" required placeholder="Brief description">
                                 @error('description')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                     </div>
-                    <div class="row gy-4">
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="fund_id"
-                                       class="control-label">{{trans_choice('loan::general.fund',1)}}</label>
-                                <v-select label="name" :options="funds"
-                                          :reduce="fund => fund.id"
-                                          v-model="fund_id">
+                                <label class="font-weight-bold">Fund <span class="text-danger">*</span></label>
+                                <v-select label="name" :options="funds" :reduce="fund => fund.id" v-model="fund_id" placeholder="Select fund...">
                                     <template #search="{attributes, events}">
-                                        <input
-                                                autocomplete="off"
-                                                class="vs__search @error('fund_id') is-invalid @enderror"
-                                                :required="!fund_id"
-                                                v-bind="attributes"
-                                                v-on="events"
-                                        />
+                                        <input autocomplete="off" class="vs__search @error('fund_id') is-invalid @enderror"
+                                               :required="!fund_id" v-bind="attributes" v-on="events" />
                                     </template>
                                 </v-select>
-                                <input type="hidden" name="fund_id"
-                                       v-model="fund_id">
+                                <input type="hidden" name="fund_id" v-model="fund_id">
                                 @error('fund_id')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback d-block"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="currency_id"
-                                       class="control-label">{{trans_choice('core::general.currency',1)}}</label>
-                                <v-select label="name" :options="currencies"
-                                          :reduce="currency => currency.id"
-                                          v-model="currency_id">
+                                <label class="font-weight-bold">Currency <span class="text-danger">*</span></label>
+                                <v-select label="name" :options="currencies" :reduce="currency => currency.id" v-model="currency_id" placeholder="Select currency...">
                                     <template #search="{attributes, events}">
-                                        <input
-                                                autocomplete="off"
-                                                class="vs__search @error('currency_id') is-invalid @enderror"
-                                                :required="!currency_id"
-                                                v-bind="attributes"
-                                                v-on="events"
-                                        />
+                                        <input autocomplete="off" class="vs__search @error('currency_id') is-invalid @enderror"
+                                               :required="!currency_id" v-bind="attributes" v-on="events" />
                                     </template>
                                 </v-select>
-                                <input type="hidden" name="currency_id"
-                                       v-model="currency_id">
+                                <input type="hidden" name="currency_id" v-model="currency_id">
                                 @error('currency_id')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback d-block"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="decimals"
-                                       class="control-label">{{trans_choice('loan::general.decimal_place',2)}}</label>
-                                <input type="text" name="decimals" value="0" v-model="decimals"
-                                       id="decimals"
-                                       class="form-control numeric @error('decimals') is-invalid @enderror">
+                                <label class="font-weight-bold">Decimal Places</label>
+                                <input type="number" name="decimals" class="form-control @error('decimals') is-invalid @enderror" 
+                                       v-model="decimals" min="0" max="4" value="2">
                                 @error('decimals')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Number of decimal places for amounts</small>
                             </div>
                         </div>
                     </div>
-                    <div class="row gy-4">
+                </div>
+            </div>
+
+            <!-- SECTION 2: Principal Amount Settings -->
+            <div class="card card-outline card-info">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-dollar-sign mr-2"></i><strong>Principal Amount Settings</strong></h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="default_principal"
-                                       class="control-label">{{trans_choice('loan::general.default',1)}} {{trans_choice('loan::general.principal',1)}}</label>
-                                <input type="text" name="default_principal" value="{{ old('default_principal') }}"
-                                       id="default_principal"
-                                       class="form-control numeric @error('default_principal') is-invalid @enderror"
-                                       v-model="default_principal" required>
+                                <label class="font-weight-bold">Default Principal <span class="text-danger">*</span></label>
+                                <input type="number" name="default_principal" class="form-control @error('default_principal') is-invalid @enderror"
+                                       v-model="default_principal" required step="0.01" min="0">
                                 @error('default_principal')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Default loan amount</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="minimum_principal"
-                                       class="control-label">{{trans_choice('loan::general.minimum',1)}} {{trans_choice('loan::general.principal',1)}}</label>
-                                <input type="text" name="minimum_principal" value="{{ old('minimum_principal') }}"
-                                       id="minimum_principal"
-                                       class="form-control numeric @error('minimum_principal') is-invalid @enderror"
-                                       v-model="minimum_principal" required>
+                                <label class="font-weight-bold">Minimum Principal <span class="text-danger">*</span></label>
+                                <input type="number" name="minimum_principal" class="form-control @error('minimum_principal') is-invalid @enderror"
+                                       v-model="minimum_principal" required step="0.01" min="0">
                                 @error('minimum_principal')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Minimum allowed amount</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="maximum_principal"
-                                       class="control-label">{{trans_choice('loan::general.maximum',1)}} {{trans_choice('loan::general.principal',1)}}</label>
-                                <input type="text" name="maximum_principal" value="{{ old('maximum_principal') }}"
-                                       id="maximum_principal"
-                                       class="form-control numeric @error('maximum_principal') is-invalid @enderror"
-                                       v-model="maximum_principal" required>
+                                <label class="font-weight-bold">Maximum Principal <span class="text-danger">*</span></label>
+                                <input type="number" name="maximum_principal" class="form-control @error('maximum_principal') is-invalid @enderror"
+                                       v-model="maximum_principal" required step="0.01" min="0">
                                 @error('maximum_principal')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Maximum allowed amount</small>
                             </div>
                         </div>
                     </div>
-                    <div class="row gy-4">
+                </div>
+            </div>
+
+            <!-- SECTION 3: Loan Term Settings -->
+            <div class="card card-outline card-success">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-calendar-alt mr-2"></i><strong>Loan Term Settings</strong></h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="default_loan_term"
-                                       class="control-label">{{trans_choice('loan::general.default',1)}} {{trans_choice('loan::general.loan',1)}} {{trans_choice('loan::general.term',1)}}</label>
-                                <input type="text" name="default_loan_term" value="{{ old('default_loan_term') }}"
-                                       id="default_loan_term"
-                                       class="form-control numeric @error('default_loan_term') is-invalid @enderror"
-                                       v-model="default_loan_term" required>
+                                <label class="font-weight-bold">Default Loan Term <span class="text-danger">*</span></label>
+                                <input type="number" name="default_loan_term" class="form-control @error('default_loan_term') is-invalid @enderror"
+                                       v-model="default_loan_term" required min="1">
                                 @error('default_loan_term')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Default duration</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="minimum_loan_term"
-                                       class="control-label">{{trans_choice('loan::general.minimum',1)}} {{trans_choice('loan::general.loan',1)}} {{trans_choice('loan::general.term',1)}}</label>
-                                <input type="text" name="minimum_loan_term" value="{{ old('minimum_loan_term') }}"
-                                       id="minimum_loan_term"
-                                       class="form-control numeric @error('minimum_loan_term') is-invalid @enderror"
-                                       v-model="minimum_loan_term" required>
+                                <label class="font-weight-bold">Minimum Loan Term <span class="text-danger">*</span></label>
+                                <input type="number" name="minimum_loan_term" class="form-control @error('minimum_loan_term') is-invalid @enderror"
+                                       v-model="minimum_loan_term" required min="1">
                                 @error('minimum_loan_term')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Minimum duration</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="maximum_loan_term"
-                                       class="control-label">{{trans_choice('loan::general.maximum',1)}} {{trans_choice('loan::general.loan',1)}} {{trans_choice('loan::general.term',1)}}</label>
-                                <input type="text" name="maximum_loan_term" value="{{ old('maximum_loan_term') }}"
-                                       id="maximum_loan_term"
-                                       class="form-control numeric @error('maximum_loan_term') is-invalid @enderror"
-                                       v-model="maximum_loan_term" required>
+                                <label class="font-weight-bold">Maximum Loan Term <span class="text-danger">*</span></label>
+                                <input type="number" name="maximum_loan_term" class="form-control @error('maximum_loan_term') is-invalid @enderror"
+                                       v-model="maximum_loan_term" required min="1">
                                 @error('maximum_loan_term')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Maximum duration</small>
                             </div>
                         </div>
                     </div>
-                    <div class="row gy-4">
-                        <div class="col-md-6">
+                    <div class="row">
+                        <div class="col-md-12">
                             <div class="form-group">
-                                <label for="repayment_frequency"
-                                       class="control-label">{{trans_choice('loan::general.repayment',1)}} {{trans_choice('loan::general.frequency',1)}}</label>
-                                <input type="text" name="repayment_frequency" value="{{ old('repayment_frequency') }}"
-                                       id="repayment_frequency" v-model="repayment_frequency"
-                                       class="form-control numeric @error('repayment_frequency') is-invalid @enderror"
-                                       required>
-                                @error('repayment_frequency')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="repayment_frequency_type"
-                                       class="control-label">{{trans_choice('core::general.type',1)}}</label>
-                                <select class="form-control  @error('repayment_frequency_type') is-invalid @enderror"
-                                        name="repayment_frequency_type"
-                                        v-model="repayment_frequency_type" id="repayment_frequency_type"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="days">{{trans_choice('loan::general.day',2)}}</option>
-                                    <option value="weeks">{{trans_choice('loan::general.week',2)}}</option>
-                                    <option value="months">{{trans_choice('loan::general.month',2)}}</option>
+                                <label class="font-weight-bold">Loan Term Type <span class="text-danger">*</span></label>
+                                <select class="form-control @error('loan_term_type') is-invalid @enderror"
+                                        name="loan_term_type" v-model="loan_term_type" required>
+                                    <option value="">-- Select Term Type --</option>
+                                    <option value="days">Days</option>
+                                    <option value="weeks">Weeks</option>
+                                    <option value="months">Months</option>
+                                    <option value="years">Years</option>
                                 </select>
-                                @error('repayment_frequency_type')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                @error('loan_term_type')
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Unit for loan term (e.g., 3 months, 15 days, 2 years)</small>
                             </div>
                         </div>
                     </div>
-                    <div class="row gy-4">
+                </div>
+            </div>
+
+            <!-- SECTION 4: Interest Rate Settings -->
+            <div class="card card-outline card-danger">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-percentage mr-2"></i><strong>Interest Rate Settings</strong></h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="default_interest_rate"
-                                       class="control-label">{{trans_choice('loan::general.default',1)}} {{trans_choice('loan::general.interest',1)}} {{trans_choice('loan::general.rate',1)}}</label>
-                                <input type="text" name="default_interest_rate"
-                                       value="{{ old('default_interest_rate') }}"
-                                       id="default_interest_rate" v-model="default_interest_rate"
-                                       class="form-control numeric @error('default_interest_rate') is-invalid @enderror"
-                                       required>
+                                <label class="font-weight-bold">Default Rate (%) <span class="text-danger">*</span></label>
+                                <input type="number" name="default_interest_rate" class="form-control @error('default_interest_rate') is-invalid @enderror"
+                                       v-model="default_interest_rate" required step="0.01" min="0">
                                 @error('default_interest_rate')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="minimum_interest_rate"
-                                       class="control-label">{{trans_choice('loan::general.minimum',1)}} {{trans_choice('loan::general.interest',1)}} {{trans_choice('loan::general.rate',1)}}</label>
-                                <input type="text" name="minimum_interest_rate"
-                                       value="{{ old('minimum_interest_rate') }}"
-                                       id="minimum_interest_rate" v-model="minimum_interest_rate"
-                                       class="form-control numeric @error('minimum_interest_rate') is-invalid @enderror"
-                                       required>
+                                <label class="font-weight-bold">Minimum Rate (%) <span class="text-danger">*</span></label>
+                                <input type="number" name="minimum_interest_rate" class="form-control @error('minimum_interest_rate') is-invalid @enderror"
+                                       v-model="minimum_interest_rate" required step="0.01" min="0">
                                 @error('minimum_interest_rate')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="maximum_interest_rate"
-                                       class="control-label">{{trans_choice('loan::general.maximum',1)}} {{trans_choice('loan::general.interest',1)}} {{trans_choice('loan::general.rate',1)}}</label>
-                                <input type="text" name="maximum_interest_rate"
-                                       value="{{ old('maximum_interest_rate') }}"
-                                       id="maximum_interest_rate" v-model="maximum_interest_rate"
-                                       class="form-control numeric @error('maximum_interest_rate') is-invalid @enderror"
-                                       required>
+                                <label class="font-weight-bold">Maximum Rate (%) <span class="text-danger">*</span></label>
+                                <input type="number" name="maximum_interest_rate" class="form-control @error('maximum_interest_rate') is-invalid @enderror"
+                                       v-model="maximum_interest_rate" required step="0.01" min="0">
                                 @error('maximum_interest_rate')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="interest_rate_type"
-                                       class="control-label">{{trans_choice('loan::general.per',1)}}</label>
-                                <select class="form-control  @error('interest_rate_type') is-invalid @enderror"
-                                        name="interest_rate_type" v-model="interest_rate_type"
-                                        id="interest_rate_type"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="month">{{trans_choice('loan::general.month',1)}}</option>
-                                    <option value="year">{{trans_choice('loan::general.year',1)}}</option>
-                                    <option value="principal">{{trans_choice('loan::general.principal',1)}}</option>
+                                <label class="font-weight-bold">Rate Type <span class="text-danger">*</span></label>
+                                <select class="form-control @error('interest_rate_type') is-invalid @enderror"
+                                        name="interest_rate_type" v-model="interest_rate_type" required>
+                                    <option value="">-- Select --</option>
+                                    <option value="month">Per Month</option>
+                                    <option value="year">Per Year</option>
+                                    <option value="principal">Flat (Principal)</option>
                                 </select>
                                 @error('interest_rate_type')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                     </div>
-                    <div class="row gy-4">
+                    <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="disallow_interest_rate_adjustment"
-                                       class="control-label">{{trans_choice('loan::general.disallow_interest_rate_adjustment',1)}}</label>
-                                <select class="form-control  @error('disallow_interest_rate_adjustment') is-invalid @enderror"
-                                        name="disallow_interest_rate_adjustment" id="disallow_interest_rate_adjustment"
-                                        v-model="disallow_interest_rate_adjustment"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="0" selected>{{trans_choice('core::general.no',1)}}</option>
-                                    <option value="1">{{trans_choice('core::general.yes',1)}}</option>
+                                <label class="font-weight-bold">Lock Interest Rate?</label>
+                                <select class="form-control @error('disallow_interest_rate_adjustment') is-invalid @enderror"
+                                        name="disallow_interest_rate_adjustment" v-model="disallow_interest_rate_adjustment" required>
+                                    <option value="0">No - Allow Adjustment</option>
+                                    <option value="1">Yes - Lock Rate</option>
                                 </select>
                                 @error('disallow_interest_rate_adjustment')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Prevent loan officers from changing the interest rate</small>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="deduct_interest_from_principal"
-                                       class="control-label">{{trans_choice('loan::general.deduct_interest_from_principal',1)}}</label>
-                                <select class="form-control  @error('deduct_interest_from_principal') is-invalid @enderror" name="deduct_interest_from_principal"
-                                        id="deduct_interest_from_principal" v-model="deduct_interest_from_principal"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="0">{{trans_choice('core::general.no',1)}}</option>
-                                    <option value="1">{{trans_choice('core::general.yes',1)}}</option>
+                                <label class="font-weight-bold">Deduct Interest from Principal?</label>
+                                <select class="form-control @error('deduct_interest_from_principal') is-invalid @enderror"
+                                        name="deduct_interest_from_principal" v-model="deduct_interest_from_principal" required>
+                                    <option value="0">No</option>
+                                    <option value="1">Yes</option>
                                 </select>
                                 @error('deduct_interest_from_principal')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Deduct interest upfront from disbursement</small>
                             </div>
                         </div>
                     </div>
-                    <div class="row gy-4">
+                </div>
+            </div>
+
+            <!-- SECTION 5: Grace Period & Calculation Methods -->
+            <div class="card card-outline card-secondary">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-calculator mr-2"></i><strong>Grace Period & Calculation Methods</strong></h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h6 class="font-weight-bold border-bottom pb-2 mb-3">Grace Periods</h6>
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="grace_on_principal_paid"
-                                       class="control-label">{{trans_choice('loan::general.grace_on_principal_paid',1)}}</label>
-                                <input type="text" name="grace_on_principal_paid" value="0"
-                                       id="grace_on_principal_paid" v-model="grace_on_principal_paid"
-                                       class="form-control numeric @error('grace_on_principal_paid') is-invalid @enderror"
-                                       required>
+                                <label class="font-weight-bold">Grace on Principal Paid</label>
+                                <input type="number" name="grace_on_principal_paid" class="form-control @error('grace_on_principal_paid') is-invalid @enderror"
+                                       v-model="grace_on_principal_paid" value="0" min="0">
                                 @error('grace_on_principal_paid')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Number of installments</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="grace_on_interest_paid"
-                                       class="control-label">{{trans_choice('loan::general.grace_on_interest_paid',1)}}</label>
-                                <input type="text" name="grace_on_interest_paid" value="0"
-                                       id="grace_on_interest_paid" v-model="grace_on_interest_paid"
-                                       class="form-control numeric @error('grace_on_interest_paid') is-invalid @enderror"
-                                       required>
+                                <label class="font-weight-bold">Grace on Interest Paid</label>
+                                <input type="number" name="grace_on_interest_paid" class="form-control @error('grace_on_interest_paid') is-invalid @enderror"
+                                       v-model="grace_on_interest_paid" value="0" min="0">
                                 @error('grace_on_interest_paid')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Number of installments</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="grace_on_interest_charged"
-                                       class="control-label">{{trans_choice('loan::general.grace_on_interest_charged',1)}}</label>
-                                <input type="text" name="grace_on_interest_charged" value="0"
-                                       id="grace_on_interest_charged" v-model="grace_on_interest_charged"
-                                       class="form-control numeric @error('grace_on_interest_charged') is-invalid @enderror"
-                                       required>
+                                <label class="font-weight-bold">Grace on Interest Charged</label>
+                                <input type="number" name="grace_on_interest_charged" class="form-control @error('grace_on_interest_charged') is-invalid @enderror"
+                                       v-model="grace_on_interest_charged" value="0" min="0">
                                 @error('grace_on_interest_charged')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Number of installments</small>
                             </div>
                         </div>
                     </div>
-                    <div class="row gy-4">
+
+                    <h6 class="font-weight-bold border-bottom pb-2 mb-3 mt-4">Calculation Methods</h6>
+                    <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="interest_methodology"
-                                       class="control-label">{{trans_choice('loan::general.interest_methodology',1)}}</label>
-                                <select class="form-control  @error('interest_methodology') is-invalid @enderror"
-                                        name="interest_methodology" v-model="interest_methodology"
-                                        id="interest_methodology"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="flat">{{trans_choice('loan::general.flat',1)}}</option>
-                                    <option value="declining_balance">{{trans_choice('loan::general.declining_balance',1)}}</option>
+                                <label class="font-weight-bold">Interest Methodology <span class="text-danger">*</span></label>
+                                <select class="form-control @error('interest_methodology') is-invalid @enderror"
+                                        name="interest_methodology" v-model="interest_methodology" required>
+                                    <option value="">-- Select --</option>
+                                    <option value="flat">Flat Rate</option>
+                                    <option value="declining_balance">Declining Balance</option>
                                 </select>
                                 @error('interest_methodology')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="amortization_method"
-                                       class="control-label">{{trans_choice('loan::general.amortization_method',1)}}</label>
-                                <select class="form-control  @error('amortization_method') is-invalid @enderror"
-                                        name="amortization_method" v-model="amortization_method"
-                                        id="amortization_method"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="equal_installments">{{trans_choice('loan::general.equal_installments',1)}}</option>
-                                    <option value="equal_principal_payments">{{trans_choice('loan::general.equal_principal_payments',1)}}</option>
+                                <label class="font-weight-bold">Amortization Method <span class="text-danger">*</span></label>
+                                <select class="form-control @error('amortization_method') is-invalid @enderror"
+                                        name="amortization_method" v-model="amortization_method" required>
+                                    <option value="">-- Select --</option>
+                                    <option value="equal_installments">Equal Installments</option>
+                                    <option value="equal_principal_payments">Equal Principal Payments</option>
                                 </select>
                                 @error('amortization_method')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label for="loan_transaction_processing_strategy_id"
-                                       class="control-label">{{trans_choice('loan::general.loan_transaction_processing_strategy',1)}}</label>
+                                <label class="font-weight-bold">Transaction Processing Strategy <span class="text-danger">*</span></label>
                                 <v-select label="name" :options="loan_transaction_processing_strategies"
-                                          :reduce="loan_transaction_processing_strategy => loan_transaction_processing_strategy.id"
-                                          v-model="loan_transaction_processing_strategy_id">
+                                          :reduce="strategy => strategy.id" v-model="loan_transaction_processing_strategy_id"
+                                          placeholder="Select strategy...">
                                     <template #search="{attributes, events}">
-                                        <input
-                                                autocomplete="off"
-                                                class="vs__search @error('loan_transaction_processing_strategy_id') is-invalid @enderror"
-                                                :required="!loan_transaction_processing_strategy_id"
-                                                v-bind="attributes"
-                                                v-on="events"
-                                        />
+                                        <input autocomplete="off" class="vs__search @error('loan_transaction_processing_strategy_id') is-invalid @enderror"
+                                               :required="!loan_transaction_processing_strategy_id" v-bind="attributes" v-on="events" />
                                     </template>
                                 </v-select>
-                                <input type="hidden" name="loan_transaction_processing_strategy_id"
-                                       v-model="loan_transaction_processing_strategy_id">
+                                <input type="hidden" name="loan_transaction_processing_strategy_id" v-model="loan_transaction_processing_strategy_id">
                                 @error('loan_transaction_processing_strategy_id')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback d-block"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                     </div>
-                    <div class="row gy-4">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="charges"
-                                       class="control-label">{{trans_choice('loan::general.charge',2)}}</label>
-                                <v-select label="name" :options="available_charges"
-                                          :reduce="charge => charge.id"
-                                          v-model="selected_charges" multiple>
-                                    <template #search="{attributes, events}">
-                                        <input
-                                                autocomplete="off"
-                                                class="vs__search @error('charges') is-invalid @enderror"
-                                                v-bind="attributes"
-                                                v-on="events"
-                                        />
-                                    </template>
-                                </v-select>
-                                <input type="hidden" name="charges"
-                                       v-model="selected_charges">
-                                @error('charges')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="credit_checks"
-                                       class="control-label">{{trans_choice('loan::general.credit',1)}} {{trans_choice('loan::general.check',2)}}</label>
+                </div>
+            </div>
 
-                                <v-select label="translated_name" :options="credit_checks"
-                                          :reduce="credit_check => credit_check.id"
-                                          v-model="selected_credit_checks" multiple>
-                                    <template #search="{attributes, events}">
-                                        <input
-                                                autocomplete="off"
-                                                class="vs__search @error('credit_checks') is-invalid @enderror"
-                                                v-bind="attributes"
-                                                v-on="events"
-                                        />
-                                    </template>
-                                </v-select>
-                                <input type="hidden" name="credit_checks"
-                                       v-model="selected_credit_checks">
-                                @error('credit_checks')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-                            </div>
-                        </div>
-
+            <!-- SECTION 6: Charges & Credit Checks -->
+            <div class="card card-outline card-purple">
+                <div class="card-header bg-purple">
+                    <h3 class="card-title"><i class="fas fa-tags mr-2"></i><strong>Charges & Credit Checks</strong></h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-minus"></i>
+                        </button>
                     </div>
-                    <h3>{{trans_choice('accounting::general.accounting',1)}}</h3>
-                    <div class="row gy-4">
+                </div>
+                <div class="card-body">
+                    <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="accounting_rule"
-                                       class="control-label">{{trans_choice('loan::general.accounting_rule',1)}}</label>
-                                <select class="form-control  @error('accounting_rule') is-invalid @enderror"
-                                        name="accounting_rule" v-model="accounting_rule"
-                                        id="accounting_rule"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="none" selected>{{trans_choice('loan::general.none',1)}}</option>
-                                    <option value="cash">{{trans_choice('loan::general.cash',1)}}</option>
+                                <label class="font-weight-bold">Loan Charges</label>
+                                <v-select label="name" :options="available_charges" :reduce="charge => charge.id"
+                                          v-model="selected_charges" multiple placeholder="Select charges...">
+                                    <template #search="{attributes, events}">
+                                        <input autocomplete="off" class="vs__search" v-bind="attributes" v-on="events" />
+                                    </template>
+                                </v-select>
+                                <input type="hidden" name="charges" v-model="selected_charges">
+                                <small class="form-text text-muted">Optional fees and charges for this product</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Credit Checks</label>
+                                <v-select label="translated_name" :options="credit_checks" :reduce="check => check.id"
+                                          v-model="selected_credit_checks" multiple placeholder="Select credit checks...">
+                                    <template #search="{attributes, events}">
+                                        <input autocomplete="off" class="vs__search" v-bind="attributes" v-on="events" />
+                                    </template>
+                                </v-select>
+                                <input type="hidden" name="credit_checks" v-model="selected_credit_checks">
+                                <small class="form-text text-muted">Required credit checks before approval</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 7: Accounting (Conditional) -->
+            <div class="card card-outline card-dark">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-book mr-2"></i><strong>Accounting Settings</strong></h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Accounting Rule <span class="text-danger">*</span></label>
+                                <select class="form-control @error('accounting_rule') is-invalid @enderror"
+                                        name="accounting_rule" v-model="accounting_rule" required>
+                                    <option value="none">None - No Accounting</option>
+                                    <option value="cash">Cash Based Accounting</option>
                                 </select>
                                 @error('accounting_rule')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
                     </div>
-                    <div id="accounting_rule_div" v-if="accounting_rule==='cash'">
-                        <div class="row gy-4">
+
+                    <div v-if="accounting_rule==='cash'" class="mt-3">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> <strong>Cash Accounting Enabled</strong> - Configure chart of accounts below
+                        </div>
+
+                        <h6 class="font-weight-bold border-bottom pb-2 mb-3">Asset Accounts</h6>
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="fund_source_chart_of_account_id"
-                                           class="control-label">{{trans_choice('loan::general.fund_source',1)}}</label>
-                                    <v-select label="name" :options="assets"
-                                              :reduce="asset => asset.id"
-                                              v-model="fund_source_chart_of_account_id">
+                                    <label class="font-weight-bold">Fund Source</label>
+                                    <v-select label="name" :options="assets" :reduce="asset => asset.id"
+                                              v-model="fund_source_chart_of_account_id" placeholder="Select account...">
                                         <template #search="{attributes, events}">
-                                            <input
-                                                    autocomplete="off"
-                                                    class="vs__search @error('fund_source_chart_of_account_id') is-invalid @enderror"
-                                                    v-bind="attributes"
-                                                    v-bind:required="!fund_source_chart_of_account_id"
-                                                    v-on="events"
-                                            />
+                                            <input autocomplete="off" class="vs__search" v-bind:required="accounting_rule==='cash' && !fund_source_chart_of_account_id"
+                                                   v-bind="attributes" v-on="events" />
                                         </template>
                                     </v-select>
-                                    <input type="hidden" name="fund_source_chart_of_account_id"
-                                           v-model="fund_source_chart_of_account_id">
-                                    @error('fund_source_chart_of_account_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                    @enderror
+                                    <input type="hidden" name="fund_source_chart_of_account_id" v-model="fund_source_chart_of_account_id">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="loan_portfolio_chart_of_account_id"
-                                           class="control-label">{{trans_choice('loan::general.loan_portfolio',1)}}</label>
-                                    <v-select label="name" :options="assets"
-                                              :reduce="asset => asset.id"
-                                              v-model="loan_portfolio_chart_of_account_id">
+                                    <label class="font-weight-bold">Loan Portfolio</label>
+                                    <v-select label="name" :options="assets" :reduce="asset => asset.id"
+                                              v-model="loan_portfolio_chart_of_account_id" placeholder="Select account...">
                                         <template #search="{attributes, events}">
-                                            <input
-                                                    autocomplete="off"
-                                                    class="vs__search @error('loan_portfolio_chart_of_account_id') is-invalid @enderror"
-                                                    v-bind="attributes"
-                                                    v-bind:required="!loan_portfolio_chart_of_account_id"
-                                                    v-on="events"
-                                            />
+                                            <input autocomplete="off" class="vs__search" v-bind:required="accounting_rule==='cash' && !loan_portfolio_chart_of_account_id"
+                                                   v-bind="attributes" v-on="events" />
                                         </template>
                                     </v-select>
-                                    <input type="hidden" name="loan_portfolio_chart_of_account_id"
-                                           v-model="loan_portfolio_chart_of_account_id">
-                                    @error('loan_portfolio_chart_of_account_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                    @enderror
+                                    <input type="hidden" name="loan_portfolio_chart_of_account_id" v-model="loan_portfolio_chart_of_account_id">
                                 </div>
                             </div>
                         </div>
-                        <div class="row gy-4">
+
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="overpayments_chart_of_account_id"
-                                           class="control-label">{{trans_choice('loan::general.overpayment',2)}}</label>
-                                    <v-select label="name" :options="liabilities"
-                                              :reduce="liability => liability.id"
-                                              v-model="overpayments_chart_of_account_id">
+                                    <label class="font-weight-bold">Suspended Income</label>
+                                    <v-select label="name" :options="assets" :reduce="asset => asset.id"
+                                              v-model="suspended_income_chart_of_account_id" placeholder="Select account...">
                                         <template #search="{attributes, events}">
-                                            <input
-                                                    autocomplete="off"
-                                                    class="vs__search @error('overpayments_chart_of_account_id') is-invalid @enderror"
-                                                    v-bind="attributes"
-                                                    v-bind:required="!overpayments_chart_of_account_id"
-                                                    v-on="events"
-                                            />
+                                            <input autocomplete="off" class="vs__search" v-bind:required="accounting_rule==='cash' && !suspended_income_chart_of_account_id"
+                                                   v-bind="attributes" v-on="events" />
                                         </template>
                                     </v-select>
-                                    <input type="hidden" name="overpayments_chart_of_account_id"
-                                           v-model="overpayments_chart_of_account_id">
-                                    @error('overpayments_chart_of_account_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                    @enderror
+                                    <input type="hidden" name="suspended_income_chart_of_account_id" v-model="suspended_income_chart_of_account_id">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="suspended_income_chart_of_account_id"
-                                           class="control-label">{{trans_choice('loan::general.suspended_income',1)}}</label>
-
-                                    <v-select label="name" :options="assets"
-                                              :reduce="asset => asset.id"
-                                              v-model="suspended_income_chart_of_account_id">
+                                    <label class="font-weight-bold">Overpayments (Liability)</label>
+                                    <v-select label="name" :options="liabilities" :reduce="liability => liability.id"
+                                              v-model="overpayments_chart_of_account_id" placeholder="Select account...">
                                         <template #search="{attributes, events}">
-                                            <input
-                                                    autocomplete="off"
-                                                    class="vs__search @error('suspended_income_chart_of_account_id') is-invalid @enderror"
-                                                    v-bind="attributes"
-                                                    v-bind:required="!suspended_income_chart_of_account_id"
-                                                    v-on="events"
-                                            />
+                                            <input autocomplete="off" class="vs__search" v-bind:required="accounting_rule==='cash' && !overpayments_chart_of_account_id"
+                                                   v-bind="attributes" v-on="events" />
                                         </template>
                                     </v-select>
-                                    <input type="hidden" name="suspended_income_chart_of_account_id"
-                                           v-model="suspended_income_chart_of_account_id">
-                                    @error('suspended_income_chart_of_account_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                    @enderror
+                                    <input type="hidden" name="overpayments_chart_of_account_id" v-model="overpayments_chart_of_account_id">
                                 </div>
                             </div>
-
                         </div>
-                        <div class="row gy-4">
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="income_from_interest_chart_of_account_id"
-                                           class="control-label">{{trans_choice('loan::general.income_from_interest',2)}}</label>
-                                    <v-select label="name" :options="income"
-                                              :reduce="income => income.id"
-                                              v-model="income_from_interest_chart_of_account_id">
-                                        <template #search="{attributes, events}">
-                                            <input
-                                                    autocomplete="off"
-                                                    class="vs__search @error('income_from_interest_chart_of_account_id') is-invalid @enderror"
-                                                    v-bind="attributes"
-                                                    v-bind:required="!income_from_interest_chart_of_account_id"
-                                                    v-on="events"
-                                            />
-                                        </template>
-                                    </v-select>
-                                    <input type="hidden" name="income_from_interest_chart_of_account_id"
-                                           v-model="income_from_interest_chart_of_account_id">
-                                    @error('income_from_interest_chart_of_account_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="income_from_penalties_chart_of_account_id"
-                                           class="control-label">{{trans_choice('loan::general.income_from_penalties',2)}}</label>
-                                    <v-select label="name" :options="income"
-                                              :reduce="income => income.id"
-                                              v-model="income_from_penalties_chart_of_account_id">
-                                        <template #search="{attributes, events}">
-                                            <input
-                                                    autocomplete="off"
-                                                    class="vs__search @error('income_from_penalties_chart_of_account_id') is-invalid @enderror"
-                                                    v-bind="attributes"
-                                                    v-bind:required="!income_from_penalties_chart_of_account_id"
-                                                    v-on="events"
-                                            />
-                                        </template>
-                                    </v-select>
-                                    <input type="hidden" name="income_from_penalties_chart_of_account_id"
-                                           v-model="income_from_penalties_chart_of_account_id">
-                                    @error('income_from_penalties_chart_of_account_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="income_from_fees_chart_of_account_id"
-                                           class="control-label">{{trans_choice('loan::general.income_from_fees',2)}}</label>
-                                    <v-select label="name" :options="income"
-                                              :reduce="income => income.id"
-                                              v-model="income_from_fees_chart_of_account_id">
-                                        <template #search="{attributes, events}">
-                                            <input
-                                                    autocomplete="off"
-                                                    class="vs__search @error('income_from_fees_chart_of_account_id') is-invalid @enderror"
-                                                    v-bind="attributes"
-                                                    v-bind:required="!income_from_fees_chart_of_account_id"
-                                                    v-on="events"
-                                            />
-                                        </template>
-                                    </v-select>
-                                    <input type="hidden" name="income_from_fees_chart_of_account_id"
-                                           v-model="income_from_fees_chart_of_account_id">
-                                    @error('income_from_fees_chart_of_account_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="income_from_recovery_chart_of_account_id"
-                                           class="control-label">{{trans_choice('loan::general.income_from_recovery',2)}}</label>
-                                    <v-select label="name" :options="income"
-                                              :reduce="income => income.id"
-                                              v-model="income_from_recovery_chart_of_account_id">
-                                        <template #search="{attributes, events}">
-                                            <input
-                                                    autocomplete="off"
-                                                    class="vs__search @error('income_from_recovery_chart_of_account_id') is-invalid @enderror"
-                                                    v-bind="attributes"
-                                                    v-bind:required="!income_from_recovery_chart_of_account_id"
-                                                    v-on="events"
-                                            />
-                                        </template>
-                                    </v-select>
-                                    <input type="hidden" name="income_from_recovery_chart_of_account_id"
-                                           v-model="income_from_recovery_chart_of_account_id">
-                                    @error('income_from_recovery_chart_of_account_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                    @enderror
-                                </div>
-                            </div>
 
+                        <h6 class="font-weight-bold border-bottom pb-2 mb-3 mt-4">Income Accounts</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Income from Interest</label>
+                                    <v-select label="name" :options="income" :reduce="inc => inc.id"
+                                              v-model="income_from_interest_chart_of_account_id" placeholder="Select...">
+                                        <template #search="{attributes, events}">
+                                            <input autocomplete="off" class="vs__search" v-bind:required="accounting_rule==='cash' && !income_from_interest_chart_of_account_id"
+                                                   v-bind="attributes" v-on="events" />
+                                        </template>
+                                    </v-select>
+                                    <input type="hidden" name="income_from_interest_chart_of_account_id" v-model="income_from_interest_chart_of_account_id">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Income from Penalties</label>
+                                    <v-select label="name" :options="income" :reduce="inc => inc.id"
+                                              v-model="income_from_penalties_chart_of_account_id" placeholder="Select...">
+                                        <template #search="{attributes, events}">
+                                            <input autocomplete="off" class="vs__search" v-bind:required="accounting_rule==='cash' && !income_from_penalties_chart_of_account_id"
+                                                   v-bind="attributes" v-on="events" />
+                                        </template>
+                                    </v-select>
+                                    <input type="hidden" name="income_from_penalties_chart_of_account_id" v-model="income_from_penalties_chart_of_account_id">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Income from Fees</label>
+                                    <v-select label="name" :options="income" :reduce="inc => inc.id"
+                                              v-model="income_from_fees_chart_of_account_id" placeholder="Select...">
+                                        <template #search="{attributes, events}">
+                                            <input autocomplete="off" class="vs__search" v-bind:required="accounting_rule==='cash' && !income_from_fees_chart_of_account_id"
+                                                   v-bind="attributes" v-on="events" />
+                                        </template>
+                                    </v-select>
+                                    <input type="hidden" name="income_from_fees_chart_of_account_id" v-model="income_from_fees_chart_of_account_id">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Income from Recovery</label>
+                                    <v-select label="name" :options="income" :reduce="inc => inc.id"
+                                              v-model="income_from_recovery_chart_of_account_id" placeholder="Select...">
+                                        <template #search="{attributes, events}">
+                                            <input autocomplete="off" class="vs__search" v-bind:required="accounting_rule==='cash' && !income_from_recovery_chart_of_account_id"
+                                                   v-bind="attributes" v-on="events" />
+                                        </template>
+                                    </v-select>
+                                    <input type="hidden" name="income_from_recovery_chart_of_account_id" v-model="income_from_recovery_chart_of_account_id">
+                                </div>
+                            </div>
                         </div>
-                        <div class="row gy-4">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="losses_written_off_chart_of_account_id"
-                                           class="control-label">{{trans_choice('loan::general.losses_written_off',2)}}</label>
-                                    <v-select label="name" :options="expenses"
-                                              :reduce="expense => expense.id"
-                                              v-model="losses_written_off_chart_of_account_id">
-                                        <template #search="{attributes, events}">
-                                            <input
-                                                    autocomplete="off"
-                                                    class="vs__search @error('losses_written_off_chart_of_account_id') is-invalid @enderror"
-                                                    v-bind="attributes"
-                                                    v-bind:required="!losses_written_off_chart_of_account_id"
-                                                    v-on="events"
-                                            />
-                                        </template>
-                                    </v-select>
-                                    <input type="hidden" name="losses_written_off_chart_of_account_id"
-                                           v-model="losses_written_off_chart_of_account_id">
-                                    @error('losses_written_off_chart_of_account_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="interest_written_off_chart_of_account_id"
-                                           class="control-label">{{trans_choice('loan::general.interest_written_off',2)}}</label>
-                                    <v-select label="name" :options="income"
-                                              :reduce="income => income.id"
-                                              v-model="interest_written_off_chart_of_account_id">
-                                        <template #search="{attributes, events}">
-                                            <input
-                                                    autocomplete="off"
-                                                    class="vs__search @error('interest_written_off_chart_of_account_id') is-invalid @enderror"
-                                                    v-bind="attributes"
-                                                    v-bind:required="!interest_written_off_chart_of_account_id"
-                                                    v-on="events"
-                                            />
-                                        </template>
-                                    </v-select>
-                                    <input type="hidden" name="interest_written_off_chart_of_account_id"
-                                           v-model="interest_written_off_chart_of_account_id">
-                                    @error('interest_written_off_chart_of_account_id')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                    @enderror
-                                </div>
-                            </div>
 
+                        <h6 class="font-weight-bold border-bottom pb-2 mb-3 mt-4">Expense & Write-off Accounts</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Losses Written Off</label>
+                                    <v-select label="name" :options="expenses" :reduce="expense => expense.id"
+                                              v-model="losses_written_off_chart_of_account_id" placeholder="Select...">
+                                        <template #search="{attributes, events}">
+                                            <input autocomplete="off" class="vs__search" v-bind:required="accounting_rule==='cash' && !losses_written_off_chart_of_account_id"
+                                                   v-bind="attributes" v-on="events" />
+                                        </template>
+                                    </v-select>
+                                    <input type="hidden" name="losses_written_off_chart_of_account_id" v-model="losses_written_off_chart_of_account_id">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="font-weight-bold">Interest Written Off</label>
+                                    <v-select label="name" :options="income" :reduce="inc => inc.id"
+                                              v-model="interest_written_off_chart_of_account_id" placeholder="Select...">
+                                        <template #search="{attributes, events}">
+                                            <input autocomplete="off" class="vs__search" v-bind:required="accounting_rule==='cash' && !interest_written_off_chart_of_account_id"
+                                                   v-bind="attributes" v-on="events" />
+                                        </template>
+                                    </v-select>
+                                    <input type="hidden" name="interest_written_off_chart_of_account_id" v-model="interest_written_off_chart_of_account_id">
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="row gy-4">
-                        <div class="col-md-6">
+                </div>
+            </div>
+
+            <!-- SECTION 8: Additional Settings -->
+            <div class="card card-outline card-teal">
+                <div class="card-header bg-teal">
+                    <h3 class="card-title"><i class="fas fa-cogs mr-2"></i><strong>Additional Settings</strong></h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
                             <div class="form-group">
-                                <label for="exclude_weekends"
-                                       class="control-label">{{trans_choice('loan::general.exclude_weekends',1)}}</label>
-                                <select class="form-control  @error('exclude_weekends') is-invalid @enderror"
-                                        name="exclude_weekends" id="exclude_weekends"
-                                        v-model="exclude_weekends"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="0" selected>{{trans_choice('core::general.no',1)}}</option>
-                                    <option value="1">{{trans_choice('core::general.yes',1)}}</option>
+                                <label class="font-weight-bold">Exclude Weekends?</label>
+                                <select class="form-control @error('exclude_weekends') is-invalid @enderror"
+                                        name="exclude_weekends" v-model="exclude_weekends" required>
+                                    <option value="0">No</option>
+                                    <option value="1">Yes</option>
                                 </select>
                                 @error('exclude_weekends')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Skip weekends in repayment schedule</small>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <div class="form-group">
-                                <label for="exclude_holidays"
-                                       class="control-label">{{trans_choice('loan::general.exclude_holidays',1)}}</label>
-                                <select class="form-control  @error('exclude_holidays') is-invalid @enderror" name="exclude_holidays"
-                                        id="exclude_holidays" v-model="exclude_holidays"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="0">{{trans_choice('core::general.no',1)}}</option>
-                                    <option value="1" selected>{{trans_choice('core::general.yes',1)}}</option>
+                                <label class="font-weight-bold">Exclude Holidays?</label>
+                                <select class="form-control @error('exclude_holidays') is-invalid @enderror"
+                                        name="exclude_holidays" v-model="exclude_holidays" required>
+                                    <option value="0">No</option>
+                                    <option value="1">Yes</option>
                                 </select>
                                 @error('exclude_holidays')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Skip holidays in repayment schedule</small>
                             </div>
                         </div>
-                    </div>
-                    <div class="row gy-4">
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <div class="form-group">
-                                <label for="auto_disburse"
-                                       class="control-label">{{trans_choice('loan::general.auto_disburse',1)}}</label>
-                                <select class="form-control  @error('auto_disburse') is-invalid @enderror"
-                                        name="auto_disburse" id="auto_disburse"
-                                        v-model="auto_disburse"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="0" selected>{{trans_choice('core::general.no',1)}}</option>
-                                    <option value="1">{{trans_choice('core::general.yes',1)}}</option>
+                                <label class="font-weight-bold">Auto Disburse?</label>
+                                <select class="form-control @error('auto_disburse') is-invalid @enderror"
+                                        name="auto_disburse" v-model="auto_disburse" required>
+                                    <option value="0">No - Manual Disbursement</option>
+                                    <option value="1">Yes - Auto Disburse on Approval</option>
                                 </select>
                                 @error('auto_disburse')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Automatically disburse when approved</small>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <div class="form-group">
-                                <label for="active"
-                                       class="control-label">{{trans_choice('core::general.active',1)}}</label>
-                                <select class="form-control  @error('active') is-invalid @enderror" name="active"
-                                        id="active" v-model="active"
-                                        required>
-                                    <option value=""></option>
-                                    <option value="0">{{trans_choice('core::general.no',1)}}</option>
-                                    <option value="1" selected>{{trans_choice('core::general.yes',1)}}</option>
+                                <label class="font-weight-bold">Active Status <span class="text-danger">*</span></label>
+                                <select class="form-control @error('active') is-invalid @enderror"
+                                        name="active" v-model="active" required>
+                                    <option value="0">Inactive</option>
+                                    <option value="1">Active</option>
                                 </select>
                                 @error('active')
-                                <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <small class="form-text text-muted">Enable this product for use</small>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="card-footer border-top ">
-                    <button type="submit"
-                            class="btn btn-primary  float-right">{{trans_choice('core::general.save',1)}}</button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12 text-right">
+                            <a href="{{url('loan/product')}}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times mr-2"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg ml-2">
+                                <i class="fas fa-save mr-2"></i> Save Loan Product
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div><!-- .card-preview -->
+            </div>
         </form>
     </section>
 @endsection
+
 @section('scripts')
     <script>
         var app = new Vue({
@@ -947,17 +718,16 @@
                 name: "{{old('name')}}",
                 short_name: "{{old('short_name')}}",
                 description: "{{old('description')}}",
-                fund_id: parseInt("{{old('fund_id')}}"),
-                currency_id: parseInt("{{old('currency_id')}}"),
-                decimals: "{{old('decimals',0)}}",
+                fund_id: parseInt("{{old('fund_id')}}") || null,
+                currency_id: parseInt("{{old('currency_id')}}") || null,
+                decimals: "{{old('decimals',2)}}",
                 minimum_principal: "{{old('minimum_principal')}}",
                 default_principal: "{{old('default_principal')}}",
                 maximum_principal: "{{old('maximum_principal')}}",
                 minimum_loan_term: "{{old('minimum_loan_term')}}",
                 default_loan_term: "{{old('default_loan_term')}}",
                 maximum_loan_term: "{{old('maximum_loan_term')}}",
-                repayment_frequency: "{{old('repayment_frequency')}}",
-                repayment_frequency_type: "{{old('repayment_frequency_type')}}",
+                loan_term_type: "{{old('loan_term_type','months')}}",
                 minimum_interest_rate: "{{old('minimum_interest_rate')}}",
                 default_interest_rate: "{{old('default_interest_rate')}}",
                 maximum_interest_rate: "{{old('maximum_interest_rate')}}",
@@ -972,26 +742,21 @@
                 selected_charges: [],
                 accounting_rule: "{{old('accounting_rule','none')}}",
                 deduct_interest_from_principal: "{{old('deduct_interest_from_principal',0)}}",
-                disallow_interest_rate_adjustment: "{{old('disallow_interest_rate_adjustment',1)}}",
+                disallow_interest_rate_adjustment: "{{old('disallow_interest_rate_adjustment',0)}}",
                 active: "{{old('active',1)}}",
                 exclude_weekends: "{{old('exclude_weekends',0)}}",
-                exclude_holidays: "{{old('exclude_holidays',0)}}",
-                loan_transaction_processing_strategy_id: parseInt("{{old('loan_transaction_processing_strategy_id')}}"),
-                fund_source_chart_of_account_id: parseInt("{{old('fund_source_chart_of_account_id')}}"),
-                loan_portfolio_chart_of_account_id: parseInt("{{old('loan_portfolio_chart_of_account_id')}}"),
-                interest_receivable_chart_of_account_id: parseInt("{{old('interest_receivable_chart_of_account_id')}}"),
-                penalties_receivable_chart_of_account_id: parseInt("{{old('penalties_receivable_chart_of_account_id')}}"),
-                fees_receivable_chart_of_account_id: parseInt("{{old('fees_receivable_chart_of_account_id')}}"),
-                fees_chart_of_account_id: parseInt("{{old('fees_chart_of_account_id')}}"),
-                overpayments_chart_of_account_id: parseInt("{{old('overpayments_chart_of_account_id')}}"),
-                suspended_income_chart_of_account_id: parseInt("{{old('suspended_income_chart_of_account_id')}}"),
-                income_from_interest_chart_of_account_id: parseInt("{{old('income_from_interest_chart_of_account_id')}}"),
-                income_from_penalties_chart_of_account_id: parseInt("{{old('income_from_penalties_chart_of_account_id')}}"),
-                income_from_fees_chart_of_account_id: parseInt("{{old('income_from_fees_chart_of_account_id')}}"),
-                income_from_recovery_chart_of_account_id: parseInt("{{old('income_from_recovery_chart_of_account_id')}}"),
-                losses_written_off_chart_of_account_id: parseInt("{{old('losses_written_off_chart_of_account_id')}}"),
-                interest_written_off_chart_of_account_id: parseInt("{{old('interest_written_off_chart_of_account_id')}}"),
-                instalment_multiple_of: "{{old('instalment_multiple_of',1)}}",
+                exclude_holidays: "{{old('exclude_holidays',1)}}",
+                loan_transaction_processing_strategy_id: parseInt("{{old('loan_transaction_processing_strategy_id')}}") || null,
+                fund_source_chart_of_account_id: parseInt("{{old('fund_source_chart_of_account_id')}}") || null,
+                loan_portfolio_chart_of_account_id: parseInt("{{old('loan_portfolio_chart_of_account_id')}}") || null,
+                overpayments_chart_of_account_id: parseInt("{{old('overpayments_chart_of_account_id')}}") || null,
+                suspended_income_chart_of_account_id: parseInt("{{old('suspended_income_chart_of_account_id')}}") || null,
+                income_from_interest_chart_of_account_id: parseInt("{{old('income_from_interest_chart_of_account_id')}}") || null,
+                income_from_penalties_chart_of_account_id: parseInt("{{old('income_from_penalties_chart_of_account_id')}}") || null,
+                income_from_fees_chart_of_account_id: parseInt("{{old('income_from_fees_chart_of_account_id')}}") || null,
+                income_from_recovery_chart_of_account_id: parseInt("{{old('income_from_recovery_chart_of_account_id')}}") || null,
+                losses_written_off_chart_of_account_id: parseInt("{{old('losses_written_off_chart_of_account_id')}}") || null,
+                interest_written_off_chart_of_account_id: parseInt("{{old('interest_written_off_chart_of_account_id')}}") || null,
                 funds: {!! json_encode($funds) !!},
                 currencies: {!! json_encode($currencies) !!},
                 credit_checks: {!! json_encode($credit_checks) !!},
@@ -1002,11 +767,6 @@
                 expenses: {!! json_encode($expenses) !!},
                 loan_charges: {!! json_encode($loan_charges) !!},
             },
-            methods: {
-                onSubmit() {
-
-                }
-            },
             computed: {
                 available_charges: function () {
                     return this.loan_charges.filter(item => {
@@ -1015,9 +775,28 @@
                         }
                         return false;
                     })
-
                 }
             }
         })
     </script>
+
+    <style>
+        .card-outline {
+            border-top: 3px solid;
+        }
+        .bg-purple {
+            background-color: #6f42c1 !important;
+            color: white !important;
+        }
+        .card-purple {
+            border-color: #6f42c1 !important;
+        }
+        .bg-teal {
+            background-color: #20c997 !important;
+            color: white !important;
+        }
+        .card-teal {
+            border-color: #20c997 !important;
+        }
+    </style>
 @endsection

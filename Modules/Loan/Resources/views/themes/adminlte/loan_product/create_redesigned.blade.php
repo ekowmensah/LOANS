@@ -1,6 +1,6 @@
 @extends('core::layouts.master')
 @section('title')
-    {{ trans_choice('core::general.edit',1) }} {{ trans_choice('loan::general.product',1) }}
+    {{ trans_choice('core::general.add',1) }} {{ trans_choice('loan::general.product',1) }}
 @endsection
 @section('content')
     <section class="content-header">
@@ -8,14 +8,14 @@
             <div class="row mb-2">
                 <div class="col-sm-6">
                     <h1>
-                        <i class="fas fa-edit"></i> {{ trans_choice('core::general.edit',1) }} {{ trans_choice('loan::general.product',1) }}
+                        <i class="fas fa-box-open"></i> {{ trans_choice('core::general.add',1) }} {{ trans_choice('loan::general.product',1) }}
                     </h1>
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
                         <li class="breadcrumb-item"><a href="{{url('dashboard')}}">{{ trans_choice('dashboard::general.dashboard',1) }}</a></li>
                         <li class="breadcrumb-item"><a href="{{url('loan/product')}}">{{ trans_choice('loan::general.product',2) }}</a></li>
-                        <li class="breadcrumb-item active">{{ trans_choice('core::general.edit',1) }}</li>
+                        <li class="breadcrumb-item active">{{ trans_choice('core::general.add',1) }}</li>
                     </ol>
                 </div>
             </div>
@@ -23,7 +23,7 @@
     </section>
 
     <section class="content" id="app">
-        <form method="post" action="{{ url('loan/product/'.$loan_product->id.'/update') }}">
+        <form method="post" action="{{ url('loan/product/store') }}">
             {{csrf_field()}}
             
             <!-- SECTION 1: Basic Information -->
@@ -195,29 +195,48 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: Repayment Settings -->
+            <div class="card card-outline card-warning">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-redo-alt mr-2"></i><strong>Repayment Settings</strong></h3>
+                </div>
+                <div class="card-body">
                     <div class="row">
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <div class="form-group">
-                                <label class="font-weight-bold">Loan Term Type <span class="text-danger">*</span></label>
-                                <select class="form-control @error('loan_term_type') is-invalid @enderror"
-                                        name="loan_term_type" v-model="loan_term_type" required>
-                                    <option value="">-- Select Term Type --</option>
+                                <label class="font-weight-bold">Repayment Frequency <span class="text-danger">*</span></label>
+                                <input type="number" name="repayment_frequency" class="form-control @error('repayment_frequency') is-invalid @enderror"
+                                       v-model="repayment_frequency" required min="1" placeholder="e.g., 1">
+                                @error('repayment_frequency')
+                                <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
+                                @enderror
+                                <small class="form-text text-muted">How often repayments are made</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Frequency Type <span class="text-danger">*</span></label>
+                                <select class="form-control @error('repayment_frequency_type') is-invalid @enderror"
+                                        name="repayment_frequency_type" v-model="repayment_frequency_type" required>
+                                    <option value="">-- Select Type --</option>
                                     <option value="days">Days</option>
                                     <option value="weeks">Weeks</option>
                                     <option value="months">Months</option>
-                                    <option value="years">Years</option>
                                 </select>
-                                @error('loan_term_type')
+                                @error('repayment_frequency_type')
                                 <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
-                                <small class="form-text text-muted">Unit for loan term (e.g., 3 months, 15 days, 2 years)</small>
+                                <small class="form-text text-muted">Unit of frequency</small>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- SECTION 4: Interest Rate Settings -->
+            <!-- SECTION 5: Interest Rate Settings -->
             <div class="card card-outline card-danger">
                 <div class="card-header">
                     <h3 class="card-title"><i class="fas fa-percentage mr-2"></i><strong>Interest Rate Settings</strong></h3>
@@ -303,7 +322,7 @@
                 </div>
             </div>
 
-            <!-- SECTION 5: Grace Period & Calculation Methods -->
+            <!-- SECTION 6: Grace Period & Calculation Methods -->
             <div class="card card-outline card-secondary">
                 <div class="card-header">
                     <h3 class="card-title"><i class="fas fa-calculator mr-2"></i><strong>Grace Period & Calculation Methods</strong></h3>
@@ -402,7 +421,7 @@
                 </div>
             </div>
 
-            <!-- SECTION 6: Charges & Credit Checks -->
+            <!-- SECTION 7: Charges & Credit Checks -->
             <div class="card card-outline card-purple">
                 <div class="card-header bg-purple">
                     <h3 class="card-title"><i class="fas fa-tags mr-2"></i><strong>Charges & Credit Checks</strong></h3>
@@ -444,7 +463,7 @@
                 </div>
             </div>
 
-            <!-- SECTION 7: Accounting (Conditional) -->
+            <!-- SECTION 8: Accounting (Conditional) -->
             <div class="card card-outline card-dark">
                 <div class="card-header">
                     <h3 class="card-title"><i class="fas fa-book mr-2"></i><strong>Accounting Settings</strong></h3>
@@ -624,7 +643,7 @@
                 </div>
             </div>
 
-            <!-- SECTION 8: Additional Settings -->
+            <!-- SECTION 9: Additional Settings -->
             <div class="card card-outline card-teal">
                 <div class="card-header bg-teal">
                     <h3 class="card-title"><i class="fas fa-cogs mr-2"></i><strong>Additional Settings</strong></h3>
@@ -715,48 +734,49 @@
         var app = new Vue({
             el: '#app',
             data: {
-                name: "{{old('name',$loan_product->name)}}",
-                short_name: "{{old('short_name',$loan_product->short_name)}}",
-                description: "{{old('description',$loan_product->description)}}",
-                fund_id: parseInt("{{old('fund_id',$loan_product->fund_id)}}"),
-                currency_id: parseInt("{{old('currency_id',$loan_product->currency_id)}}"),
-                decimals: "{{old('decimals',$loan_product->decimals)}}",
-                minimum_principal: "{{old('minimum_principal',$loan_product->minimum_principal)}}",
-                default_principal: "{{old('default_principal',$loan_product->default_principal)}}",
-                maximum_principal: "{{old('maximum_principal',$loan_product->maximum_principal)}}",
-                minimum_loan_term: "{{old('minimum_loan_term',$loan_product->minimum_loan_term)}}",
-                default_loan_term: "{{old('default_loan_term',$loan_product->default_loan_term)}}",
-                maximum_loan_term: "{{old('maximum_loan_term',$loan_product->maximum_loan_term)}}",
-                loan_term_type: "{{old('loan_term_type',$loan_product->loan_term_type ?? 'months')}}",
-                minimum_interest_rate: "{{old('minimum_interest_rate',$loan_product->minimum_interest_rate)}}",
-                default_interest_rate: "{{old('default_interest_rate',$loan_product->default_interest_rate)}}",
-                maximum_interest_rate: "{{old('maximum_interest_rate',$loan_product->maximum_interest_rate)}}",
-                interest_rate_type: "{{old('interest_rate_type',$loan_product->interest_rate_type)}}",
-                grace_on_principal_paid: "{{old('grace_on_principal_paid',$loan_product->grace_on_principal_paid)}}",
-                grace_on_interest_paid: "{{old('grace_on_interest_paid',$loan_product->grace_on_interest_paid)}}",
-                grace_on_interest_charged: "{{old('grace_on_interest_charged',$loan_product->grace_on_interest_charged)}}",
-                interest_methodology: "{{old('interest_methodology',$loan_product->interest_methodology)}}",
-                amortization_method: "{{old('amortization_method',$loan_product->amortization_method)}}",
-                auto_disburse: "{{old('auto_disburse',$loan_product->auto_disburse)}}",
+                name: "{{old('name')}}",
+                short_name: "{{old('short_name')}}",
+                description: "{{old('description')}}",
+                fund_id: parseInt("{{old('fund_id')}}") || null,
+                currency_id: parseInt("{{old('currency_id')}}") || null,
+                decimals: "{{old('decimals',2)}}",
+                minimum_principal: "{{old('minimum_principal')}}",
+                default_principal: "{{old('default_principal')}}",
+                maximum_principal: "{{old('maximum_principal')}}",
+                minimum_loan_term: "{{old('minimum_loan_term')}}",
+                default_loan_term: "{{old('default_loan_term')}}",
+                maximum_loan_term: "{{old('maximum_loan_term')}}",
+                repayment_frequency: "{{old('repayment_frequency')}}",
+                repayment_frequency_type: "{{old('repayment_frequency_type')}}",
+                minimum_interest_rate: "{{old('minimum_interest_rate')}}",
+                default_interest_rate: "{{old('default_interest_rate')}}",
+                maximum_interest_rate: "{{old('maximum_interest_rate')}}",
+                interest_rate_type: "{{old('interest_rate_type')}}",
+                grace_on_principal_paid: "{{old('grace_on_principal_paid',0)}}",
+                grace_on_interest_paid: "{{old('grace_on_interest_paid',0)}}",
+                grace_on_interest_charged: "{{old('grace_on_interest_charged',0)}}",
+                interest_methodology: "{{old('interest_methodology')}}",
+                amortization_method: "{{old('amortization_method')}}",
+                auto_disburse: "{{old('auto_disburse',0)}}",
                 selected_credit_checks: [],
                 selected_charges: [],
-                accounting_rule: "{{old('accounting_rule',$loan_product->accounting_rule ?? 'none')}}",
-                deduct_interest_from_principal: "{{old('deduct_interest_from_principal',$loan_product->deduct_interest_from_principal)}}",
-                disallow_interest_rate_adjustment: "{{old('disallow_interest_rate_adjustment',$loan_product->disallow_interest_rate_adjustment)}}",
-                active: "{{old('active',$loan_product->active)}}",
-                exclude_weekends: "{{old('exclude_weekends',$loan_product->exclude_weekends)}}",
-                exclude_holidays: "{{old('exclude_holidays',$loan_product->exclude_holidays)}}",
-                loan_transaction_processing_strategy_id: parseInt("{{old('loan_transaction_processing_strategy_id',$loan_product->loan_transaction_processing_strategy_id)}}"),
-                fund_source_chart_of_account_id: parseInt("{{old('fund_source_chart_of_account_id',$loan_product->fund_source_chart_of_account_id)}}") || null,
-                loan_portfolio_chart_of_account_id: parseInt("{{old('loan_portfolio_chart_of_account_id',$loan_product->loan_portfolio_chart_of_account_id)}}") || null,
-                overpayments_chart_of_account_id: parseInt("{{old('overpayments_chart_of_account_id',$loan_product->overpayments_chart_of_account_id)}}") || null,
-                suspended_income_chart_of_account_id: parseInt("{{old('suspended_income_chart_of_account_id',$loan_product->suspended_income_chart_of_account_id)}}") || null,
-                income_from_interest_chart_of_account_id: parseInt("{{old('income_from_interest_chart_of_account_id',$loan_product->income_from_interest_chart_of_account_id)}}") || null,
-                income_from_penalties_chart_of_account_id: parseInt("{{old('income_from_penalties_chart_of_account_id',$loan_product->income_from_penalties_chart_of_account_id)}}") || null,
-                income_from_fees_chart_of_account_id: parseInt("{{old('income_from_fees_chart_of_account_id',$loan_product->income_from_fees_chart_of_account_id)}}") || null,
-                income_from_recovery_chart_of_account_id: parseInt("{{old('income_from_recovery_chart_of_account_id',$loan_product->income_from_recovery_chart_of_account_id)}}") || null,
-                losses_written_off_chart_of_account_id: parseInt("{{old('losses_written_off_chart_of_account_id',$loan_product->losses_written_off_chart_of_account_id)}}") || null,
-                interest_written_off_chart_of_account_id: parseInt("{{old('interest_written_off_chart_of_account_id',$loan_product->interest_written_off_chart_of_account_id)}}") || null,
+                accounting_rule: "{{old('accounting_rule','none')}}",
+                deduct_interest_from_principal: "{{old('deduct_interest_from_principal',0)}}",
+                disallow_interest_rate_adjustment: "{{old('disallow_interest_rate_adjustment',0)}}",
+                active: "{{old('active',1)}}",
+                exclude_weekends: "{{old('exclude_weekends',0)}}",
+                exclude_holidays: "{{old('exclude_holidays',1)}}",
+                loan_transaction_processing_strategy_id: parseInt("{{old('loan_transaction_processing_strategy_id')}}") || null,
+                fund_source_chart_of_account_id: parseInt("{{old('fund_source_chart_of_account_id')}}") || null,
+                loan_portfolio_chart_of_account_id: parseInt("{{old('loan_portfolio_chart_of_account_id')}}") || null,
+                overpayments_chart_of_account_id: parseInt("{{old('overpayments_chart_of_account_id')}}") || null,
+                suspended_income_chart_of_account_id: parseInt("{{old('suspended_income_chart_of_account_id')}}") || null,
+                income_from_interest_chart_of_account_id: parseInt("{{old('income_from_interest_chart_of_account_id')}}") || null,
+                income_from_penalties_chart_of_account_id: parseInt("{{old('income_from_penalties_chart_of_account_id')}}") || null,
+                income_from_fees_chart_of_account_id: parseInt("{{old('income_from_fees_chart_of_account_id')}}") || null,
+                income_from_recovery_chart_of_account_id: parseInt("{{old('income_from_recovery_chart_of_account_id')}}") || null,
+                losses_written_off_chart_of_account_id: parseInt("{{old('losses_written_off_chart_of_account_id')}}") || null,
+                interest_written_off_chart_of_account_id: parseInt("{{old('interest_written_off_chart_of_account_id')}}") || null,
                 funds: {!! json_encode($funds) !!},
                 currencies: {!! json_encode($currencies) !!},
                 credit_checks: {!! json_encode($credit_checks) !!},

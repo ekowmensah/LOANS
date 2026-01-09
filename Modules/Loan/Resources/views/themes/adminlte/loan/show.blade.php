@@ -108,7 +108,7 @@
                                                                         <div class="form-group">
                                                                             <label class="control-label">Loan Term</label>
                                                                             <div class="form-control-static">
-                                                                                {{$loan->loan_term}} {{ucfirst($loan->repayment_frequency_type)}}(s)
+                                                                                {{$loan->loan_term}} {{ucfirst($loan->loan_product->loan_term_type ?? 'months')}}(s)
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -128,7 +128,7 @@
                                                                             <div class="col-md-6">
                                                                                 <strong><i class="fas fa-money-bill-wave"></i> Principal:</strong> <span id="summary-principal">{{number_format($loan->applied_amount, 2)}}</span><br>
                                                                                 <strong><i class="fas fa-percent"></i> Interest Rate:</strong> {{$loan->interest_rate}}% ({{ucfirst($loan->loan_product->interest_rate_type)}}ly)<br>
-                                                                                <strong><i class="fas fa-calendar"></i> Term:</strong> {{$loan->loan_term}} {{ucfirst($loan->repayment_frequency_type)}}(s)
+                                                                                <strong><i class="fas fa-calendar"></i> Term:</strong> {{$loan->loan_term}} {{ucfirst($loan->loan_product->loan_term_type ?? 'months')}}(s)
                                                                             </div>
                                                                             <div class="col-md-6">
                                                                                 <strong><i class="fas fa-calculator"></i> Total Interest:</strong> <span id="summary-interest" class="text-info">0.00</span><br>
@@ -1367,16 +1367,17 @@
                                         <td>{{trans_choice('loan::general.loan',1)}} {{trans_choice('loan::general.term',1)}}</td>
                                         <td>
                                             {{$loan->loan_term}}
-                                            @if($loan->repayment_frequency_type=='days')
+                                            @php $termType = $loan->loan_product->loan_term_type ?? 'months'; @endphp
+                                            @if($termType=='days')
                                                 {{trans_choice('loan::general.day',2)}}
                                             @endif
-                                            @if($loan->repayment_frequency_type=='weeks')
+                                            @if($termType=='weeks')
                                                 {{trans_choice('loan::general.week',2)}}
                                             @endif
-                                            @if($loan->repayment_frequency_type=='months')
+                                            @if($termType=='months')
                                                 {{trans_choice('loan::general.month',2)}}
                                             @endif
-                                            @if($loan->repayment_frequency_type=='years')
+                                            @if($termType=='years')
                                                 {{trans_choice('loan::general.year',2)}}
                                             @endif
                                         </td>
@@ -2296,10 +2297,10 @@
             let interestRate = {{$loan->interest_rate}} / 100;
             let loanTerm = {{$loan->loan_term}};
             let interestRateType = '{{$loan->loan_product->interest_rate_type}}';
-            let repaymentFrequencyType = '{{$loan->repayment_frequency_type}}';
+            let loanTermType = '{{$loan->loan_product->loan_term_type ?? 'months'}}';
             
             console.log('Interest rate:', interestRate, 'Type:', interestRateType);
-            console.log('Loan term:', loanTerm, 'Type:', repaymentFrequencyType);
+            console.log('Loan term:', loanTerm, 'Type:', loanTermType);
             
             let totalInterest = 0;
             
@@ -2307,13 +2308,13 @@
             if (interestRateType === 'year') {
                 // Annual interest rate: Interest = Principal × Rate × Time (in years)
                 let termInYears = 0;
-                if (repaymentFrequencyType === 'days') {
+                if (loanTermType === 'days') {
                     termInYears = loanTerm / 365;
-                } else if (repaymentFrequencyType === 'weeks') {
+                } else if (loanTermType === 'weeks') {
                     termInYears = loanTerm / 52;
-                } else if (repaymentFrequencyType === 'months') {
+                } else if (loanTermType === 'months') {
                     termInYears = loanTerm / 12;
-                } else if (repaymentFrequencyType === 'years') {
+                } else if (loanTermType === 'years') {
                     termInYears = loanTerm;
                 }
                 totalInterest = principal * interestRate * termInYears;
@@ -2321,13 +2322,13 @@
             } else if (interestRateType === 'month') {
                 // Monthly interest rate: Interest = Principal × Rate × Term (in months)
                 let termInMonths = 0;
-                if (repaymentFrequencyType === 'days') {
+                if (loanTermType === 'days') {
                     termInMonths = loanTerm / 30;
-                } else if (repaymentFrequencyType === 'weeks') {
+                } else if (loanTermType === 'weeks') {
                     termInMonths = loanTerm / 4.33;
-                } else if (repaymentFrequencyType === 'months') {
+                } else if (loanTermType === 'months') {
                     termInMonths = loanTerm;
-                } else if (repaymentFrequencyType === 'years') {
+                } else if (loanTermType === 'years') {
                     termInMonths = loanTerm * 12;
                 }
                 totalInterest = principal * interestRate * termInMonths;
@@ -2343,6 +2344,8 @@
             
             let loanTerm = {{$loan->loan_term}};
             let repaymentFrequency = {{$loan->repayment_frequency}};
+            let loanTermType = '{{$loan->loan_product->loan_term_type ?? 'months'}}';
+            let repaymentFrequencyType = '{{$loan->repayment_frequency_type}}';
             
             // Calculate member's share of interest
             let memberInterest = calculateTotalLoanInterest(memberAmount);
@@ -2350,8 +2353,25 @@
             // Calculate total amount to repay (principal + interest)
             let totalRepayment = memberAmount + memberInterest;
             
+            // Convert both to days for accurate calculation
+            let termInDays = loanTerm;
+            if (loanTermType === 'weeks') {
+                termInDays = loanTerm * 7;
+            } else if (loanTermType === 'months') {
+                termInDays = loanTerm * 30;
+            } else if (loanTermType === 'years') {
+                termInDays = loanTerm * 365;
+            }
+            
+            let frequencyInDays = repaymentFrequency;
+            if (repaymentFrequencyType === 'weeks') {
+                frequencyInDays = repaymentFrequency * 7;
+            } else if (repaymentFrequencyType === 'months') {
+                frequencyInDays = repaymentFrequency * 30;
+            }
+            
             // Calculate number of installments
-            let totalPayments = loanTerm / repaymentFrequency;
+            let totalPayments = Math.ceil(termInDays / frequencyInDays);
             
             // Calculate payment per installment (simple division)
             let memberPayment = totalRepayment / totalPayments;
@@ -2398,6 +2418,7 @@
             let loanTerm = {{$loan->loan_term}};
             let repaymentFrequency = {{$loan->repayment_frequency}};
             let interestRateType = '{{$loan->loan_product->interest_rate_type}}';
+            let loanTermType = '{{$loan->loan_product->loan_term_type ?? 'months'}}';
             let repaymentFrequencyType = '{{$loan->repayment_frequency_type}}';
             
             if (approvedAmount > 0) {
@@ -2405,8 +2426,25 @@
                 let totalInterest = calculateTotalLoanInterest(approvedAmount);
                 let totalRepayment = approvedAmount + totalInterest;
                 
+                // Convert both to days for accurate calculation
+                let termInDays = loanTerm;
+                if (loanTermType === 'weeks') {
+                    termInDays = loanTerm * 7;
+                } else if (loanTermType === 'months') {
+                    termInDays = loanTerm * 30;
+                } else if (loanTermType === 'years') {
+                    termInDays = loanTerm * 365;
+                }
+                
+                let frequencyInDays = repaymentFrequency;
+                if (repaymentFrequencyType === 'weeks') {
+                    frequencyInDays = repaymentFrequency * 7;
+                } else if (repaymentFrequencyType === 'months') {
+                    frequencyInDays = repaymentFrequency * 30;
+                }
+                
                 // Calculate number of installments
-                let totalPayments = loanTerm / repaymentFrequency;
+                let totalPayments = Math.ceil(termInDays / frequencyInDays);
                 
                 // Calculate payment per installment (simple division)
                 let paymentPerInstall = totalRepayment / totalPayments;

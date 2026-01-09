@@ -244,53 +244,44 @@
                                 </div>
                             </div>
 
-                            <!-- Loan Term (Read-only from Product) -->
+                            <!-- Loan Term & Repayment -->
                             <div class="row">
-                                <div class="col-md-12">
-                                    <div class="alert alert-info">
-                                        <div class="row align-items-center">
-                                            <div class="col-md-6">
-                                                <h6 class="mb-0"><i class="fas fa-calendar-check mr-2"></i><strong>Loan Duration:</strong> @{{ loan_term }} @{{ loan_term_type }}</h6>
-                                                <small class="text-muted">As defined by the loan product</small>
-                                            </div>
-                                            <div class="col-md-6 text-right">
-                                                <small class="text-muted">Choose how you want to repay this loan below</small>
-                                            </div>
-                                        </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="font-weight-bold">Loan Term <span class="text-danger">*</span></label>
+                                        <input type="number" name="loan_term" class="form-control @error('loan_term') is-invalid @enderror"
+                                               v-model="loan_term" required min="1">
+                                        <small class="form-text text-muted" v-if="loan_product">
+                                            Range: @{{ loan_product.minimum_loan_term }} - @{{ loan_product.maximum_loan_term }}
+                                        </small>
+                                        @error('loan_term')
+                                        <span class="invalid-feedback d-block"><strong>{{ $message }}</strong></span>
+                                        @enderror
                                     </div>
-                                    <!-- Hidden fields for form submission -->
-                                    <input type="hidden" name="loan_term" v-model="loan_term">
-                                    <input type="hidden" name="loan_term_type" v-model="loan_term_type">
                                 </div>
-                            </div>
-
-                            <!-- Repayment Frequency Selection -->
-                            <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label class="font-weight-bold">Repayment Every <span class="text-danger">*</span></label>
-                                        <input type="number" name="repayment_frequency" class="form-control form-control-lg @error('repayment_frequency') is-invalid @enderror"
-                                               v-model="repayment_frequency" required min="1" placeholder="e.g., 1, 2, 3">
+                                        <input type="number" name="repayment_frequency" class="form-control @error('repayment_frequency') is-invalid @enderror"
+                                               v-model="repayment_frequency" required min="1">
                                         @error('repayment_frequency')
                                         <span class="invalid-feedback d-block"><strong>{{ $message }}</strong></span>
                                         @enderror
-                                        <small class="form-text text-muted">How often you will make payments</small>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
-                                        <label class="font-weight-bold">Repayment Frequency <span class="text-danger">*</span></label>
-                                        <select class="form-control form-control-lg @error('repayment_frequency_type') is-invalid @enderror"
+                                        <label class="font-weight-bold">Frequency Type <span class="text-danger">*</span></label>
+                                        <select class="form-control @error('repayment_frequency_type') is-invalid @enderror"
                                                 name="repayment_frequency_type" v-model="repayment_frequency_type" required>
-                                            <option value="">-- Select Frequency --</option>
-                                            <option value="days">Daily</option>
-                                            <option value="weeks">Weekly</option>
-                                            <option value="months">Monthly</option>
+                                            <option value="">Select...</option>
+                                            <option value="days">Days</option>
+                                            <option value="weeks">Weeks</option>
+                                            <option value="months">Months</option>
                                         </select>
                                         @error('repayment_frequency_type')
                                         <span class="invalid-feedback d-block"><strong>{{ $message }}</strong></span>
                                         @enderror
-                                        <small class="form-text text-muted">Choose your payment schedule</small>
                                     </div>
                                 </div>
                             </div>
@@ -325,7 +316,6 @@
                                     <div class="form-group">
                                         <label class="font-weight-bold">Expected Disbursement Date <span class="text-danger">*</span></label>
                                         <flat-pickr v-model="expected_disbursement_date"
-                                                    :config="{dateFormat: 'Y-m-d', altInput: true, altFormat: 'F j, Y'}"
                                                     class="form-control @error('expected_disbursement_date') is-invalid @enderror"
                                                     name="expected_disbursement_date" required>
                                         </flat-pickr>
@@ -392,7 +382,6 @@
                                     <div class="form-group">
                                         <label class="font-weight-bold">First Payment Date <span class="text-danger">*</span></label>
                                         <flat-pickr v-model="expected_first_payment_date"
-                                                    :config="{dateFormat: 'Y-m-d', altInput: true, altFormat: 'F j, Y'}"
                                                     class="form-control @error('expected_first_payment_date') is-invalid @enderror"
                                                     name="expected_first_payment_date" required>
                                         </flat-pickr>
@@ -414,75 +403,10 @@
                         </div>
                     </div>
 
-                    <!-- STEP 5: Repayment Schedule -->
-                    <div v-show="loan_product && repayment_frequency && repayment_frequency_type && expected_disbursement_date" class="card card-outline card-info">
-                        <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-calendar-alt mr-2"></i><strong>Step 5:</strong> Repayment Schedule Preview</h3>
-                            <div class="card-tools">
-                                <span class="badge badge-info">@{{ numberOfInstallments }} Installments</span>
-                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                    <i class="fas fa-minus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div v-if="repaymentSchedule.length > 0">
-                                <div class="alert alert-success mb-3">
-                                    <i class="fas fa-info-circle"></i> <strong>Your repayment schedule:</strong> 
-                                    @{{ numberOfInstallments }} payments of @{{ formatCurrency(installmentAmount) }} 
-                                    every @{{ repayment_frequency }} @{{ repayment_frequency_type }}
-                                </div>
-                                
-                                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                                    <table class="table table-sm table-bordered table-hover">
-                                        <thead class="thead-dark sticky-top">
-                                            <tr>
-                                                <th class="text-center">#</th>
-                                                <th>Due Date</th>
-                                                <th class="text-right">Payment Amount</th>
-                                                <th class="text-right">Total Paid</th>
-                                                <th class="text-right">Balance</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-for="item in repaymentSchedule" :key="item.installment">
-                                                <td class="text-center font-weight-bold">@{{ item.installment }}</td>
-                                                <td>
-                                                    <i class="far fa-calendar"></i> 
-                                                    @{{ formatDate(item.dueDate) }}
-                                                </td>
-                                                <td class="text-right font-weight-bold text-primary">
-                                                    @{{ formatCurrency(item.amount) }}
-                                                </td>
-                                                <td class="text-right text-info">
-                                                    @{{ formatCurrency(item.totalPaid) }}
-                                                </td>
-                                                <td class="text-right" :class="item.balance > 0 ? 'text-warning' : 'text-success'">
-                                                    @{{ formatCurrency(item.balance) }}
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                        <tfoot class="thead-light">
-                                            <tr class="font-weight-bold">
-                                                <td colspan="2" class="text-right">TOTAL:</td>
-                                                <td class="text-right text-success">@{{ formatCurrency(totalRepayable) }}</td>
-                                                <td colspan="2"></td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                            <div v-else class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle"></i> 
-                                Please select a disbursement date and repayment frequency to view the schedule.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- STEP 6: Charges -->
+                    <!-- STEP 5: Charges -->
                     <div v-show="loan_product" class="card card-outline card-secondary">
                         <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-receipt mr-2"></i><strong>Step 6:</strong> Loan Charges (Optional)</h3>
+                            <h3 class="card-title"><i class="fas fa-receipt mr-2"></i><strong>Step 5:</strong> Loan Charges (Optional)</h3>
                             <div class="card-tools">
                                 <button type="button" class="btn btn-tool" data-card-widget="collapse">
                                     <i class="fas fa-minus"></i>
@@ -674,13 +598,13 @@
                                     <div class="mt-4">
                                         <h6 class="font-weight-bold border-bottom pb-2">Loan Details</h6>
                                         <small class="d-block mb-1"><strong>Product:</strong> @{{ loan_product.name }}</small>
-                                        <small class="d-block mb-1"><strong>Loan Duration:</strong> @{{ loan_term }} @{{ loan_term_type }}</small>
                                         <small class="d-block mb-1"><strong>Interest Rate:</strong> @{{ interest_rate }}% 
                                             <span v-if="loan_product.interest_rate_type=='month'">per month</span>
                                             <span v-if="loan_product.interest_rate_type=='year'">per year</span>
                                             <span v-if="loan_product.interest_rate_type=='principal'">flat</span>
                                         </small>
-                                        <small class="d-block mb-1"><strong>Repayment Schedule:</strong> Every @{{ repayment_frequency }} @{{ repayment_frequency_type }}</small>
+                                        <small class="d-block mb-1"><strong>Loan Term:</strong> @{{ loan_term }} @{{ repayment_frequency_type }}</small>
+                                        <small class="d-block mb-1"><strong>Repayment:</strong> Every @{{ repayment_frequency }} @{{ repayment_frequency_type }}</small>
                                     </div>
                                 </div>
                             </div>
@@ -735,7 +659,6 @@
                 applied_amount: "",
                 fund_id: "",
                 loan_term: "",
-                loan_term_type: "months",
                 repayment_frequency: "",
                 repayment_frequency_type: "",
                 interest_rate: "",
@@ -767,26 +690,18 @@
                     let rate = parseFloat(this.interest_rate) / 100;
                     let term = parseFloat(this.loan_term);
                     
-                    // Convert term to months based on loan_term_type
                     let termInMonths = term;
-                    if (this.loan_term_type === 'days') {
+                    if (this.repayment_frequency_type === 'days') {
                         termInMonths = term / 30;
-                    } else if (this.loan_term_type === 'weeks') {
+                    } else if (this.repayment_frequency_type === 'weeks') {
                         termInMonths = term / 4.33;
-                    } else if (this.loan_term_type === 'years') {
-                        termInMonths = term * 12;
                     }
-                    // If already months, no conversion needed
                     
-                    // Interest calculation based on rate type
                     if (this.loan_product && this.loan_product.interest_rate_type === 'year') {
-                        // Annual rate: convert months to years
                         return principal * rate * (termInMonths / 12);
                     } else if (this.loan_product && this.loan_product.interest_rate_type === 'principal') {
-                        // Flat rate on principal (one-time charge)
                         return principal * rate;
                     } else {
-                        // Monthly rate: use months directly
                         return principal * rate * termInMonths;
                     }
                 },
@@ -794,30 +709,10 @@
                     return parseFloat(this.applied_amount || 0) + this.totalInterest;
                 },
                 numberOfInstallments() {
-                    if (!this.loan_term || !this.repayment_frequency || !this.loan_term_type || !this.repayment_frequency_type) return 0;
-                    
+                    if (!this.loan_term || !this.repayment_frequency) return 0;
                     let term = parseFloat(this.loan_term);
                     let frequency = parseFloat(this.repayment_frequency);
-                    
-                    // Convert both term and frequency to the same unit (days) for calculation
-                    let termInDays = term;
-                    if (this.loan_term_type === 'weeks') {
-                        termInDays = term * 7;
-                    } else if (this.loan_term_type === 'months') {
-                        termInDays = term * 30;
-                    } else if (this.loan_term_type === 'years') {
-                        termInDays = term * 365;
-                    }
-                    
-                    let frequencyInDays = frequency;
-                    if (this.repayment_frequency_type === 'weeks') {
-                        frequencyInDays = frequency * 7;
-                    } else if (this.repayment_frequency_type === 'months') {
-                        frequencyInDays = frequency * 30;
-                    }
-                    
-                    // Calculate number of installments
-                    return Math.ceil(termInDays / frequencyInDays);
+                    return Math.ceil(term / frequency);
                 },
                 installmentAmount() {
                     if (this.numberOfInstallments === 0) return 0;
@@ -846,45 +741,6 @@
                 perMemberInstallment() {
                     if (!this.isGroupLoan || this.groupMemberCount === 0) return 0;
                     return this.installmentAmount / this.groupMemberCount;
-                },
-                repaymentSchedule() {
-                    if (!this.expected_disbursement_date || !this.repayment_frequency || !this.repayment_frequency_type || this.numberOfInstallments === 0) {
-                        return [];
-                    }
-                    
-                    let schedule = [];
-                    let currentDate = new Date(this.expected_disbursement_date);
-                    let frequency = parseInt(this.repayment_frequency);
-                    let frequencyType = this.repayment_frequency_type;
-                    let installmentAmount = this.installmentAmount;
-                    let totalPaid = 0;
-                    let balance = this.totalRepayable;
-                    
-                    for (let i = 1; i <= this.numberOfInstallments; i++) {
-                        // Calculate next payment date
-                        if (frequencyType === 'days') {
-                            currentDate.setDate(currentDate.getDate() + frequency);
-                        } else if (frequencyType === 'weeks') {
-                            currentDate.setDate(currentDate.getDate() + (frequency * 7));
-                        } else if (frequencyType === 'months') {
-                            currentDate.setMonth(currentDate.getMonth() + frequency);
-                        }
-                        
-                        // For the last installment, adjust to pay exact remaining balance
-                        let payment = (i === this.numberOfInstallments) ? balance : installmentAmount;
-                        totalPaid += payment;
-                        balance -= payment;
-                        
-                        schedule.push({
-                            installment: i,
-                            dueDate: new Date(currentDate),
-                            amount: payment,
-                            totalPaid: totalPaid,
-                            balance: Math.max(0, balance)
-                        });
-                    }
-                    
-                    return schedule;
                 }
             },
             watch: {
@@ -905,6 +761,11 @@
                         this.$nextTick(() => this.validatePrincipal());
                     }
                 },
+                loan_term(newVal) {
+                    if (this.loan_product && newVal) {
+                        this.$nextTick(() => this.validateLoanTerm());
+                    }
+                },
                 interest_rate(newVal) {
                     if (this.loan_product && newVal) {
                         this.$nextTick(() => this.validateInterestRate());
@@ -913,21 +774,6 @@
                 selected_charge(newVal) {
                     if (newVal !== "") {
                         this.add_charge();
-                    }
-                },
-                expected_disbursement_date(newVal) {
-                    if (newVal && this.repayment_frequency && this.repayment_frequency_type) {
-                        this.calculateFirstPaymentDate();
-                    }
-                },
-                repayment_frequency(newVal) {
-                    if (newVal && this.expected_disbursement_date && this.repayment_frequency_type) {
-                        this.calculateFirstPaymentDate();
-                    }
-                },
-                repayment_frequency_type(newVal) {
-                    if (newVal && this.expected_disbursement_date && this.repayment_frequency) {
-                        this.calculateFirstPaymentDate();
                     }
                 }
             },
@@ -963,12 +809,14 @@
                                 this.loan_product = item;
                                 this.applied_amount = this.loan_product.default_principal;
                                 this.loan_term = this.loan_product.default_loan_term;
-                                this.loan_term_type = this.loan_product.loan_term_type || 'months';
+                                this.repayment_frequency = this.loan_product.repayment_frequency;
+                                this.repayment_frequency_type = this.loan_product.repayment_frequency_type;
                                 this.fund_id = this.loan_product.fund_id;
                                 this.interest_rate = this.loan_product.default_interest_rate;
                                 this.loan_product_charges = this.loan_product.charges;
                                 
                                 this.validatePrincipal();
+                                this.validateLoanTerm();
                                 this.validateInterestRate();
                             }
                         })
@@ -998,6 +846,20 @@
                         alert(`Principal amount cannot exceed ${max.toLocaleString()}`);
                     }
                 },
+                validateLoanTerm() {
+                    if (!this.loan_product) return;
+                    let term = parseFloat(this.loan_term);
+                    let min = parseFloat(this.loan_product.minimum_loan_term);
+                    let max = parseFloat(this.loan_product.maximum_loan_term);
+                    
+                    if (term < min) {
+                        this.loan_term = min;
+                        alert(`Loan term must be at least ${min}`);
+                    } else if (term > max) {
+                        this.loan_term = max;
+                        alert(`Loan term cannot exceed ${max}`);
+                    }
+                },
                 validateInterestRate() {
                     if (!this.loan_product) return;
                     if (this.loan_product.disallow_interest_rate_adjustment == '1') return;
@@ -1014,31 +876,6 @@
                         alert(`Interest rate cannot exceed ${max}%`);
                     }
                 },
-                calculateFirstPaymentDate() {
-                    if (!this.expected_disbursement_date || !this.repayment_frequency || !this.repayment_frequency_type) {
-                        return;
-                    }
-                    
-                    let disbursementDate = new Date(this.expected_disbursement_date);
-                    let frequency = parseInt(this.repayment_frequency);
-                    let frequencyType = this.repayment_frequency_type;
-                    
-                    // Calculate first payment date based on frequency
-                    if (frequencyType === 'days') {
-                        disbursementDate.setDate(disbursementDate.getDate() + frequency);
-                    } else if (frequencyType === 'weeks') {
-                        disbursementDate.setDate(disbursementDate.getDate() + (frequency * 7));
-                    } else if (frequencyType === 'months') {
-                        disbursementDate.setMonth(disbursementDate.getMonth() + frequency);
-                    }
-                    
-                    // Format date as YYYY-MM-DD for the date input
-                    let year = disbursementDate.getFullYear();
-                    let month = String(disbursementDate.getMonth() + 1).padStart(2, '0');
-                    let day = String(disbursementDate.getDate()).padStart(2, '0');
-                    
-                    this.expected_first_payment_date = `${year}-${month}-${day}`;
-                },
                 add_charge() {
                     if (this.selected_charge !== "") {
                         this.selected_charges.push(this.loan_product_charges[this.selected_charge]);
@@ -1054,12 +891,6 @@
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
                     });
-                },
-                formatDate(date) {
-                    if (!date) return '';
-                    const d = new Date(date);
-                    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-                    return d.toLocaleDateString('en-US', options);
                 }
             }
         });

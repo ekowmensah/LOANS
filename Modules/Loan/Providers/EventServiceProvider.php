@@ -25,6 +25,9 @@ class EventServiceProvider extends ServiceProvider
         'Modules\Loan\Events\LoanDisbursementUndone' => [
             'Modules\Loan\Listeners\ReverseSavingsDeposit',
         ],
+        'Modules\Loan\Events\RepaymentDue' => [
+            'Modules\Loan\Listeners\AutoDeductRepaymentFromSavings',
+        ],
     ];
 
     /**

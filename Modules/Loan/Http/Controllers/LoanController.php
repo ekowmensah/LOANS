@@ -400,13 +400,10 @@ class LoanController extends Controller
      */
     public function search_client(Request $request)
     {
-        $search = $request->search;
+        $search = $request->savings_account_number ?? $request->search;
         
         if (empty($search)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Please enter a savings account number'
-            ], 400);
+            return response()->json(null, 400);
         }
         
         // Find savings account by account number
@@ -416,34 +413,25 @@ class LoanController extends Controller
             ->first();
         
         if (!$savings) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Savings account "' . $search . '" not found'
-            ], 404);
+            return response()->json(null, 404);
         }
         
         $client = $savings->client;
         
         if (!$client || $client->status !== 'active') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Client not active for this savings account'
-            ], 404);
+            return response()->json(null, 404);
         }
         
         return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $client->id,
-                'first_name' => $client->first_name,
-                'last_name' => $client->last_name,
-                'mobile' => $client->mobile,
-                'account_number' => $client->account_number,
-                'savings_account_number' => $savings->account_number,
-                'loan_officer_id' => $client->loan_officer_id,
-                'email' => $client->email,
-                'photo' => $client->photo,
-            ]
+            'id' => $client->id,
+            'first_name' => $client->first_name,
+            'last_name' => $client->last_name,
+            'mobile' => $client->mobile,
+            'account_number' => $client->account_number,
+            'savings_account_number' => $savings->account_number,
+            'loan_officer_id' => $client->loan_officer_id,
+            'email' => $client->email,
+            'photo' => $client->photo,
         ]);
     }
 
@@ -984,17 +972,17 @@ class LoanController extends Controller
                 $interestRate = $loan->interest_rate / 100;
                 $loanTerm = $loan->loan_term;
                 $interestRateType = $loan->loan_product->interest_rate_type;
-                $repaymentFrequencyType = $loan->repayment_frequency_type;
+                $loanTermType = $loan->loan_product->loan_term_type ?? 'months';
                 
                 // Calculate loan term in years for interest calculation
                 $termInYears = 0;
-                if ($repaymentFrequencyType === 'days') {
+                if ($loanTermType === 'days') {
                     $termInYears = $loanTerm / 365;
-                } elseif ($repaymentFrequencyType === 'weeks') {
+                } elseif ($loanTermType === 'weeks') {
                     $termInYears = $loanTerm / 52;
-                } elseif ($repaymentFrequencyType === 'months') {
+                } elseif ($loanTermType === 'months') {
                     $termInYears = $loanTerm / 12;
-                } elseif ($repaymentFrequencyType === 'years') {
+                } elseif ($loanTermType === 'years') {
                     $termInYears = $loanTerm;
                 }
                 
@@ -1005,13 +993,13 @@ class LoanController extends Controller
                 } elseif ($interestRateType === 'month') {
                     // Monthly interest rate: Interest = Principal × Rate × Term (in months)
                     $termInMonths = 0;
-                    if ($repaymentFrequencyType === 'days') {
+                    if ($loanTermType === 'days') {
                         $termInMonths = $loanTerm / 30;
-                    } elseif ($repaymentFrequencyType === 'weeks') {
+                    } elseif ($loanTermType === 'weeks') {
                         $termInMonths = $loanTerm / 4.33;
-                    } elseif ($repaymentFrequencyType === 'months') {
+                    } elseif ($loanTermType === 'months') {
                         $termInMonths = $loanTerm;
-                    } elseif ($repaymentFrequencyType === 'years') {
+                    } elseif ($loanTermType === 'years') {
                         $termInMonths = $loanTerm * 12;
                     }
                     $totalInterest = $principal * $interestRate * $termInMonths;
@@ -1413,7 +1401,26 @@ class LoanController extends Controller
         //determine interest rate
         $interest_rate = determine_period_interest_rate($loan->interest_rate, $loan->repayment_frequency_type, $loan->interest_rate_type, $loan->repayment_frequency);
         $balance = round($loan->principal, $loan->decimals);
-        $period = intval(floor($loan->loan_term / $loan->repayment_frequency));
+        
+        // Convert loan term and repayment frequency to same unit (days) for accurate calculation
+        $loanTermType = $loan->loan_product->loan_term_type ?? 'months';
+        $termInDays = $loan->loan_term;
+        if ($loanTermType === 'weeks') {
+            $termInDays = $loan->loan_term * 7;
+        } elseif ($loanTermType === 'months') {
+            $termInDays = $loan->loan_term * 30;
+        } elseif ($loanTermType === 'years') {
+            $termInDays = $loan->loan_term * 365;
+        }
+        
+        $frequencyInDays = $loan->repayment_frequency;
+        if ($loan->repayment_frequency_type === 'weeks') {
+            $frequencyInDays = $loan->repayment_frequency * 7;
+        } elseif ($loan->repayment_frequency_type === 'months') {
+            $frequencyInDays = $loan->repayment_frequency * 30;
+        }
+        
+        $period = intval(ceil($termInDays / $frequencyInDays));
         $payment_from_date = $request->disbursed_on_date;
         $next_payment_date = $request->first_payment_date;
         $total_principal = 0;
@@ -1445,8 +1452,35 @@ class LoanController extends Controller
             //flat  method
             if ($loan->interest_methodology == 'flat') {
                 $principal = round($loan->principal / $period, $loan->decimals);
-                // Calculate total interest for the entire loan term, then divide by number of periods
-                $total_loan_interest = round($interest_rate * $loan->principal * $period, $loan->decimals);
+                
+                // Calculate total interest based on loan term (not number of periods)
+                // This matches the preview calculation in loan/create
+                $interestRate = $loan->interest_rate / 100;
+                $loanTermType = $loan->loan_product->loan_term_type ?? 'months';
+                
+                // Convert term to months for interest calculation
+                $termInMonths = $loan->loan_term;
+                if ($loanTermType === 'days') {
+                    $termInMonths = $loan->loan_term / 30;
+                } elseif ($loanTermType === 'weeks') {
+                    $termInMonths = $loan->loan_term / 4.33;
+                } elseif ($loanTermType === 'years') {
+                    $termInMonths = $loan->loan_term * 12;
+                }
+                
+                // Calculate total interest based on interest rate type
+                if ($loan->interest_rate_type === 'year') {
+                    // Annual rate: convert months to years
+                    $total_loan_interest = $loan->principal * $interestRate * ($termInMonths / 12);
+                } elseif ($loan->interest_rate_type === 'principal') {
+                    // Flat rate on principal (one-time charge)
+                    $total_loan_interest = $loan->principal * $interestRate;
+                } else {
+                    // Monthly rate: use months directly
+                    $total_loan_interest = $loan->principal * $interestRate * $termInMonths;
+                }
+                
+                $total_loan_interest = round($total_loan_interest, $loan->decimals);
                 $interest = $total_loan_interest / $period;
                 if ($loan->deduct_interest_from_principal) {
                     if ($i == 1) {
