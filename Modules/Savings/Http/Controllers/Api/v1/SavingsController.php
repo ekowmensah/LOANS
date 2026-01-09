@@ -453,6 +453,7 @@ class SavingsController extends Controller
                 $savings_transaction->branch_id = $savings->branch_id;
                 $savings_transaction->savings_id = $savings->id;
                 $savings_transaction->name = trans_choice('savings::general.deposit', 1);
+                $savings_transaction->description = "Opening Balance for {$savings->savings_product->name} (Acc: {$savings->account_number})";
                 $savings_transaction->savings_transaction_type_id = 1;
                 $savings_transaction->submitted_on = $savings->activated_on_date;
                 $savings_transaction->created_on = date("Y-m-d");
@@ -501,6 +502,7 @@ class SavingsController extends Controller
                 $savings_transaction->savings_id = $savings->id;
                 $savings_transaction->branch_id = $savings->branch_id;
                 $savings_transaction->name = trans_choice('savings::general.pay', 1) . ' ' . trans_choice('savings::general.charge', 1);
+                $savings_transaction->description = "Activation Charge: {$key->charge->name} for {$savings->savings_product->name} (Acc: {$savings->account_number})";
                 $savings_transaction->savings_transaction_type_id = 12;
                 $savings_transaction->reversible = 1;
                 $savings_transaction->submitted_on = $savings->activated_on_date;
@@ -722,6 +724,8 @@ class SavingsController extends Controller
             $savings_transaction->branch_id = $savings->branch_id;
             $savings_transaction->payment_detail_id = $payment_detail->id;
             $savings_transaction->name = trans_choice('savings::general.deposit', 1);
+            $paymentType = \Modules\Core\Entities\PaymentType::find($request->payment_type_id);
+            $savings_transaction->description = "Deposit to {$savings->savings_product->name} (Acc: {$savings->account_number}) via {$paymentType->name}" . ($request->receipt ? " - Receipt: {$request->receipt}" : "");
             $savings_transaction->savings_transaction_type_id = 1;
             $savings_transaction->submitted_on = $request->date;
             $savings_transaction->created_on = date("Y-m-d");
@@ -762,6 +766,8 @@ class SavingsController extends Controller
             $savings_transaction->submitted_on = $request->date;
             $savings_transaction->amount = $request->amount;
             $savings_transaction->credit = $request->amount;
+            $paymentType = \Modules\Core\Entities\PaymentType::find($request->payment_type_id);
+            $savings_transaction->description = "Deposit to {$savings->savings_product->name} (Acc: {$savings->account_number}) via {$paymentType->name}" . ($request->receipt ? " - Receipt: {$request->receipt}" : "");
             $savings_transaction->save();
             //fire transaction updated event
             event(new TransactionUpdated($savings));
@@ -809,6 +815,8 @@ class SavingsController extends Controller
             $savings_transaction->branch_id = $savings->branch_id;
             $savings_transaction->payment_detail_id = $payment_detail->id;
             $savings_transaction->name = trans_choice('savings::general.withdrawal', 1);
+            $paymentType = \Modules\Core\Entities\PaymentType::find($request->payment_type_id);
+            $savings_transaction->description = "Withdrawal from {$savings->savings_product->name} (Acc: {$savings->account_number}) via {$paymentType->name}" . ($request->receipt ? " - Receipt: {$request->receipt}" : "");
             $savings_transaction->savings_transaction_type_id = 2;
             $savings_transaction->submitted_on = $request->date;
             $savings_transaction->created_on = date("Y-m-d");
@@ -849,6 +857,8 @@ class SavingsController extends Controller
             $savings_transaction->submitted_on = $request->date;
             $savings_transaction->amount = $request->amount;
             $savings_transaction->debit = $request->amount;
+            $paymentType = \Modules\Core\Entities\PaymentType::find($request->payment_type_id);
+            $savings_transaction->description = "Withdrawal from {$savings->savings_product->name} (Acc: {$savings->account_number}) via {$paymentType->name}" . ($request->receipt ? " - Receipt: {$request->receipt}" : "");
             $savings_transaction->save();
             //fire transaction updated event
             event(new TransactionUpdated($savings));
@@ -988,6 +998,8 @@ class SavingsController extends Controller
             $savings_transaction->branch_id = $savings->branch_id;
             $savings_transaction->payment_detail_id = $payment_detail->id;
             $savings_transaction->name = trans_choice('savings::general.pay', 1) . ' ' . trans_choice('savings::general.charge', 1);
+            $paymentType = \Modules\Core\Entities\PaymentType::find($request->payment_type_id);
+            $savings_transaction->description = "Charge Payment: {$savings_linked_charge->charge->name} for {$savings->savings_product->name} (Acc: {$savings->account_number}) via {$paymentType->name}";
             $savings_transaction->savings_transaction_type_id = 12;
             $savings_transaction->submitted_on = $request->date;
             $savings_transaction->created_on = date("Y-m-d");

@@ -104,7 +104,25 @@
                                                         $periodInterestRate = $interestRate / (12 / $repaymentFrequency);
                                                     }
                                                     
-                                                    $totalPayments = $loanTerm / $repaymentFrequency;
+                                                    // Convert both to days for accurate calculation
+                                                    $loanTermType = $loan->loan_product->loan_term_type ?? 'months';
+                                                    $termInDays = $loanTerm;
+                                                    if ($loanTermType === 'weeks') {
+                                                        $termInDays = $loanTerm * 7;
+                                                    } elseif ($loanTermType === 'months') {
+                                                        $termInDays = $loanTerm * 30;
+                                                    } elseif ($loanTermType === 'years') {
+                                                        $termInDays = $loanTerm * 365;
+                                                    }
+                                                    
+                                                    $frequencyInDays = $repaymentFrequency;
+                                                    if ($repaymentFrequencyType === 'weeks') {
+                                                        $frequencyInDays = $repaymentFrequency * 7;
+                                                    } elseif ($repaymentFrequencyType === 'months') {
+                                                        $frequencyInDays = $repaymentFrequency * 30;
+                                                    }
+                                                    
+                                                    $totalPayments = ceil($termInDays / $frequencyInDays);
                                                     
                                                     // Calculate payment using amortization formula
                                                     $memberPayment = 0;
@@ -168,7 +186,25 @@
                                                         $periodInterestRate = $interestRate / (12 / $repaymentFrequency);
                                                     }
                                                     
-                                                    $totalPayments = $loanTerm / $repaymentFrequency;
+                                                    // Convert both to days for accurate calculation
+                                                    $loanTermType = $loan->loan_product->loan_term_type ?? 'months';
+                                                    $termInDays = $loanTerm;
+                                                    if ($loanTermType === 'weeks') {
+                                                        $termInDays = $loanTerm * 7;
+                                                    } elseif ($loanTermType === 'months') {
+                                                        $termInDays = $loanTerm * 30;
+                                                    } elseif ($loanTermType === 'years') {
+                                                        $termInDays = $loanTerm * 365;
+                                                    }
+                                                    
+                                                    $frequencyInDays = $repaymentFrequency;
+                                                    if ($repaymentFrequencyType === 'weeks') {
+                                                        $frequencyInDays = $repaymentFrequency * 7;
+                                                    } elseif ($repaymentFrequencyType === 'months') {
+                                                        $frequencyInDays = $repaymentFrequency * 30;
+                                                    }
+                                                    
+                                                    $totalPayments = ceil($termInDays / $frequencyInDays);
                                                     
                                                     $memberPayment = 0;
                                                     if ($periodInterestRate > 0) {
@@ -202,10 +238,31 @@
                 <div class="col-md-12">
                     <div class="alert alert-info">
                         <h4><i class="fa fa-info-circle"></i> Loan Details</h4>
-                        <p><strong>Loan Term:</strong> {{$loan->loan_term}} {{ucfirst($loan->repayment_frequency_type)}}</p>
+                        <p><strong>Loan Term:</strong> {{$loan->loan_term}} {{ucfirst($loan->loan_product->loan_term_type ?? 'months')}}</p>
                         <p><strong>Payment Frequency:</strong> Every {{$loan->repayment_frequency}} {{ucfirst($loan->repayment_frequency_type)}}(s)</p>
                         <p><strong>Interest Rate:</strong> {{$loan->interest_rate}}% {{ucfirst($loan->loan_product->interest_rate_type)}}ly</p>
-                        <p><strong>Total Number of Payments:</strong> {{$loan->loan_term / $loan->repayment_frequency}}</p>
+                        <p><strong>Total Number of Payments:</strong> 
+                            @php
+                                $loanTermType = $loan->loan_product->loan_term_type ?? 'months';
+                                $termInDays = $loan->loan_term;
+                                if ($loanTermType === 'weeks') {
+                                    $termInDays = $loan->loan_term * 7;
+                                } elseif ($loanTermType === 'months') {
+                                    $termInDays = $loan->loan_term * 30;
+                                } elseif ($loanTermType === 'years') {
+                                    $termInDays = $loan->loan_term * 365;
+                                }
+                                
+                                $frequencyInDays = $loan->repayment_frequency;
+                                if ($loan->repayment_frequency_type === 'weeks') {
+                                    $frequencyInDays = $loan->repayment_frequency * 7;
+                                } elseif ($loan->repayment_frequency_type === 'months') {
+                                    $frequencyInDays = $loan->repayment_frequency * 30;
+                                }
+                                
+                                echo ceil($termInDays / $frequencyInDays);
+                            @endphp
+                        </p>
                     </div>
                 </div>
             </div>

@@ -1590,7 +1590,7 @@ class LoanController extends Controller
         $loan_transaction->submitted_on = $loan->disbursed_on_date;
         $loan_transaction->created_on = date("Y-m-d");
         $loan_transaction->amount = $loan->principal;
-        $loan_transaction->debit = $loan->principal;
+        $loan_transaction->credit = $loan->principal;
         $loan_transaction->save();
         $disbursal_transaction_id = $loan_transaction->id;
 
@@ -1606,7 +1606,7 @@ class LoanController extends Controller
                 $member_transaction->submitted_on = $loan->disbursed_on_date;
                 $member_transaction->created_on = date("Y-m-d");
                 $member_transaction->amount = $allocation->allocated_amount;
-                $member_transaction->debit = $allocation->allocated_amount;
+                $member_transaction->credit = $allocation->allocated_amount;
                 // Note: client_id field may not exist in loan_transactions table
                 // Store client info in transaction name for tracking
                 $member_transaction->save();
@@ -2029,6 +2029,7 @@ class LoanController extends Controller
             $savingsTransaction->created_by_id = Auth::id();
             $savingsTransaction->savings_id = $savings->id;
             $savingsTransaction->name = 'Loan Repayment Deduction';
+            $savingsTransaction->description = "Auto-Debit for Loan Repayment: {$loan->loan_product->name} (Loan #{$loan->id}, Acc: {$loan->account_number})";
             $savingsTransaction->savings_transaction_type_id = 2; // withdrawal
             $savingsTransaction->amount = $request->amount;
             $savingsTransaction->debit = $request->amount;
@@ -2983,6 +2984,7 @@ class LoanController extends Controller
                     $savingsTransaction->created_by_id = Auth::id();
                     $savingsTransaction->savings_id = $savings->id;
                     $savingsTransaction->name = 'Group Loan Repayment Deduction';
+                    $savingsTransaction->description = "Auto-Debit for Group Loan Repayment: {$loan->loan_product->name} (Loan #{$loan->id}, Acc: {$loan->account_number}) - Member Share";
                     $savingsTransaction->savings_transaction_type_id = 2; // withdrawal
                     $savingsTransaction->amount = $amount;
                     $savingsTransaction->debit = $amount;

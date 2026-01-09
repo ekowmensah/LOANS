@@ -70,6 +70,7 @@ class ProcessInterest extends Command
             $savings_transaction->branch_id = $savings->branch_id;
             $savings_transaction->savings_id = $savings->id;
             $savings_transaction->name = trans_choice('savings::general.apply', 1) . ' ' . trans_choice('savings::general.interest', 1);
+            $savings_transaction->description = "Interest Posted: {$savings->savings_product->name} (Acc: {$savings->account_number}) - Rate: {$savings->interest_rate}%";
             $savings_transaction->savings_transaction_type_id = 11;
             $savings_transaction->submitted_on = $savings->next_interest_posting_date;
             $savings_transaction->created_on = date("Y-m-d");

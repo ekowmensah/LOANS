@@ -100,6 +100,7 @@ class DepositDisbursementToSavings
         $savings_transaction->branch_id = $savings->branch_id;
         $savings_transaction->payment_detail_id = $payment_detail->id;
         $savings_transaction->name = "{$note} - Loan #{$loan->id}";
+        $savings_transaction->description = "Loan Disbursement: {$loan->loan_product->name} (Loan #{$loan->id}, Acc: {$loan->account_number})";
         $savings_transaction->savings_transaction_type_id = 1; // Deposit
         $savings_transaction->submitted_on = $date;
         $savings_transaction->created_on = date("Y-m-d");

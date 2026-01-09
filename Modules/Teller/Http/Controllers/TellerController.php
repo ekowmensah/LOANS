@@ -172,6 +172,8 @@ class TellerController extends Controller
         $savings_transaction->branch_id = $savings->branch_id;
         $savings_transaction->payment_detail_id = $payment_detail->id;
         $savings_transaction->name = trans_choice('savings::general.deposit', 1);
+        $paymentType = \Modules\Core\Entities\PaymentType::find($request->payment_type_id);
+        $savings_transaction->description = "Deposit to {$savings->savings_product->name} (Acc: {$savings->account_number}) via {$paymentType->name}" . ($request->receipt ? " - Receipt: {$request->receipt}" : "");
         $savings_transaction->savings_transaction_type_id = 1;
         $savings_transaction->submitted_on = $request->date;
         $savings_transaction->created_on = date("Y-m-d");
@@ -265,6 +267,8 @@ class TellerController extends Controller
         $savings_transaction->branch_id = $savings->branch_id;
         $savings_transaction->payment_detail_id = $payment_detail->id;
         $savings_transaction->name = trans_choice('savings::general.withdrawal', 1);
+        $paymentType = \Modules\Core\Entities\PaymentType::find($request->payment_type_id);
+        $savings_transaction->description = "Withdrawal from {$savings->savings_product->name} (Acc: {$savings->account_number}) via {$paymentType->name}" . ($request->receipt ? " - Receipt: {$request->receipt}" : "");
         $savings_transaction->savings_transaction_type_id = 2;
         $savings_transaction->submitted_on = $request->date;
         $savings_transaction->created_on = date("Y-m-d");
